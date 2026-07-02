@@ -1,0 +1,143 @@
+"""Expense recovery structures and per-lease assignments (spec §3.14)
+[AE pp. 404-413, 517-520].
+"""
+from __future__ import annotations
+
+from enum import Enum
+from typing import Optional
+
+from pydantic import Field, model_validator
+
+from .common import InflationRef, Ref, StrictModel
+
+
+class RecoverySystemMethod(str, Enum):
+    """System methods assignable directly on a lease (spec §3.14)."""
+
+    none = "none"
+    net = "net"                        # 100% pro-rata of recoverable expenses
+    base_stop = "base_stop"            # recover over a $/SF stop
+    base_year = "base_year"            # over actual expenses of a named year, frozen
+    base_year_plus_1 = "base_year_plus_1"
+    fixed = "fixed"                    # $ or $/SF amount, inflatable
+    structure = "structure"            # user-defined RecoveryStructure by name
+
+
+class RecoveryAssignment(StrictModel):
+    """How a lease (or MLP speculative lease) recovers expenses."""
+
+    method: RecoverySystemMethod = RecoverySystemMethod.net
+    stop_amount_per_area: Optional[float] = None      # base_stop: $/SF stop
+    base_year: Optional[int] = None                   # base_year methods: calendar year (None = year 1)
+    base_year_gross_up_pct: Optional[float] = None    # optionally gross up the frozen base year
+    fixed_amount: Optional[float] = None              # fixed: $ or
+    fixed_amount_per_area: Optional[float] = None     # fixed: $/SF
+    fixed_inflation: InflationRef = None
+    structure_ref: Optional[Ref] = None               # method == structure
+
+    @model_validator(mode="after")
+    def _method_inputs(self) -> "RecoveryAssignment":
+        if self.method == RecoverySystemMethod.base_stop and self.stop_amount_per_area is None:
+            raise ValueError("base_stop requires stop_amount_per_area")
+        if self.method == RecoverySystemMethod.fixed and (
+            self.fixed_amount is None and self.fixed_amount_per_area is None
+        ):
+            raise ValueError("fixed requires fixed_amount or fixed_amount_per_area")
+        if self.method == RecoverySystemMethod.structure and self.structure_ref is None:
+            raise ValueError("structure method requires structure_ref")
+        return self
+
+
+class PoolMethod(str, Enum):
+    net = "net"
+    stop = "stop"
+    base_year = "base_year"
+    fixed = "fixed"
+
+
+class AdminFeeApplies(str, Enum):
+    """Whether the admin fee is added before or after the stop/base is
+    subtracted [AE p. 520]."""
+
+    before_stop = "before_stop"
+    after_stop = "after_stop"
+
+
+class Denominator(str, Enum):
+    rentable_area = "rentable_area"
+    property_size = "property_size"
+    occupied_area = "occupied_area"
+    fixed_area = "fixed_area"
+
+
+class BaseYearSpec(StrictModel):
+    """Base-year pool basis: expenses of a named calendar/fiscal year, value
+    frozen, optionally grossed up."""
+
+    year: Optional[int] = None  # None = analysis year 1
+    fiscal: bool = False
+    gross_up_pct: Optional[float] = None
+
+
+class RecoveryPool(StrictModel):
+    """One expense pool within a user-defined recovery structure.
+
+    Gross-up formula [AE p. 407]: grossed expense = fixed portion + variable
+    portion × (gross_up_pct / actual occupancy %) when actual < target; never
+    gross down. Tenant recovery = (pool expense after adjustments − stop/base)
+    × pro-rata share, floored at 0, capped per caps.
+    """
+
+    expenses: list[Ref]  # expense account names or expense group names
+    method: PoolMethod = PoolMethod.net
+    gross_up_pct: Optional[float] = Field(default=None, gt=0, le=100)
+    base_amount_per_area: Optional[float] = None      # stop method: $/SF
+    base_year: Optional[BaseYearSpec] = None          # base_year method
+    fixed_amount: Optional[float] = None              # fixed method
+    fixed_inflation: InflationRef = None
+    admin_fee_pct: float = 0.0
+    admin_fee_applies: AdminFeeApplies = AdminFeeApplies.before_stop
+    denominator: Denominator = Denominator.rentable_area
+    denominator_fixed_area: Optional[float] = Field(default=None, gt=0)
+    pro_rata_share_override: Optional[float] = None   # % override of tenant share
+
+    @model_validator(mode="after")
+    def _method_inputs(self) -> "RecoveryPool":
+        if self.method == PoolMethod.stop and self.base_amount_per_area is None:
+            raise ValueError("stop pool requires base_amount_per_area")
+        if self.method == PoolMethod.fixed and self.fixed_amount is None:
+            raise ValueError("fixed pool requires fixed_amount")
+        if self.denominator == Denominator.fixed_area and self.denominator_fixed_area is None:
+            raise ValueError("fixed_area denominator requires denominator_fixed_area")
+        return self
+
+
+class CapsFloors(StrictModel):
+    """Per-pool recovery caps/floors [AE pp. 411-412]."""
+
+    yearly_cap_pct: Optional[float] = None      # YoY growth cap
+    cumulative_cap_pct: Optional[float] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+
+
+class ExpenseAdjustment(StrictModel):
+    """Exclusion/addition applied to a pool's expenses [AE p. 410]."""
+
+    expense: Ref
+    action: str = "exclude"  # "exclude" | "add"
+    pct: float = 100.0       # portion of the expense to exclude/add
+
+
+class RecoveryStructure(StrictModel):
+    """User-defined recovery structure (spec §3.14) [AE pp. 404-413].
+
+    Recovery revenue posts monthly as 1/12 of the annualized computation; v1
+    uses straight monthly accrual (true-up in a reconciliation month is a
+    policy toggle, spec §3.14).
+    """
+
+    name: str
+    pools: list[RecoveryPool] = Field(min_length=1)
+    caps_floors: Optional[CapsFloors] = None
+    expense_adjustments: list[ExpenseAdjustment] = []
