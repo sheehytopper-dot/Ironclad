@@ -11,6 +11,15 @@ deal from a CBRE Offering Memorandum with a published Argus-based cash flow.
 
 ---
 
+## Step 0 — Repo privacy
+
+**Owner: Topper (human). Not a Claude task — future sessions must not act on this.**
+
+The repo must be verified **Private** before any confidential OM material is
+committed. **Verified Private by Topper on 2026-07-03.** If a collaborator is
+ever added to the repo, `tests/golden/` moves to `.gitignore` *first* —
+before the invitation goes out.
+
 ## Step 1 — Source documents
 
 Place the CBRE OM (or at minimum its cash flow pages) in
@@ -72,7 +81,21 @@ Implement, in dependency order, each with manual worked-example unit tests
   month**
 - Sum(monthly) = annual for every account (spec §9.3)
 
-## Step 6 — Gate 1 review
+## Step 6 — Source additional OM goldens (parallel; due end of week 2)
+
+**Owner: Topper (human). Not a Claude task — future sessions must not act on this.**
+
+Obtain two more OMs with published Argus-based cash flows:
+
+1. **Multi-tenant** with base-year or expense-stop recoveries → golden #2
+2. **Retail** with percentage rent → golden #3
+
+Staged in `tests/golden/` as source PDFs **by end of week 2 (target:
+2026-07-17)** — Phase 2's gate depends on both, and fixture transcription
+takes time, so late sourcing stalls Phase 2 directly. Runs in parallel with
+Steps 2-5.
+
+## Step 7 — Gate 1 review
 
 Both comparisons green in the same pytest run, invariants passing, and a
 short discrepancy log for anything explained within tolerance. Then — and
@@ -80,5 +103,7 @@ only then — Phase 2 work may begin (Iron Rule 2).
 
 ---
 
-**Status:** Step 1 pending source documents. Step 3 is owner work. Steps 2
-and 4 can start now and run in parallel.
+**Status:** Step 0 verified 2026-07-03. Step 1 done — the Clorox OM is staged
+in `tests/golden/clorox_northlake/source/`. Steps 3 and 6 are owner work
+(human-owned; not Claude tasks). Steps 2 and 4 can start now and run in
+parallel.

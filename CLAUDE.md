@@ -98,6 +98,8 @@ multi-currency, GAAP rent, or live-formula Excel before Phase 6 completes (spec 
   rentable SF, monthly sums = annual, debt balance rolls, PV/IRR self-consistency.
 - Full precision inside the ledger; rounding is report-level only (§4.3).
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
+- **When you restructure or summarize a planning document, list explicitly anything you
+  removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0 complete**
   (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1 per
   [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) — it begins once the Clorox Northlake
