@@ -13,10 +13,11 @@ any non-trivial task. This file is the standing orders; the spec is the law.**
    package. It must never import from `ui/`, `api/`, or Streamlit/FastAPI/Plotly. The UI and
    API are clients of the engine, never the reverse.
 2. **No phase advances until its golden-file gate passes.** Each roadmap phase (spec §10) has
-   an acceptance gate against real ARGUS output exports in `tests/golden/`. Do not start work
-   belonging to phase N+1 until phase N's gate passes (tolerances per spec §9.1: line items
-   within $1/month, IRR within 1bp, PV within $100). In particular: no UI work until golden
-   test #1 passes end-to-end; no report work beyond Cash Flow until golden test #2 passes.
+   an acceptance gate against golden fixtures in `tests/golden/` (sources and tolerances: see
+   **Golden-File Strategy** below — it supersedes spec §9.1's ARGUS-export sourcing). Do not
+   start work belonging to phase N+1 until phase N's gate passes. In particular: no UI work
+   until golden test #1 passes end-to-end; no report work beyond Cash Flow until golden test
+   #2 passes.
 3. **Every calc module gets unit tests from the manual's worked examples.** Each module in
    `engine/calc/` ships with pytest tests reproducing the ARGUS manual's worked examples
    (base rent calc examples, rent reviews, repeating payments, recovery gross-up, resale
@@ -32,6 +33,27 @@ the cited pages before implementing any calc module. The manual is a reference f
 behavior only — never copy its text into the product, UI, or docs, and never name or market
 the product as "Argus." Do not implement `.aeex`/`.aeix` binary formats; our format is open
 JSON (`.icprop.json`, spec §5.1).
+
+## Golden-File Strategy (supersedes spec §9.1 sourcing)
+
+**We do not have ARGUS access — no ARGUS output exports are coming.** Validation instead
+rests on three independent sources:
+
+1. **Offering Memorandums with published Argus-based cash flows.** Starting with
+   `tests/golden/clorox_northlake/` built from a CBRE OM (single-tenant net lease).
+   Validated **annually at fiscal-year level, within $500 per line**.
+2. **An independently hand-built Excel model of the same deal** —
+   `tests/golden/clorox_northlake/hand_model.xlsx`, built by the owner **without Claude's
+   involvement**. Validated **monthly, within $1 per line**. Claude must never create, edit,
+   or "fix" this file; when engine and hand model disagree, investigate and report — the
+   owner adjudicates.
+3. **The manual's worked examples as unit-level goldens** (Iron Rule 3): base rent examples
+   [AE pp. 391-394], repeating payments [AE pp. 361-362], recovery gross-up [AE p. 407],
+   resale methods [AE pp. 464-471], with page cites in test docstrings.
+
+The step-by-step path to Gate 1 is [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md).
+**Phase 1 is not blocked**: it begins once the Clorox fixture (NEXT_STEPS_TO_GATE1.md
+Step 2 — inputs JSON + transcribed OM cash flow + assumptions log) lands.
 
 ## Architecture (spec §2)
 
@@ -60,8 +82,8 @@ JSON (`.icprop.json`, spec §5.1).
 | Phase | Scope | Gate |
 |---|---|---|
 | 0 — Scaffold | Repo, §3 pydantic models, JSON round-trip, timeline + inflation modules + tests | Tests pass |
-| 1 — Core ledger | Base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI | **Golden #1** (simple net-lease property) cash flow matches |
-| 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Golden #2** (office w/ rollover + base-year) and **#3** (retail) match; Recovery Audit + Lease Audit built and matching |
+| 1 — Core ledger | Base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI | **Golden #1** (Clorox Northlake): OM annual within $500/line + hand model monthly within $1 |
+| 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Golden #2** (office w/ rollover + base-year) and **#3** (retail) match — sourced per Golden-File Strategy; Recovery Audit + Lease Audit built and matching |
 | 3 — Capital & valuation | TIs/LCs, capex, purchase, debt, resale, PV/IRR, sensitivity | IRR/PV/Resale match goldens; §9.3 invariants pass |
 | 4 — Reports & export | Full §7 catalog, PSF toggles, Excel package | Side-by-side export review vs ARGUS prints |
 | 5 — UI | Streamlit per §6 | Full property built from scratch through UI only, calc, export |
@@ -77,5 +99,6 @@ multi-currency, GAAP rent, or live-formula Excel before Phase 6 completes (spec 
 - Full precision inside the ledger; rounding is report-level only (§4.3).
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0 complete**
-  (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1, which
-  requires golden fixture #1 (simple net-lease property ARGUS export) in `tests/golden/`.
+  (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1 per
+  [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) — it begins once the Clorox Northlake
+  fixture (Step 2) lands in `tests/golden/clorox_northlake/`.
