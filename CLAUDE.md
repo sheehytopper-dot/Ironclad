@@ -55,6 +55,29 @@ The step-by-step path to Gate 1 is [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.
 **Phase 1 is not blocked**: it begins once the Clorox fixture (NEXT_STEPS_TO_GATE1.md
 Step 2 — inputs JSON + transcribed OM cash flow + assumptions log) lands.
 
+## Intake Surfaces (standing policy)
+
+**In-app OM ingestion ("Phase 7") is cancelled entirely.** Do not scaffold it, reference it
+as future work, or reintroduce it in any planning document. The application has exactly two
+intake surfaces:
+
+1. **Loading a PropertyModel JSON file** (`.icprop.json`, spec §5.1)
+2. **Importing the rent roll Excel template** (spec §5.2)
+
+Both validate fully through the §3 pydantic models, and validation errors must be readable
+by a non-programmer. How a PropertyModel JSON gets created is **permanently outside the
+application's scope**: extraction from OMs or other documents happens in external workflows
+the app knows nothing about.
+
+To support those external workflows, the schema is documented for outside producers:
+[docs/SCHEMA_GUIDE.md](docs/SCHEMA_GUIDE.md) (human-readable field-by-field guide — units,
+enums, defaults, worked example) and `docs/property_model.schema.json` (formal JSON Schema,
+exported by `scripts/export_json_schema.py`). **Regenerate both whenever `engine/models/`
+changes** — `tests/unit/test_schema_docs.py` fails when either drifts.
+
+**Standing principle: any JSON produced by an external extraction workflow is reviewed by a
+human against the source document before it is used for calculation.**
+
 ## Architecture (spec §2)
 
 - **Stack:** Python 3.11+ engine (`numpy`/`pandas`), `pydantic` v2 input models, JSON-per-property
@@ -64,7 +87,8 @@ Step 2 — inputs JSON + transcribed OM cash flow + assumptions log) lands.
   one module per domain: timeline, inflation, leases, recoveries, percentage_rent, revenues,
   expenses, vacancy, absorption, debt, resale, valuation, sensitivity, ledger, run) ·
   `engine/reports/` (DataFrame builders) · `engine/export/` (Excel packages) · `api/` · `ui/` ·
-  `data/properties/` + `data/templates/` · `tests/unit/` + `tests/golden/`.
+  `data/properties/` + `data/templates/` · `tests/unit/` + `tests/golden/` ·
+  `docs/` (schema guide + JSON Schema export) · `scripts/` (doc/schema regeneration).
 - **The canonical ledger (§2.3):** everything is computed monthly into one pandas DataFrame
   (Period[M] index, analysis begin → end + 12 months for the resale look-forward), one column
   per account in the Chart of Accounts tree. Annual/quarterly/fiscal views are aggregations of
@@ -89,8 +113,12 @@ Step 2 — inputs JSON + transcribed OM cash flow + assumptions log) lands.
 | 5 — UI | Streamlit per §6 | Full property built from scratch through UI only, calc, export |
 | 6 — Hardening | Scenario compare, perf (<5s for 100-tenant/10-yr), errors, docs | — |
 
+The phase schedule and its status live in [BUILD_SCHEDULE.md](BUILD_SCHEDULE.md).
+
 Refuse scope creep: no hotels, multifamily, UK valuation, portfolio server, budgeting,
 multi-currency, GAAP rent, or live-formula Excel before Phase 6 completes (spec §1.2, §11).
+In-app OM/document ingestion is not on that deferred list — it is **cancelled permanently**
+(see Intake Surfaces above) and must not be built in any phase.
 
 ## Conventions
 

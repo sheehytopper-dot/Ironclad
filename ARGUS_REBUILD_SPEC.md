@@ -38,6 +38,12 @@
 - Budgeting and actuals / variance reforecasting [AE pp. 211-217, 487-503] (v2 candidate)
 - Multi-currency (single currency per property; USD default)
 - GAAP straight-line rent reporting [AE p. 375] (v1.1 candidate; trivial once cash rent ledger exists)
+- **In-app OM/document ingestion — cancelled entirely (not deferred: no version target, ever).**
+  Do not scaffold it or reference it as future work. The application has exactly two intake
+  surfaces (§5.4): loading a PropertyModel JSON document and importing the rent roll template.
+  How a PropertyModel JSON gets created is permanently outside the application's scope;
+  extraction from OMs or other documents happens in external workflows the app knows nothing
+  about, supported by the schema documentation in §5.1.
 
 ## 1.3 Design principles
 1. **Engine before UI.** The calculation engine is a standalone, headless Python package with zero UI dependencies. The UI is a client of the engine.
@@ -91,6 +97,11 @@ ironclad/
   data/
     properties/            # saved property JSON files
     templates/             # rent roll import template.xlsx
+  docs/
+    SCHEMA_GUIDE.md        # human-readable PropertyModel JSON guide (for external producers, §5.1)
+    property_model.schema.json  # formal JSON Schema export (§5.1)
+  scripts/
+    export_json_schema.py  # regenerates property_model.schema.json
   reference/
     Argus_Training_Guide.pdf
   tests/
@@ -426,10 +437,15 @@ Implement a `ModelingPolicies` object: rounding (none vs nearest dollar at repor
 ## 5.1 Property JSON (`.icprop.json`)
 Single document containing every §3 model plus schema_version. Pretty-printed, stable key order (Git-diffable). This is our `.aeex` replacement.
 
+The format is documented for external producers by `docs/SCHEMA_GUIDE.md` (human-readable field-by-field guide: units, enums, defaults, worked example) and `docs/property_model.schema.json` (formal JSON Schema, exported by `scripts/export_json_schema.py`). Both are regenerated whenever the §3 models change; `tests/unit/test_schema_docs.py` enforces this.
+
 ## 5.2 Rent Roll Import Template (`templates/rent_roll_template.xlsx`)
-One row per lease, columns matching §3.12 flat fields; steps and misc items in companion sheets keyed by tenant. Import validates via pydantic and returns row-level errors [import validation concept: AE pp. 62, 171]. Also support CSV.
+One row per lease, columns matching §3.12 flat fields; steps and misc items in companion sheets keyed by tenant. Import validates via pydantic and returns row-level errors readable by a non-programmer [import validation concept: AE pp. 62, 171]. Also support CSV.
 
 ## 5.3 Excel Result Package (Section 8) and per-report exports.
+
+## 5.4 Intake surfaces (normative)
+The application has **exactly two** intake surfaces: loading a PropertyModel JSON document (§5.1) and importing the rent roll template (§5.2). Both validate fully through the §3 pydantic models, and validation errors must be readable by a non-programmer (plain language, the field path, the offending value, and what a valid value looks like). No other ingestion path exists or may be added; in-app OM/document ingestion is cancelled entirely (§1.2). External extraction workflows that produce `.icprop.json` files are outside the application and are supported only by the schema documentation in §5.1. **Any JSON produced by an external extraction workflow is reviewed by a human against the source document before it is used for calculation.**
 
 ---
 
@@ -541,4 +557,4 @@ Every worked example in the manual becomes a test: Rental Income examples [AE p.
 ---
 
 # 11. NON-GOALS RESTATED
-No multi-user server, no permissions, no hotels/multifamily/UK valuation, no `.aeex` compatibility, no budgeting module, no GAAP rent (v1.1), no live-formula Excel (v2). Any request to add these before Phase 6 completes should be refused by the builder.
+No multi-user server, no permissions, no hotels/multifamily/UK valuation, no `.aeex` compatibility, no budgeting module, no GAAP rent (v1.1), no live-formula Excel (v2). Any request to add these before Phase 6 completes should be refused by the builder. **No in-app OM/document ingestion — ever** (§1.2, §5.4): unlike the deferred items above, it is cancelled entirely and must be refused in every phase, not reintroduced as a future phase.

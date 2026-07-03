@@ -1,0 +1,3500 @@
+{
+  "$defs": {
+    "AbsorptionSpec": {
+      "additionalProperties": false,
+      "description": "Lease-up of currently vacant space (spec \u00a73.15) [AE pp. 395-403].\n\nGenerates synthetic leases on the schedule; each behaves like a rent roll\nlease thereafter (rollover chains etc.). Give exactly one of\n``number_of_leases`` / ``area_per_lease``.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "total_area": {
+          "exclusiveMinimum": 0,
+          "title": "Total Area",
+          "type": "number"
+        },
+        "number_of_leases": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number Of Leases"
+        },
+        "area_per_lease": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Area Per Lease"
+        },
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "interval_months": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Interval Months",
+          "type": "integer"
+        },
+        "lease_type": {
+          "$ref": "#/$defs/LeaseType",
+          "default": "office"
+        },
+        "market_leasing_profile": {
+          "title": "Market Leasing Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "total_area",
+        "start_date",
+        "market_leasing_profile"
+      ],
+      "title": "AbsorptionSpec",
+      "type": "object"
+    },
+    "AdditionalPrincipal": {
+      "additionalProperties": false,
+      "description": "Additional principal payment [AE p. 444].",
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "amount": {
+          "exclusiveMinimum": 0,
+          "title": "Amount",
+          "type": "number"
+        }
+      },
+      "required": [
+        "date",
+        "amount"
+      ],
+      "title": "AdditionalPrincipal",
+      "type": "object"
+    },
+    "Address": {
+      "additionalProperties": false,
+      "description": "Display-only property address (spec \u00a73.1).",
+      "properties": {
+        "street": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Street"
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "City"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "State"
+        },
+        "zip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zip"
+        }
+      },
+      "title": "Address",
+      "type": "object"
+    },
+    "AdminFeeApplies": {
+      "description": "Whether the admin fee is added before or after the stop/base is\nsubtracted [AE p. 520].",
+      "enum": [
+        "before_stop",
+        "after_stop"
+      ],
+      "title": "AdminFeeApplies",
+      "type": "string"
+    },
+    "AreaMeasures": {
+      "additionalProperties": false,
+      "description": "Building and rentable area measures (spec \u00a73.2) [AE pp. 188-196].\n\nOccupied Area is always computed by the engine, never input. Pro-rata\ndenominators for recoveries reference Property Size, Rentable Area, or an\nalternate measure per recovery structure (spec \u00a73.14).",
+      "properties": {
+        "property_size": {
+          "exclusiveMinimum": 0,
+          "title": "Property Size",
+          "type": "number"
+        },
+        "alternate_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Alternate Size"
+        },
+        "rentable_area_mode": {
+          "$ref": "#/$defs/RentableAreaMode",
+          "default": "derived"
+        },
+        "rentable_area_fixed": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rentable Area Fixed"
+        },
+        "rentable_area_schedule": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/AreaScheduleEntry"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rentable Area Schedule"
+        }
+      },
+      "required": [
+        "property_size"
+      ],
+      "title": "AreaMeasures",
+      "type": "object"
+    },
+    "AreaScheduleEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "area": {
+          "exclusiveMinimum": 0,
+          "title": "Area",
+          "type": "number"
+        }
+      },
+      "required": [
+        "date",
+        "area"
+      ],
+      "title": "AreaScheduleEntry",
+      "type": "object"
+    },
+    "BaseYearSpec": {
+      "additionalProperties": false,
+      "description": "Base-year pool basis: expenses of a named calendar/fiscal year, value\nfrozen, optionally grossed up.",
+      "properties": {
+        "year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Year"
+        },
+        "fiscal": {
+          "default": false,
+          "title": "Fiscal",
+          "type": "boolean"
+        },
+        "gross_up_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gross Up Pct"
+        }
+      },
+      "title": "BaseYearSpec",
+      "type": "object"
+    },
+    "BreakpointLayer": {
+      "additionalProperties": false,
+      "description": "One tiered-overage layer: pct of sales above breakpoint_amount.\n``breakpoint_amount`` is None for natural/zero breakpoints.",
+      "properties": {
+        "breakpoint_amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Breakpoint Amount"
+        },
+        "pct": {
+          "exclusiveMinimum": 0,
+          "title": "Pct",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pct"
+      ],
+      "title": "BreakpointLayer",
+      "type": "object"
+    },
+    "CPIMethod": {
+      "enum": [
+        "full_cpi",
+        "pct_of_cpi",
+        "cpi_plus_pct",
+        "min_max_banded"
+      ],
+      "title": "CPIMethod",
+      "type": "string"
+    },
+    "CPISpec": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index"
+        },
+        "method": {
+          "$ref": "#/$defs/CPIMethod",
+          "default": "full_cpi"
+        },
+        "pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct"
+        },
+        "first_increase_month": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "const": "anniversary",
+              "type": "string"
+            }
+          ],
+          "default": "anniversary",
+          "title": "First Increase Month"
+        },
+        "frequency_months": {
+          "default": 12,
+          "minimum": 1,
+          "title": "Frequency Months",
+          "type": "integer"
+        },
+        "cap_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cap Pct"
+        },
+        "floor_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Floor Pct"
+        }
+      },
+      "title": "CPISpec",
+      "type": "object"
+    },
+    "CapsFloors": {
+      "additionalProperties": false,
+      "description": "Recovery caps/floors, applied per pool (spec \u00a73.14) [AE pp. 411-412].",
+      "properties": {
+        "yearly_cap_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Yearly Cap Pct"
+        },
+        "cumulative_cap_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cumulative Cap Pct"
+        },
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        }
+      },
+      "title": "CapsFloors",
+      "type": "object"
+    },
+    "ClosingCost": {
+      "additionalProperties": false,
+      "description": "Give exactly one of ``amount`` / ``pct_of_price``.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount"
+        },
+        "pct_of_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct Of Price"
+        },
+        "timing": {
+          "$ref": "#/$defs/ClosingCostTiming",
+          "default": "at_purchase"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ClosingCost",
+      "type": "object"
+    },
+    "ClosingCostTiming": {
+      "enum": [
+        "at_purchase",
+        "custom_date"
+      ],
+      "title": "ClosingCostTiming",
+      "type": "string"
+    },
+    "CreditLoss": {
+      "additionalProperties": false,
+      "description": "Credit loss allowance (spec \u00a73.5) [AE pp. 229-232].\n\nSame structure as General Vacancy; applied after General Vacancy on the\nreduced base. No interaction with absorption vacancy.",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/VacancyMethod",
+          "default": "none"
+        },
+        "rate": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/YearRate"
+          },
+          "title": "Rate",
+          "type": "array"
+        },
+        "include_in_pgr_accounts": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Include In Pgr Accounts",
+          "type": "array"
+        },
+        "tenant_overrides": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TenantOverride"
+          },
+          "title": "Tenant Overrides",
+          "type": "array"
+        }
+      },
+      "title": "CreditLoss",
+      "type": "object"
+    },
+    "CustomIndex": {
+      "additionalProperties": false,
+      "description": "A named inflation index assignable anywhere an inflation picker exists.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "rates": {
+          "items": {
+            "$ref": "#/$defs/YearRate"
+          },
+          "title": "Rates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "rates"
+      ],
+      "title": "CustomIndex",
+      "type": "object"
+    },
+    "Denominator": {
+      "enum": [
+        "rentable_area",
+        "property_size",
+        "occupied_area",
+        "fixed_area"
+      ],
+      "title": "Denominator",
+      "type": "string"
+    },
+    "DirectCap": {
+      "additionalProperties": false,
+      "description": "Direct capitalization [AE pp. 453-454].",
+      "properties": {
+        "cap_rate": {
+          "exclusiveMinimum": 0,
+          "title": "Cap Rate",
+          "type": "number"
+        },
+        "noi_basis": {
+          "$ref": "#/$defs/NOIBasis",
+          "default": "year_1"
+        }
+      },
+      "required": [
+        "cap_rate"
+      ],
+      "title": "DirectCap",
+      "type": "object"
+    },
+    "DiscountMethod": {
+      "description": "Period discounting [AE pp. 472-473].",
+      "enum": [
+        "annual",
+        "quarterly",
+        "monthly"
+      ],
+      "title": "DiscountMethod",
+      "type": "string"
+    },
+    "ExpenseAdjustment": {
+      "additionalProperties": false,
+      "description": "Exclusion/addition applied to a pool's expenses (spec \u00a73.14, per pool)\n[AE p. 410].",
+      "properties": {
+        "expense": {
+          "title": "Expense",
+          "type": "string"
+        },
+        "action": {
+          "default": "exclude",
+          "title": "Action",
+          "type": "string"
+        },
+        "pct": {
+          "default": 100.0,
+          "title": "Pct",
+          "type": "number"
+        }
+      },
+      "required": [
+        "expense"
+      ],
+      "title": "ExpenseAdjustment",
+      "type": "object"
+    },
+    "ExpenseCategory": {
+      "enum": [
+        "operating",
+        "non_operating",
+        "capital"
+      ],
+      "title": "ExpenseCategory",
+      "type": "string"
+    },
+    "ExpenseGroup": {
+      "additionalProperties": false,
+      "description": "Named grouping of expenses for reporting rollups and recovery pool\nmembership [AE pp. 343-345].",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "members": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Members",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ExpenseGroup",
+      "type": "object"
+    },
+    "ExpenseItem": {
+      "additionalProperties": false,
+      "description": "One expense line (spec \u00a73.11) [AE pp. 313-345].\n\n``pct_fixed``: % fixed vs variable with occupancy; the variable portion =\namount \u00d7 occupancy%. Recovery structures may then gross variable expenses\nup to a stipulated occupancy (spec \u00a73.14). Operating expenses default\nrecoverable; capital/non-operating default not.\n\nCapital-only fields: ``amortization_years`` recovers the cost over N years\nin recoveries [AE p. 338]; ``refundable`` per [AE pp. 331-341].",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/ExpenseCategory",
+          "default": "operating"
+        },
+        "account": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/ExpenseUnit"
+        },
+        "account_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Ref"
+        },
+        "timing": {
+          "$ref": "#/$defs/Timing",
+          "default": {
+            "method": "continuous",
+            "start": null,
+            "end": null,
+            "repeat_months": null,
+            "repeat_every_months": null
+          }
+        },
+        "inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inflation"
+        },
+        "pct_fixed": {
+          "default": 100.0,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Pct Fixed",
+          "type": "number"
+        },
+        "limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Limits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recoverable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recoverable"
+        },
+        "expense_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expense Group"
+        },
+        "amortization_years": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amortization Years"
+        },
+        "refundable": {
+          "default": false,
+          "title": "Refundable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "amount",
+        "unit"
+      ],
+      "title": "ExpenseItem",
+      "type": "object"
+    },
+    "ExpenseUnit": {
+      "description": "Same amount/unit types as property revenues (spec \u00a73.10/\u00a73.11).",
+      "enum": [
+        "dollars_per_year",
+        "dollars_per_month",
+        "dollars_per_area_per_year",
+        "dollars_per_area_per_month",
+        "pct_of_egr",
+        "pct_of_pgr",
+        "pct_of_account",
+        "per_occupied_area",
+        "per_available_area"
+      ],
+      "title": "ExpenseUnit",
+      "type": "string"
+    },
+    "FloatingRate": {
+      "additionalProperties": false,
+      "description": "Floating = index + spread, monthly reset (spec \u00a73.17).",
+      "properties": {
+        "index": {
+          "items": {
+            "$ref": "#/$defs/YearRate"
+          },
+          "title": "Index",
+          "type": "array"
+        },
+        "spread": {
+          "default": 0.0,
+          "title": "Spread",
+          "type": "number"
+        }
+      },
+      "required": [
+        "index"
+      ],
+      "title": "FloatingRate",
+      "type": "object"
+    },
+    "FreeRent": {
+      "additionalProperties": false,
+      "description": "Free-rent months on a contract lease (spec \u00a73.12). ``custom_months``\nare 1-based month offsets within the lease term.",
+      "properties": {
+        "months": {
+          "minimum": 0,
+          "title": "Months",
+          "type": "number"
+        },
+        "timing": {
+          "$ref": "#/$defs/FreeRentTiming",
+          "default": "front"
+        },
+        "custom_months": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Custom Months"
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile"
+        }
+      },
+      "required": [
+        "months"
+      ],
+      "title": "FreeRent",
+      "type": "object"
+    },
+    "FreeRentProfile": {
+      "additionalProperties": false,
+      "description": "Which charge types abate during free-rent months (spec \u00a73.8)\n[AE pp. 253-254]: base rent only, or base + recoveries + misc.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "abate_base_rent": {
+          "default": true,
+          "title": "Abate Base Rent",
+          "type": "boolean"
+        },
+        "abate_recoveries": {
+          "default": false,
+          "title": "Abate Recoveries",
+          "type": "boolean"
+        },
+        "abate_miscellaneous": {
+          "default": false,
+          "title": "Abate Miscellaneous",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "FreeRentProfile",
+      "type": "object"
+    },
+    "FreeRentTiming": {
+      "enum": [
+        "front",
+        "custom"
+      ],
+      "title": "FreeRentTiming",
+      "type": "string"
+    },
+    "GeneralVacancy": {
+      "additionalProperties": false,
+      "description": "General vacancy allowance (spec \u00a73.4) [AE pp. 224-228].\n\nCritical, frequently misimplemented: when ``reduce_by_absorption_turnover``\nis true, monthly General Vacancy = max(0, target vacancy amount \u2212\nabsorption & turnover vacancy already in the ledger), so total vacancy\nequals the stated rate rather than stacking rollover downtime on top of it.\nTenant overrides remove those tenants' revenue from the base before\napplying the percentage.",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/VacancyMethod",
+          "default": "none"
+        },
+        "rate": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/YearRate"
+          },
+          "title": "Rate",
+          "type": "array"
+        },
+        "include_in_pgr_accounts": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Include In Pgr Accounts",
+          "type": "array"
+        },
+        "reduce_by_absorption_turnover": {
+          "default": true,
+          "title": "Reduce By Absorption Turnover",
+          "type": "boolean"
+        },
+        "tenant_overrides": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/TenantOverride"
+          },
+          "title": "Tenant Overrides",
+          "type": "array"
+        }
+      },
+      "title": "GeneralVacancy",
+      "type": "object"
+    },
+    "Inflation": {
+      "additionalProperties": false,
+      "description": "Inflation assumptions (spec \u00a73.3) [AE pp. 219-223].\n\nInflation factor for month m = \u03a0(1 + rate_y) over completed inflation\nanniversaries before m. Rates step on ``inflation_month`` (defaults to the\nanalysis begin month when None), not necessarily January.",
+      "properties": {
+        "general_rate": {
+          "items": {
+            "$ref": "#/$defs/YearRate"
+          },
+          "title": "General Rate",
+          "type": "array"
+        },
+        "market_rent_rate": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Market Rent Rate"
+        },
+        "expense_rate": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expense Rate"
+        },
+        "cpi_rate": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cpi Rate"
+        },
+        "custom_indices": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CustomIndex"
+          },
+          "title": "Custom Indices",
+          "type": "array"
+        },
+        "inflation_month": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inflation Month"
+        },
+        "timing_basis": {
+          "$ref": "#/$defs/TimingBasis",
+          "default": "analysis_year"
+        }
+      },
+      "required": [
+        "general_rate"
+      ],
+      "title": "Inflation",
+      "type": "object"
+    },
+    "LCCategory": {
+      "additionalProperties": false,
+      "description": "Named leasing-commission spec (spec \u00a73.9) [AE pp. 246-248, 258-262].\n\n``include_escalations`` flags whether commissions calculate on base rent\nonly or base + escalations (elements-to-include).",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "method": {
+          "$ref": "#/$defs/LCMethod"
+        },
+        "pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct"
+        },
+        "amount_per_area": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount Per Area"
+        },
+        "tiers": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/LCTier"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tiers"
+        },
+        "payable_timing": {
+          "$ref": "#/$defs/LCPayableTiming",
+          "default": "lease_start"
+        },
+        "include_escalations": {
+          "default": false,
+          "title": "Include Escalations",
+          "type": "boolean"
+        },
+        "inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inflation"
+        }
+      },
+      "required": [
+        "name",
+        "method"
+      ],
+      "title": "LCCategory",
+      "type": "object"
+    },
+    "LCMethod": {
+      "enum": [
+        "pct_of_first_year_rent",
+        "pct_of_total_lease_value",
+        "fixed_per_area",
+        "tiered_by_year"
+      ],
+      "title": "LCMethod",
+      "type": "string"
+    },
+    "LCPayableTiming": {
+      "enum": [
+        "lease_start",
+        "split_start_occupancy"
+      ],
+      "title": "LCPayableTiming",
+      "type": "string"
+    },
+    "LCSpec": {
+      "additionalProperties": false,
+      "description": "Leasing commission on a speculative lease: % of rent for given years,\nor a $/SF / $ amount [AE pp. 246-248]. Give exactly one of ``pct`` /\n``rate`` (or ``category_ref`` to a named LC category).",
+      "properties": {
+        "pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct"
+        },
+        "pct_years": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct Years"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoneyRate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "category_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category Ref"
+        }
+      },
+      "title": "LCSpec",
+      "type": "object"
+    },
+    "LCTier": {
+      "additionalProperties": false,
+      "description": "One tier of a year-tiered commission: ``pct`` applies from\n``from_year`` through ``to_year`` (None = through end of lease).",
+      "properties": {
+        "from_year": {
+          "minimum": 1,
+          "title": "From Year",
+          "type": "integer"
+        },
+        "to_year": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To Year"
+        },
+        "pct": {
+          "title": "Pct",
+          "type": "number"
+        }
+      },
+      "required": [
+        "from_year",
+        "pct"
+      ],
+      "title": "LCTier",
+      "type": "object"
+    },
+    "Lease": {
+      "additionalProperties": false,
+      "description": "One rent roll record per lease/suite (spec \u00a73.12) [AE pp. 363-390].\n\nBase rent calc examples are normative [AE pp. 391-394]: each worked\nexample (per SF/yr, per SF/mo, per yr, per mo, % of market, % of market\nwith steps) becomes a unit test when ``engine/calc/leases.py`` is built.",
+      "properties": {
+        "tenant_name": {
+          "title": "Tenant Name",
+          "type": "string"
+        },
+        "suite": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suite"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "area": {
+          "exclusiveMinimum": 0,
+          "title": "Area",
+          "type": "number"
+        },
+        "lease_type": {
+          "$ref": "#/$defs/LeaseType"
+        },
+        "start_date": {
+          "format": "date",
+          "title": "Start Date",
+          "type": "string"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Date"
+        },
+        "term_months": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Term Months"
+        },
+        "status": {
+          "$ref": "#/$defs/LeaseStatus",
+          "default": "contract"
+        },
+        "base_rent": {
+          "$ref": "#/$defs/MoneyRate"
+        },
+        "rent_steps": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RentStep"
+          },
+          "title": "Rent Steps",
+          "type": "array"
+        },
+        "cpi": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CPISpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "free_rent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FreeRent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recoveries": {
+          "$ref": "#/$defs/RecoveryAssignment",
+          "default": {
+            "method": "net",
+            "stop_amount_per_area": null,
+            "base_year": null,
+            "base_year_gross_up_pct": null,
+            "fixed_amount": null,
+            "fixed_amount_per_area": null,
+            "fixed_inflation": null,
+            "structure_ref": null
+          }
+        },
+        "percentage_rent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PercentRentSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "miscellaneous_items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MiscItemSpec"
+          },
+          "title": "Miscellaneous Items",
+          "type": "array"
+        },
+        "leasing_costs": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LeasingCosts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "security_deposit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecurityDepositSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "market_leasing_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Market Leasing Profile"
+        },
+        "upon_expiration": {
+          "$ref": "#/$defs/UponExpiration",
+          "default": "market"
+        },
+        "option_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Option Profile"
+        },
+        "tenant_classifications": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Tenant Classifications",
+          "type": "object"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "tenant_name",
+        "area",
+        "lease_type",
+        "start_date",
+        "base_rent"
+      ],
+      "title": "Lease",
+      "type": "object"
+    },
+    "LeaseStatus": {
+      "enum": [
+        "contract",
+        "speculative",
+        "mtm"
+      ],
+      "title": "LeaseStatus",
+      "type": "string"
+    },
+    "LeaseType": {
+      "description": "Drives report grouping + cap valuation treatment (spec \u00a73.12).",
+      "enum": [
+        "office",
+        "industrial",
+        "retail"
+      ],
+      "title": "LeaseType",
+      "type": "string"
+    },
+    "LeasingCosts": {
+      "additionalProperties": false,
+      "description": "TIs/LCs for the contract term (usually zero; rollover costs come from\nthe MLP). Inline specs or refs to named TI/LC categories (spec \u00a73.9).",
+      "properties": {
+        "ti": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoneyRate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ti_category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ti Category"
+        },
+        "lc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LCSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lc_category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lc Category"
+        }
+      },
+      "title": "LeasingCosts",
+      "type": "object"
+    },
+    "Limits": {
+      "additionalProperties": false,
+      "description": "Per-period min/max clamps on a computed amount [AE p. 279].",
+      "properties": {
+        "min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min"
+        },
+        "max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max"
+        }
+      },
+      "title": "Limits",
+      "type": "object"
+    },
+    "Loan": {
+      "additionalProperties": false,
+      "description": "One loan (spec \u00a73.17) [AE pp. 438-449]. Multiple loans supported.\n\nStandard mortgage math: payment = P \u00d7 r / (1 \u2212 (1+r)^\u2212n), r = annual/12.\n``amortization``: years, or \"interest_only\" / \"fully_amortizing\".\n\"Other Debt\" simple-interest lines [AE pp. 448-449] are modeled as\nfixed-payment loans.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/LoanType",
+          "default": "fixed"
+        },
+        "amount": {
+          "$ref": "#/$defs/LoanAmount"
+        },
+        "funding_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Funding Date"
+        },
+        "maturity_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maturity Date"
+        },
+        "term_months": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Term Months"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "$ref": "#/$defs/FloatingRate"
+            }
+          ],
+          "title": "Rate"
+        },
+        "interest_only_months": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Interest Only Months",
+          "type": "integer"
+        },
+        "amortization": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "enum": [
+                "interest_only",
+                "fully_amortizing"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "fully_amortizing",
+          "title": "Amortization"
+        },
+        "payment_frequency": {
+          "const": "monthly",
+          "default": "monthly",
+          "title": "Payment Frequency",
+          "type": "string"
+        },
+        "additional_principal": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AdditionalPrincipal"
+          },
+          "title": "Additional Principal",
+          "type": "array"
+        },
+        "loan_costs": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LoanCosts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "amount",
+        "rate"
+      ],
+      "title": "Loan",
+      "type": "object"
+    },
+    "LoanAmount": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "$ref": "#/$defs/LoanAmountBasis",
+          "default": "amount"
+        },
+        "value": {
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "LoanAmount",
+      "type": "object"
+    },
+    "LoanAmountBasis": {
+      "enum": [
+        "amount",
+        "pct_of_price",
+        "pct_of_value"
+      ],
+      "title": "LoanAmountBasis",
+      "type": "string"
+    },
+    "LoanCostHandling": {
+      "enum": [
+        "amortize",
+        "expense"
+      ],
+      "title": "LoanCostHandling",
+      "type": "string"
+    },
+    "LoanCosts": {
+      "additionalProperties": false,
+      "description": "Points and fees [AE pp. 445-446].",
+      "properties": {
+        "points_pct": {
+          "default": 0.0,
+          "title": "Points Pct",
+          "type": "number"
+        },
+        "fees": {
+          "default": 0.0,
+          "title": "Fees",
+          "type": "number"
+        },
+        "timing": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timing"
+        },
+        "handling": {
+          "$ref": "#/$defs/LoanCostHandling",
+          "default": "expense"
+        }
+      },
+      "title": "LoanCosts",
+      "type": "object"
+    },
+    "LoanType": {
+      "enum": [
+        "fixed",
+        "floating"
+      ],
+      "title": "LoanType",
+      "type": "string"
+    },
+    "MarketLeasingProfile": {
+      "additionalProperties": false,
+      "description": "One market leasing profile (spec \u00a73.6) [AE pp. 233-252].",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "term_months": {
+          "minimum": 1,
+          "title": "Term Months",
+          "type": "integer"
+        },
+        "renewal_probability": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Renewal Probability",
+          "type": "number"
+        },
+        "months_vacant": {
+          "minimum": 0,
+          "title": "Months Vacant",
+          "type": "number"
+        },
+        "market_base_rent_new": {
+          "$ref": "#/$defs/MoneyRate"
+        },
+        "market_base_rent_renew": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoneyRate"
+            },
+            {
+              "$ref": "#/$defs/PctOfNew"
+            }
+          ],
+          "title": "Market Base Rent Renew"
+        },
+        "rent_increases": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/RentStep"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rent Increases"
+        },
+        "free_rent_months_new": {
+          "default": 0.0,
+          "title": "Free Rent Months New",
+          "type": "number"
+        },
+        "free_rent_months_renew": {
+          "default": 0.0,
+          "title": "Free Rent Months Renew",
+          "type": "number"
+        },
+        "free_rent_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Free Rent Profile"
+        },
+        "recoveries": {
+          "$ref": "#/$defs/RecoveryAssignment",
+          "default": {
+            "method": "net",
+            "stop_amount_per_area": null,
+            "base_year": null,
+            "base_year_gross_up_pct": null,
+            "fixed_amount": null,
+            "fixed_amount_per_area": null,
+            "fixed_inflation": null,
+            "structure_ref": null
+          }
+        },
+        "ti_new": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoneyRate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ti_renew": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoneyRate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lc_new": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LCSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lc_renew": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LCSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "security_deposit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SecurityDepositSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "miscellaneous_items": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MiscItemSpec"
+          },
+          "title": "Miscellaneous Items",
+          "type": "array"
+        },
+        "percentage_rent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PercentRentSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "upon_expiration": {
+          "$ref": "#/$defs/UponExpiration",
+          "default": "market"
+        },
+        "chained_profile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chained Profile"
+        },
+        "term_growth": {
+          "default": true,
+          "title": "Term Growth",
+          "type": "boolean"
+        },
+        "intelligent_renewals": {
+          "default": false,
+          "title": "Intelligent Renewals",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "term_months",
+        "renewal_probability",
+        "months_vacant",
+        "market_base_rent_new",
+        "market_base_rent_renew"
+      ],
+      "title": "MarketLeasingProfile",
+      "type": "object"
+    },
+    "MiscItemSpec": {
+      "additionalProperties": false,
+      "description": "Per-tenant miscellaneous charge or abatement (negative amount)\n(spec \u00a73.12) [AE pp. 378-382]; also carried on rollover via MLPs\n[AE pp. 240-244]. Posts to Miscellaneous Tenant Revenue.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/MoneyUnit"
+        },
+        "timing": {
+          "$ref": "#/$defs/Timing",
+          "default": {
+            "method": "continuous",
+            "start": null,
+            "end": null,
+            "repeat_months": null,
+            "repeat_every_months": null
+          }
+        },
+        "inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inflation"
+        },
+        "limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Limits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "free_rent_abates": {
+          "default": false,
+          "title": "Free Rent Abates",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "amount",
+        "unit"
+      ],
+      "title": "MiscItemSpec",
+      "type": "object"
+    },
+    "MoneyRate": {
+      "additionalProperties": false,
+      "description": "An amount qualified by a unit, e.g. 25.0 $/SF/yr.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/MoneyUnit"
+        }
+      },
+      "required": [
+        "amount",
+        "unit"
+      ],
+      "title": "MoneyRate",
+      "type": "object"
+    },
+    "MoneyUnit": {
+      "description": "Amount/unit types for rents, TIs, LCs and market rates\n[AE pp. 367-373; calc examples pp. 391-394].",
+      "enum": [
+        "dollars_per_area_per_year",
+        "dollars_per_area_per_month",
+        "dollars_per_year",
+        "dollars_per_month",
+        "dollars_per_area",
+        "dollars",
+        "pct_of_market",
+        "pct_of_last_rent"
+      ],
+      "title": "MoneyUnit",
+      "type": "string"
+    },
+    "NOIAdjustments": {
+      "additionalProperties": false,
+      "properties": {
+        "exclude_capital": {
+          "default": true,
+          "title": "Exclude Capital",
+          "type": "boolean"
+        },
+        "stabilize_occupancy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StabilizedOccupancy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "NOIAdjustments",
+      "type": "object"
+    },
+    "NOIBasis": {
+      "enum": [
+        "year_1",
+        "forward_12"
+      ],
+      "title": "NOIBasis",
+      "type": "string"
+    },
+    "PctOfNew": {
+      "additionalProperties": false,
+      "description": "Renewal market rent expressed as a % of the new-lease market rent\n(spec \u00a73.6 ``market_base_rent_renew``).",
+      "properties": {
+        "pct_of_new": {
+          "exclusiveMinimum": 0,
+          "title": "Pct Of New",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pct_of_new"
+      ],
+      "title": "PctOfNew",
+      "type": "object"
+    },
+    "PercentRentBreakpoint": {
+      "enum": [
+        "natural",
+        "fixed_amount",
+        "zero"
+      ],
+      "title": "PercentRentBreakpoint",
+      "type": "string"
+    },
+    "PercentRentSpec": {
+      "additionalProperties": false,
+      "description": "Retail percentage rent (spec \u00a73.13) [AE pp. 249-250, 376].\n\nPct rent payable = \u03a3 max(0, sales \u2212 breakpoint) \u00d7 pct per layer; natural\nbreakpoint = annual base rent / layer pct. Up to 6 layers.",
+      "properties": {
+        "sales_volume": {
+          "$ref": "#/$defs/SalesVolume"
+        },
+        "breakpoint": {
+          "$ref": "#/$defs/PercentRentBreakpoint",
+          "default": "natural"
+        },
+        "breakpoint_layers": {
+          "items": {
+            "$ref": "#/$defs/BreakpointLayer"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Breakpoint Layers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sales_volume",
+        "breakpoint_layers"
+      ],
+      "title": "PercentRentSpec",
+      "type": "object"
+    },
+    "PeriodConvention": {
+      "enum": [
+        "end_of_period",
+        "mid_period"
+      ],
+      "title": "PeriodConvention",
+      "type": "string"
+    },
+    "PoolMethod": {
+      "enum": [
+        "net",
+        "stop",
+        "base_year",
+        "fixed"
+      ],
+      "title": "PoolMethod",
+      "type": "string"
+    },
+    "PriceDerivation": {
+      "enum": [
+        "fixed",
+        "pv_at_discount_rate",
+        "direct_cap"
+      ],
+      "title": "PriceDerivation",
+      "type": "string"
+    },
+    "PropertyInfo": {
+      "additionalProperties": false,
+      "description": "Property description and analysis timing (spec \u00a73.1) [AE pp. 182-187].",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "property_type": {
+          "$ref": "#/$defs/PropertyType"
+        },
+        "address": {
+          "$ref": "#/$defs/Address",
+          "default": {
+            "street": null,
+            "city": null,
+            "state": null,
+            "zip": null
+          }
+        },
+        "analysis_begin": {
+          "format": "date",
+          "title": "Analysis Begin",
+          "type": "string"
+        },
+        "analysis_term_years": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Analysis Term Years",
+          "type": "integer"
+        },
+        "fiscal_year_end_month": {
+          "default": 12,
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Fiscal Year End Month",
+          "type": "integer"
+        },
+        "currency": {
+          "default": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "area_unit": {
+          "default": "SF",
+          "title": "Area Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "property_type",
+        "analysis_begin",
+        "analysis_term_years"
+      ],
+      "title": "PropertyInfo",
+      "type": "object"
+    },
+    "PropertyRevenue": {
+      "additionalProperties": false,
+      "description": "One misc/parking/storage revenue line (spec \u00a73.10) [AE pp. 273-296].\n\nPercent-of-account types create calculation dependencies; the ledger\nresolves them via ordered passes (spec \u00a74.1 step 9): %-of-EGR items\nreference EGR excluding themselves \u2014 one second pass, no fixed-point\niteration. ``pct_fixed``: the variable portion scales with occupancy.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "account": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/RevenueUnit"
+        },
+        "account_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Account Ref"
+        },
+        "number_of_spaces": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Number Of Spaces"
+        },
+        "timing": {
+          "$ref": "#/$defs/Timing",
+          "default": {
+            "method": "continuous",
+            "start": null,
+            "end": null,
+            "repeat_months": null,
+            "repeat_every_months": null
+          }
+        },
+        "inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inflation"
+        },
+        "pct_fixed": {
+          "default": 100.0,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Pct Fixed",
+          "type": "number"
+        },
+        "limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Limits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "amount",
+        "unit"
+      ],
+      "title": "PropertyRevenue",
+      "type": "object"
+    },
+    "PropertyType": {
+      "enum": [
+        "office",
+        "industrial",
+        "retail",
+        "mixed"
+      ],
+      "title": "PropertyType",
+      "type": "string"
+    },
+    "Purchase": {
+      "additionalProperties": false,
+      "description": "Property purchase (spec \u00a73.16) [AE pp. 435-437]. ``date`` of None\nmeans the analysis begin date.",
+      "properties": {
+        "price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price"
+        },
+        "derivation": {
+          "$ref": "#/$defs/PriceDerivation",
+          "default": "fixed"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "closing_costs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ClosingCost"
+          },
+          "title": "Closing Costs",
+          "type": "array"
+        }
+      },
+      "title": "Purchase",
+      "type": "object"
+    },
+    "RecoveryAssignment": {
+      "additionalProperties": false,
+      "description": "How a lease (or MLP speculative lease) recovers expenses.",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/RecoverySystemMethod",
+          "default": "net"
+        },
+        "stop_amount_per_area": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stop Amount Per Area"
+        },
+        "base_year": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Year"
+        },
+        "base_year_gross_up_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Year Gross Up Pct"
+        },
+        "fixed_amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Amount"
+        },
+        "fixed_amount_per_area": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Amount Per Area"
+        },
+        "fixed_inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Inflation"
+        },
+        "structure_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Structure Ref"
+        }
+      },
+      "title": "RecoveryAssignment",
+      "type": "object"
+    },
+    "RecoveryPool": {
+      "additionalProperties": false,
+      "description": "One expense pool within a user-defined recovery structure.\n\nGross-up formula [AE p. 407]: grossed expense = fixed portion + variable\nportion \u00d7 (gross_up_pct / actual occupancy %) when actual < target; never\ngross down. Tenant recovery = (pool expense after adjustments \u2212 stop/base)\n\u00d7 pro-rata share, floored at 0, capped per this pool's ``caps_floors``.\nCaps/floors and expense adjustments are per pool (spec \u00a73.14), so e.g. a\ncapped CAM pool can sit beside an uncapped tax pool in one structure.",
+      "properties": {
+        "expenses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expenses",
+          "type": "array"
+        },
+        "method": {
+          "$ref": "#/$defs/PoolMethod",
+          "default": "net"
+        },
+        "gross_up_pct": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gross Up Pct"
+        },
+        "base_amount_per_area": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Amount Per Area"
+        },
+        "base_year": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BaseYearSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fixed_amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Amount"
+        },
+        "fixed_inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Inflation"
+        },
+        "admin_fee_pct": {
+          "default": 0.0,
+          "title": "Admin Fee Pct",
+          "type": "number"
+        },
+        "admin_fee_applies": {
+          "$ref": "#/$defs/AdminFeeApplies",
+          "default": "before_stop"
+        },
+        "denominator": {
+          "$ref": "#/$defs/Denominator",
+          "default": "rentable_area"
+        },
+        "denominator_fixed_area": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Denominator Fixed Area"
+        },
+        "pro_rata_share_override": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pro Rata Share Override"
+        },
+        "caps_floors": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CapsFloors"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expense_adjustments": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ExpenseAdjustment"
+          },
+          "title": "Expense Adjustments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "expenses"
+      ],
+      "title": "RecoveryPool",
+      "type": "object"
+    },
+    "RecoveryStructure": {
+      "additionalProperties": false,
+      "description": "User-defined recovery structure (spec \u00a73.14) [AE pp. 404-413]: a named\nlist of pools. Caps/floors and expense adjustments live on each pool.\n\nRecovery revenue posts monthly as 1/12 of the annualized computation; v1\nuses straight monthly accrual (true-up in a reconciliation month is a\npolicy toggle, spec \u00a73.14).",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "pools": {
+          "items": {
+            "$ref": "#/$defs/RecoveryPool"
+          },
+          "minItems": 1,
+          "title": "Pools",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "pools"
+      ],
+      "title": "RecoveryStructure",
+      "type": "object"
+    },
+    "RecoverySystemMethod": {
+      "description": "System methods assignable directly on a lease (spec \u00a73.14).",
+      "enum": [
+        "none",
+        "net",
+        "base_stop",
+        "base_year",
+        "base_year_plus_1",
+        "fixed",
+        "structure"
+      ],
+      "title": "RecoverySystemMethod",
+      "type": "string"
+    },
+    "RentStep": {
+      "additionalProperties": false,
+      "description": "One fixed step or % bump in a rent step schedule (spec \u00a73.12\n``rent_steps``; used by MLP ``rent_increases`` too).\n\nExactly one of ``date`` / ``month_offset`` locates the step; exactly one\nof ``amount`` / ``pct_increase`` sizes it. ``unit`` is required with\n``amount``.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "month_offset": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Month Offset"
+        },
+        "amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Amount"
+        },
+        "pct_increase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct Increase"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MoneyUnit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "RentStep",
+      "type": "object"
+    },
+    "RentableAreaMode": {
+      "enum": [
+        "derived",
+        "fixed",
+        "schedule"
+      ],
+      "title": "RentableAreaMode",
+      "type": "string"
+    },
+    "Resale": {
+      "additionalProperties": false,
+      "description": "Property resale (spec \u00a73.18) [AE pp. 464-471]. ``resale_date`` of\nNone means end of the analysis term (the default).",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/ResaleMethod",
+          "default": "cap_noi_forward_12"
+        },
+        "exit_cap_rate": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Cap Rate"
+        },
+        "fixed_amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fixed Amount"
+        },
+        "pct_increase": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pct Increase"
+        },
+        "resale_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resale Date"
+        },
+        "noi_adjustments": {
+          "$ref": "#/$defs/NOIAdjustments",
+          "default": {
+            "exclude_capital": true,
+            "stabilize_occupancy": null
+          }
+        },
+        "selling_costs_pct": {
+          "default": 0.0,
+          "title": "Selling Costs Pct",
+          "type": "number"
+        },
+        "adjustment_amounts": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ResaleAdjustment"
+          },
+          "title": "Adjustment Amounts",
+          "type": "array"
+        },
+        "apply_resale_to_cash_flow": {
+          "default": true,
+          "title": "Apply Resale To Cash Flow",
+          "type": "boolean"
+        }
+      },
+      "title": "Resale",
+      "type": "object"
+    },
+    "ResaleAdjustment": {
+      "additionalProperties": false,
+      "description": "Dollar adjustment to resale proceeds [AE p. 469].",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "amount"
+      ],
+      "title": "ResaleAdjustment",
+      "type": "object"
+    },
+    "ResaleMethod": {
+      "description": "[AE pp. 464-471].",
+      "enum": [
+        "cap_noi_forward_12",
+        "cap_noi_current_year",
+        "gross_value_less_costs",
+        "fixed_amount",
+        "pct_increase_over_price"
+      ],
+      "title": "ResaleMethod",
+      "type": "string"
+    },
+    "RevenueUnit": {
+      "enum": [
+        "dollars_per_year",
+        "dollars_per_month",
+        "dollars_per_area_per_year",
+        "dollars_per_area_per_month",
+        "pct_of_egr",
+        "pct_of_pgr",
+        "pct_of_account",
+        "per_occupied_area",
+        "per_available_area",
+        "spaces_times_rate"
+      ],
+      "title": "RevenueUnit",
+      "type": "string"
+    },
+    "SalesVolume": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/SalesVolumeUnit",
+          "default": "dollars_per_year"
+        },
+        "growth": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Growth"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "SalesVolume",
+      "type": "object"
+    },
+    "SalesVolumeUnit": {
+      "enum": [
+        "dollars_per_year",
+        "dollars_per_area_per_year"
+      ],
+      "title": "SalesVolumeUnit",
+      "type": "string"
+    },
+    "SecurityDepositSpec": {
+      "additionalProperties": false,
+      "description": "Tenant security deposit (spec \u00a73.12) [AE p. 384; pp. 431-433].",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "$ref": "#/$defs/SecurityDepositUnit",
+          "default": "months_of_rent"
+        },
+        "refunded_at_expiration": {
+          "default": true,
+          "title": "Refunded At Expiration",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "amount"
+      ],
+      "title": "SecurityDepositSpec",
+      "type": "object"
+    },
+    "SecurityDepositUnit": {
+      "enum": [
+        "dollars",
+        "dollars_per_area",
+        "months_of_rent"
+      ],
+      "title": "SecurityDepositUnit",
+      "type": "string"
+    },
+    "SensitivityIntervals": {
+      "additionalProperties": false,
+      "description": "Sensitivity matrix grid steps [AE pp. 451-452].",
+      "properties": {
+        "discount_rate_step": {
+          "default": 0.25,
+          "exclusiveMinimum": 0,
+          "title": "Discount Rate Step",
+          "type": "number"
+        },
+        "cap_rate_step": {
+          "default": 0.25,
+          "exclusiveMinimum": 0,
+          "title": "Cap Rate Step",
+          "type": "number"
+        },
+        "count": {
+          "anyOf": [
+            {
+              "const": 5,
+              "type": "integer"
+            },
+            {
+              "const": 7,
+              "type": "integer"
+            }
+          ],
+          "default": 5,
+          "title": "Count"
+        }
+      },
+      "title": "SensitivityIntervals",
+      "type": "object"
+    },
+    "StabilizedOccupancy": {
+      "additionalProperties": false,
+      "description": "Recompute the resale forward NOI with stabilized vacancy [AE p. 468].",
+      "properties": {
+        "occupancy_pct": {
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Occupancy Pct",
+          "type": "number"
+        }
+      },
+      "required": [
+        "occupancy_pct"
+      ],
+      "title": "StabilizedOccupancy",
+      "type": "object"
+    },
+    "TICategory": {
+      "additionalProperties": false,
+      "description": "Named tenant-improvement allowance spec (spec \u00a73.9) [AE pp. 258-262].",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "new": {
+          "$ref": "#/$defs/MoneyRate"
+        },
+        "renew": {
+          "$ref": "#/$defs/MoneyRate"
+        },
+        "inflation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "$ref": "#/$defs/YearRate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inflation"
+        },
+        "payment_timing": {
+          "$ref": "#/$defs/TIPaymentTiming",
+          "default": "lease_start"
+        },
+        "spread_months": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spread Months"
+        }
+      },
+      "required": [
+        "name",
+        "new",
+        "renew"
+      ],
+      "title": "TICategory",
+      "type": "object"
+    },
+    "TIPaymentTiming": {
+      "enum": [
+        "lease_start",
+        "spread"
+      ],
+      "title": "TIPaymentTiming",
+      "type": "string"
+    },
+    "TenantOverride": {
+      "additionalProperties": false,
+      "description": "Exclude a specific tenant (e.g., a credit tenant) from the vacancy or\ncredit-loss base. ``tenant_ref`` matches ``Lease.tenant_name`` (or its\n``external_id``).",
+      "properties": {
+        "tenant_ref": {
+          "title": "Tenant Ref",
+          "type": "string"
+        },
+        "exclude": {
+          "default": true,
+          "title": "Exclude",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tenant_ref"
+      ],
+      "title": "TenantOverride",
+      "type": "object"
+    },
+    "Timing": {
+      "additionalProperties": false,
+      "description": "When a revenue/expense item applies [AE pp. 278, 361-362].\n\n``repeating``: ``repeat_months`` lists calendar months (1-12) in which the\namount posts, or ``repeat_every_months`` posts every N months from ``start``.",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/TimingMethod",
+          "default": "continuous"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "repeat_months": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat Months"
+        },
+        "repeat_every_months": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat Every Months"
+        }
+      },
+      "title": "Timing",
+      "type": "object"
+    },
+    "TimingBasis": {
+      "enum": [
+        "analysis_year",
+        "calendar_year"
+      ],
+      "title": "TimingBasis",
+      "type": "string"
+    },
+    "TimingMethod": {
+      "description": "Payment frequency/timing patterns [AE pp. 278, 361-362].",
+      "enum": [
+        "continuous",
+        "date_range",
+        "repeating"
+      ],
+      "title": "TimingMethod",
+      "type": "string"
+    },
+    "UponExpiration": {
+      "description": "Behavior when a lease/segment expires [AE p. 385; spec \u00a73.6, \u00a73.12].",
+      "enum": [
+        "market",
+        "option",
+        "renew",
+        "vacate",
+        "reabsorb"
+      ],
+      "title": "UponExpiration",
+      "type": "string"
+    },
+    "VacancyMethod": {
+      "enum": [
+        "percent_of_pgr",
+        "percent_of_scheduled_base_plus",
+        "percent_of_total_tenant_revenue",
+        "none"
+      ],
+      "title": "VacancyMethod",
+      "type": "string"
+    },
+    "ValuationInputs": {
+      "additionalProperties": false,
+      "description": "DCF valuation assumptions (spec \u00a73.18) [AE pp. 450-476]. ``pv_start``\nof None means the analysis begin date.\n\n``resale`` is required with no default \u2014 an exit assumption is a deal\ninput, never a silent number (spec \u00a71.3 principle 3).",
+      "properties": {
+        "discount_rate": {
+          "exclusiveMinimum": 0,
+          "title": "Discount Rate",
+          "type": "number"
+        },
+        "discount_method": {
+          "$ref": "#/$defs/DiscountMethod",
+          "default": "annual"
+        },
+        "period_convention": {
+          "$ref": "#/$defs/PeriodConvention",
+          "default": "end_of_period"
+        },
+        "pv_start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pv Start"
+        },
+        "direct_cap": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DirectCap"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "resale": {
+          "$ref": "#/$defs/Resale"
+        },
+        "sensitivity_intervals": {
+          "$ref": "#/$defs/SensitivityIntervals",
+          "default": {
+            "discount_rate_step": 0.25,
+            "cap_rate_step": 0.25,
+            "count": 5
+          }
+        }
+      },
+      "required": [
+        "discount_rate",
+        "resale"
+      ],
+      "title": "ValuationInputs",
+      "type": "object"
+    },
+    "YearRate": {
+      "additionalProperties": false,
+      "description": "One year's rate in an annual schedule (inflation, vacancy, floating\nindex...). ``year`` is an analysis year (1-based) or a calendar year,\nper the owning model's timing basis. ``rate`` is a percent (3.0 = 3%).",
+      "properties": {
+        "year": {
+          "minimum": 1,
+          "title": "Year",
+          "type": "integer"
+        },
+        "rate": {
+          "title": "Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "year",
+        "rate"
+      ],
+      "title": "YearRate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One property: every \u00a73 input model in a single JSON document.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "property": {
+      "$ref": "#/$defs/PropertyInfo"
+    },
+    "area_measures": {
+      "$ref": "#/$defs/AreaMeasures"
+    },
+    "inflation": {
+      "$ref": "#/$defs/Inflation"
+    },
+    "general_vacancy": {
+      "$ref": "#/$defs/GeneralVacancy",
+      "default": {
+        "method": "none",
+        "rate": [],
+        "include_in_pgr_accounts": [],
+        "reduce_by_absorption_turnover": true,
+        "tenant_overrides": []
+      }
+    },
+    "credit_loss": {
+      "$ref": "#/$defs/CreditLoss",
+      "default": {
+        "method": "none",
+        "rate": [],
+        "include_in_pgr_accounts": [],
+        "tenant_overrides": []
+      }
+    },
+    "market_leasing_profiles": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/MarketLeasingProfile"
+      },
+      "title": "Market Leasing Profiles",
+      "type": "array"
+    },
+    "free_rent_profiles": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FreeRentProfile"
+      },
+      "title": "Free Rent Profiles",
+      "type": "array"
+    },
+    "ti_categories": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TICategory"
+      },
+      "title": "Ti Categories",
+      "type": "array"
+    },
+    "lc_categories": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/LCCategory"
+      },
+      "title": "Lc Categories",
+      "type": "array"
+    },
+    "recovery_structures": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/RecoveryStructure"
+      },
+      "title": "Recovery Structures",
+      "type": "array"
+    },
+    "miscellaneous_revenues": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PropertyRevenue"
+      },
+      "title": "Miscellaneous Revenues",
+      "type": "array"
+    },
+    "parking_revenues": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PropertyRevenue"
+      },
+      "title": "Parking Revenues",
+      "type": "array"
+    },
+    "storage_revenues": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PropertyRevenue"
+      },
+      "title": "Storage Revenues",
+      "type": "array"
+    },
+    "expenses": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExpenseItem"
+      },
+      "title": "Expenses",
+      "type": "array"
+    },
+    "expense_groups": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ExpenseGroup"
+      },
+      "title": "Expense Groups",
+      "type": "array"
+    },
+    "rent_roll": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Lease"
+      },
+      "title": "Rent Roll",
+      "type": "array"
+    },
+    "absorption": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AbsorptionSpec"
+      },
+      "title": "Absorption",
+      "type": "array"
+    },
+    "purchase": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Purchase"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "loans": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Loan"
+      },
+      "title": "Loans",
+      "type": "array"
+    },
+    "valuation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ValuationInputs"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "property",
+    "area_measures",
+    "inflation"
+  ],
+  "title": "PropertyModel",
+  "type": "object"
+}
