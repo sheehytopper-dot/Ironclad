@@ -76,4 +76,6 @@ multi-currency, GAAP rent, or live-formula Excel before Phase 6 completes (spec 
   rentable SF, monthly sums = annual, debt balance rolls, PV/IRR self-consistency.
 - Full precision inside the ledger; rounding is report-level only (§4.3).
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0**.
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0 complete**
+  (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1, which
+  requires golden fixture #1 (simple net-lease property ARGUS export) in `tests/golden/`.
