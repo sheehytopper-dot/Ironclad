@@ -22,3 +22,7 @@ desktop.ini
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Raw OM library (confidential source documents; goldens are transcribed
+# into tests/golden/<property>/ deliberately, never committed wholesale)
+OM/
