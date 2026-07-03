@@ -78,7 +78,13 @@ from engine.models import (
 )
 from engine.models.investment import AdditionalPrincipal
 from engine.models.profiles import PercentRentBreakpoint
-from engine.models.recoveries import AdminFeeApplies, Denominator, PoolMethod
+from engine.models.recoveries import (
+    AdminFeeApplies,
+    CapsFloors,
+    Denominator,
+    ExpenseAdjustment,
+    PoolMethod,
+)
 from engine.models.vacancy import CreditLoss
 
 
@@ -202,6 +208,12 @@ def full_property() -> PropertyModel:
                         admin_fee_pct=10.0,
                         admin_fee_applies=AdminFeeApplies.before_stop,
                         denominator=Denominator.rentable_area,
+                        # caps/floors and adjustments are per pool (spec §3.14):
+                        # this CAM pool is capped while the tax pool is not.
+                        caps_floors=CapsFloors(yearly_cap_pct=5.0),
+                        expense_adjustments=[
+                            ExpenseAdjustment(expense="Utilities", action="exclude", pct=50.0)
+                        ],
                     ),
                     RecoveryPool(
                         expenses=["Real Estate Taxes"],
@@ -581,3 +593,35 @@ class TestValidation:
                 term_months=60,
                 rate=5.0,
             )
+
+    def test_base_rent_rejects_non_rent_units(self):
+        """Lease base rent takes only the spec §3.12 units — one-time and
+        pct_of_last_rent units are rejected with a readable message."""
+        for bad_unit in (MoneyUnit.dollars, MoneyUnit.dollars_per_area, MoneyUnit.pct_of_last_rent):
+            with pytest.raises(ValidationError, match="not valid for a lease"):
+                Lease(
+                    tenant_name="Bad Unit",
+                    area=1_000,
+                    lease_type=LeaseType.office,
+                    start_date=dt.date(2026, 1, 1),
+                    term_months=60,
+                    base_rent=MoneyRate(amount=20.0, unit=bad_unit),
+                    upon_expiration=UponExpiration.vacate,
+                )
+
+    def test_cpi_pct_methods_require_pct(self):
+        """pct_of_cpi / cpi_plus_pct without a pct are rejected (spec §3.7)."""
+        for method in ("pct_of_cpi", "cpi_plus_pct"):
+            with pytest.raises(ValidationError, match="needs 'pct'"):
+                CPISpec(method=method)
+
+    def test_resale_cap_method_requires_exit_cap_rate(self):
+        """No silent exit cap: cap-based resale methods demand an explicit rate."""
+        with pytest.raises(ValidationError, match="exit_cap_rate"):
+            Resale(method=ResaleMethod.cap_noi_forward_12)
+
+    def test_valuation_requires_resale(self):
+        """ValuationInputs has no default resale assumption (spec §1.3: no
+        silent numbers) — the resale block must be stated."""
+        with pytest.raises(ValidationError, match="resale"):
+            ValuationInputs(discount_rate=7.5)

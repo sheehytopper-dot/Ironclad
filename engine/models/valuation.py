@@ -87,11 +87,22 @@ class Resale(StrictModel):
             ResaleMethod.gross_value_less_costs,
         )
         if self.method in cap_methods and self.exit_cap_rate is None:
-            raise ValueError(f"method '{self.method.value}' requires exit_cap_rate")
+            raise ValueError(
+                f"the resale method '{self.method.value}' values the property by "
+                "capitalizing income, so 'exit_cap_rate' is required. Enter the exit "
+                "capitalization rate as a percent — for example 6.5 for 6.5%. There is "
+                "no default: the exit cap rate must come from the deal."
+            )
         if self.method == ResaleMethod.fixed_amount and self.fixed_amount is None:
-            raise ValueError("method 'fixed_amount' requires fixed_amount")
+            raise ValueError(
+                "the resale method 'fixed_amount' requires 'fixed_amount': "
+                "the gross sale price in dollars."
+            )
         if self.method == ResaleMethod.pct_increase_over_price and self.pct_increase is None:
-            raise ValueError("method 'pct_increase_over_price' requires pct_increase")
+            raise ValueError(
+                "the resale method 'pct_increase_over_price' requires 'pct_increase': "
+                "the total percent increase over the purchase price, e.g. 20 for 20%."
+            )
         return self
 
 
@@ -105,12 +116,16 @@ class SensitivityIntervals(StrictModel):
 
 class ValuationInputs(StrictModel):
     """DCF valuation assumptions (spec §3.18) [AE pp. 450-476]. ``pv_start``
-    of None means the analysis begin date."""
+    of None means the analysis begin date.
+
+    ``resale`` is required with no default — an exit assumption is a deal
+    input, never a silent number (spec §1.3 principle 3).
+    """
 
     discount_rate: float = Field(gt=0)  # unleveraged; annual nominal, percent
     discount_method: DiscountMethod = DiscountMethod.annual
     period_convention: PeriodConvention = PeriodConvention.end_of_period
     pv_start: Optional[dt.date] = None
     direct_cap: Optional[DirectCap] = None
-    resale: Resale = Resale(exit_cap_rate=7.0)
+    resale: Resale
     sensitivity_intervals: SensitivityIntervals = SensitivityIntervals()

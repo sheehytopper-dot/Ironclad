@@ -9,11 +9,24 @@ from typing import Optional
 
 from pydantic import Field, model_validator
 
-from .common import MoneyRate, Ref, RentStep, StrictModel
+from .common import MoneyRate, MoneyUnit, Ref, RentStep, StrictModel
 from .cpi import CPISpec
 from .market_leasing import LCSpec, UponExpiration
 from .profiles import MiscItemSpec, PercentRentSpec, SecurityDepositSpec
 from .recoveries import RecoveryAssignment
+
+#: Units the spec allows for contract base rent (§3.12) [AE pp. 367-373]:
+#: $/SF/yr, $/SF/mo, $/yr, $/mo, or % of market. One-time units (``dollars``,
+#: ``dollars_per_area``) and ``pct_of_last_rent`` are not legal base rent.
+BASE_RENT_UNITS = frozenset(
+    {
+        MoneyUnit.dollars_per_area_per_year,
+        MoneyUnit.dollars_per_area_per_month,
+        MoneyUnit.dollars_per_year,
+        MoneyUnit.dollars_per_month,
+        MoneyUnit.pct_of_market,
+    }
+)
 
 
 class LeaseType(str, Enum):
@@ -95,6 +108,15 @@ class Lease(StrictModel):
 
     @model_validator(mode="after")
     def _check(self) -> "Lease":
+        if self.base_rent.unit not in BASE_RENT_UNITS:
+            raise ValueError(
+                f"base_rent unit '{self.base_rent.unit.value}' is not valid for a "
+                "lease. Base rent must be an amount per SF per year "
+                "('dollars_per_area_per_year'), per SF per month "
+                "('dollars_per_area_per_month'), per year ('dollars_per_year'), "
+                "per month ('dollars_per_month'), or a percent of market rent "
+                "('pct_of_market')."
+            )
         if (self.end_date is None) == (self.term_months is None):
             raise ValueError("exactly one of end_date / term_months is required")
         if self.end_date is not None and self.end_date <= self.start_date:

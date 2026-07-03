@@ -79,13 +79,33 @@ class BaseYearSpec(StrictModel):
     gross_up_pct: Optional[float] = None
 
 
+class CapsFloors(StrictModel):
+    """Recovery caps/floors, applied per pool (spec §3.14) [AE pp. 411-412]."""
+
+    yearly_cap_pct: Optional[float] = None      # YoY growth cap
+    cumulative_cap_pct: Optional[float] = None
+    min: Optional[float] = None
+    max: Optional[float] = None
+
+
+class ExpenseAdjustment(StrictModel):
+    """Exclusion/addition applied to a pool's expenses (spec §3.14, per pool)
+    [AE p. 410]."""
+
+    expense: Ref
+    action: str = "exclude"  # "exclude" | "add"
+    pct: float = 100.0       # portion of the expense to exclude/add
+
+
 class RecoveryPool(StrictModel):
     """One expense pool within a user-defined recovery structure.
 
     Gross-up formula [AE p. 407]: grossed expense = fixed portion + variable
     portion × (gross_up_pct / actual occupancy %) when actual < target; never
     gross down. Tenant recovery = (pool expense after adjustments − stop/base)
-    × pro-rata share, floored at 0, capped per caps.
+    × pro-rata share, floored at 0, capped per this pool's ``caps_floors``.
+    Caps/floors and expense adjustments are per pool (spec §3.14), so e.g. a
+    capped CAM pool can sit beside an uncapped tax pool in one structure.
     """
 
     expenses: list[Ref]  # expense account names or expense group names
@@ -100,6 +120,8 @@ class RecoveryPool(StrictModel):
     denominator: Denominator = Denominator.rentable_area
     denominator_fixed_area: Optional[float] = Field(default=None, gt=0)
     pro_rata_share_override: Optional[float] = None   # % override of tenant share
+    caps_floors: Optional[CapsFloors] = None          # [AE pp. 411-412]
+    expense_adjustments: list[ExpenseAdjustment] = [] # [AE p. 410]
 
     @model_validator(mode="after")
     def _method_inputs(self) -> "RecoveryPool":
@@ -112,25 +134,9 @@ class RecoveryPool(StrictModel):
         return self
 
 
-class CapsFloors(StrictModel):
-    """Per-pool recovery caps/floors [AE pp. 411-412]."""
-
-    yearly_cap_pct: Optional[float] = None      # YoY growth cap
-    cumulative_cap_pct: Optional[float] = None
-    min: Optional[float] = None
-    max: Optional[float] = None
-
-
-class ExpenseAdjustment(StrictModel):
-    """Exclusion/addition applied to a pool's expenses [AE p. 410]."""
-
-    expense: Ref
-    action: str = "exclude"  # "exclude" | "add"
-    pct: float = 100.0       # portion of the expense to exclude/add
-
-
 class RecoveryStructure(StrictModel):
-    """User-defined recovery structure (spec §3.14) [AE pp. 404-413].
+    """User-defined recovery structure (spec §3.14) [AE pp. 404-413]: a named
+    list of pools. Caps/floors and expense adjustments live on each pool.
 
     Recovery revenue posts monthly as 1/12 of the annualized computation; v1
     uses straight monthly accrual (true-up in a reconciliation month is a
@@ -139,5 +145,3 @@ class RecoveryStructure(StrictModel):
 
     name: str
     pools: list[RecoveryPool] = Field(min_length=1)
-    caps_floors: Optional[CapsFloors] = None
-    expense_adjustments: list[ExpenseAdjustment] = []

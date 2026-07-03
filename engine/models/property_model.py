@@ -146,8 +146,8 @@ class PropertyModel(StrictModel):
                     if ref not in expense_names and ref not in group_names:
                         raise ValueError(f"{where}: unknown expense or group {ref!r}")
                 check_inflation(pool.fixed_inflation, where)
-            for adj in structure.expense_adjustments:
-                require(adj.expense, expense_names, "expense", where)
+                for adj in pool.expense_adjustments:
+                    require(adj.expense, expense_names, "expense", where)
 
         for gv in (self.general_vacancy, self.credit_loss):
             for override in gv.tenant_overrides:

@@ -8,7 +8,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Literal, Optional, Union
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from .common import Ref, StrictModel
 
@@ -28,3 +28,14 @@ class CPISpec(StrictModel):
     frequency_months: int = Field(default=12, ge=1)
     cap_pct: Optional[float] = None
     floor_pct: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _pct_required(self) -> "CPISpec":
+        if self.method in (CPIMethod.pct_of_cpi, CPIMethod.cpi_plus_pct) and self.pct is None:
+            raise ValueError(
+                f"the CPI method '{self.method.value}' needs 'pct'. For 'pct_of_cpi' "
+                "enter the share of CPI applied (e.g. 50 for half of CPI); for "
+                "'cpi_plus_pct' enter the percentage added on top of CPI (e.g. 1 "
+                "for CPI + 1%)."
+            )
+        return self

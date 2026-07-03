@@ -21,7 +21,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest"]
+# pypdf: reading reference/Argus_Training_Guide.pdf (manual page cites) is a recurring need
+dev = ["pytest", "pypdf"]
 
 [tool.setuptools.packages.find]
 include = ["engine*", "api*", "ui*"]
