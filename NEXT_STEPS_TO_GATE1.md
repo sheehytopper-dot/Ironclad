@@ -44,14 +44,20 @@ In `tests/golden/clorox_northlake/`:
 Fixture-building is transcription and schema work, not calc work — it needs
 no engine code and can start immediately.
 
-## Step 3 — Independent hand model (owner-built)
+## Step 3 — Independent monthly hand schedule (owner-built; descoped 2026-07-03)
 
-Topper builds `tests/golden/clorox_northlake/hand_model.xlsx` — a monthly
-Excel model of the same deal — **independently, without Claude's
-involvement**. Independence is the point: it cross-checks both the engine and
-the OM transcription. Claude must never create, edit, or "fix" this file; if
-the engine and the hand model disagree, investigate and report, and let the
-owner adjudicate. Can proceed in parallel with Steps 2 and 4.
+Topper builds `tests/golden/clorox_northlake/hand_model.xlsx` — a
+**monthly-resolution schedule for Clorox only**, covering base rent, steps,
+inflation timing, and expense growth (not a full DCF) — **independently,
+without reading the engine**. Independence is the point: its purpose is
+adjudicating month-level timing mechanics that the OM's annual figures cannot
+discriminate, and it is authoritative only on those questions (CLAUDE.md,
+Golden-File Strategy). Claude must never create, edit, or "fix" this file; if
+the engine and the hand schedule disagree, investigate and report, and let
+the owner adjudicate.
+
+**Due within 48 hours of Topper's QA pass on the Clorox fixture (Step 2)** —
+recorded as a standing convention in CLAUDE.md.
 
 ## Step 4 — Phase 1 engine work (spec §10)
 
@@ -76,24 +82,32 @@ Implement, in dependency order, each with manual worked-example unit tests
 `tests/golden/test_clorox_northlake.py`:
 
 - Engine annual (fiscal-year) cash flow vs `expected_annual_cash_flow.csv`:
-  **every line within $500 per fiscal year**
-- Engine monthly ledger vs `hand_model.xlsx`: **every line within $1 per
-  month**
+  **every line within $500 per fiscal year** — the standard for all five OM
+  goldens (spec §9.1)
+- Engine monthly ledger vs the `hand_model.xlsx` monthly hand schedule, on
+  the lines it covers (base rent, steps, inflation timing, expense growth):
+  adjudicates **month-level timing questions the annual OM data cannot
+  discriminate** — authoritative only there
 - Sum(monthly) = annual for every account (spec §9.3)
 
 ## Step 6 — Source additional OM goldens (parallel; due end of week 2)
 
 **Owner: Topper (human). Not a Claude task — future sessions must not act on this.**
 
-Obtain two more OMs with published Argus-based cash flows:
+The strategy is **five OM goldens**, each validated annually at fiscal-year
+level **within $500 per line** (spec §9.1). Per the 2026-07-03 triage of the
+`OM/` pile:
 
-1. **Multi-tenant** with base-year or expense-stop recoveries → golden #2
-2. **Retail** with percentage rent → golden #3
+1. **#2 multi-tenant base-year/stop** → 8505 Freeport Parkway (in `OM/`)
+2. **#3 retail with percentage rent** → **not in the pile — the outstanding
+   broker ask** (ideally also covering recovery admin fees and/or absorption)
+3. **#4, #5 coverage picks** → Cedar Alt Bldgs 1 & 3 and Inland Logistics
+   (in `OM/`)
 
-Staged in `tests/golden/` as source PDFs **by end of week 2 (target:
-2026-07-17)** — Phase 2's gate depends on both, and fixture transcription
-takes time, so late sourcing stalls Phase 2 directly. Runs in parallel with
-Steps 2-5.
+Remaining sourcing (the retail % rent OM) **by end of week 2 (target:
+2026-07-17)** — Phase 2's gate depends on goldens #2-#5, and fixture
+transcription takes time, so late sourcing stalls Phase 2 directly. Runs in
+parallel with Steps 2-5.
 
 ## Step 7 — Gate 1 review
 

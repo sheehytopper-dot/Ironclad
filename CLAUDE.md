@@ -140,6 +140,12 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
+- **48-hour hand-schedule trigger (owner commitment, standing):** the Clorox monthly hand
+  schedule (`tests/golden/clorox_northlake/hand_model.xlsx`, NEXT_STEPS Step 3) is due
+  **within 48 hours of the owner's QA pass on the Clorox fixture**. When that QA pass
+  happens, note its date in NEXT_STEPS' status line; until the schedule lands, remind the
+  owner of the deadline at the start of every session. Claude still never creates, edits,
+  or "fixes" the file itself.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0 complete**
   (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1 per
   [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) — it begins once the Clorox Northlake

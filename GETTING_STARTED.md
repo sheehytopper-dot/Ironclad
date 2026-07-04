@@ -2,6 +2,8 @@
 
 This is your operating manual. The companion file (ARGUS_REBUILD_SPEC.md) is what you hand to the builder. In this case the builder is Claude Code with you directing it.
 
+> **Post-original sourcing note (2026-07-03):** this manual predates the loss of ARGUS access. Wherever it says to export goldens from ARGUS or to compare against ARGUS output (sections 4 and 7), read the **Golden-File Strategy in [CLAUDE.md](CLAUDE.md)** instead: **five OM-based goldens** spanning complexity, each validated annually at fiscal-year level within $500/line; a **monthly-resolution hand schedule for Clorox only** (base rent, steps, inflation timing, expense growth — not a full DCF) that adjudicates month-level timing questions the annual OM data cannot discriminate; and the manual's worked examples. The working method itself — one module at a time, the session loop, the things to refuse — is authoritative as written.
+
 ## 1. The honest framing
 
 You have limited coding experience. That is fine for this project under one condition: you never write code and you never debug code by reading it. Your job is exactly the job you already do well: define requirements, review outputs against known-good numbers, and refuse to accept work that fails validation. Claude Code writes, tests, and fixes. You are the IC, not the analyst.
