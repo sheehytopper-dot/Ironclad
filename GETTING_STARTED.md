@@ -2,7 +2,7 @@
 
 This is your operating manual. The companion file (ARGUS_REBUILD_SPEC.md) is what you hand to the builder. In this case the builder is Claude Code with you directing it.
 
-> **Post-original sourcing note (2026-07-03):** this manual predates the loss of ARGUS access. Wherever it says to export goldens from ARGUS or to compare against ARGUS output (sections 4 and 7), read the **Golden-File Strategy in [CLAUDE.md](CLAUDE.md)** instead: **five OM-based goldens** spanning complexity, each validated annually at fiscal-year level within $500/line; a **monthly-resolution hand schedule for Clorox only** (base rent, steps, inflation timing, expense growth — not a full DCF) that adjudicates month-level timing questions the annual OM data cannot discriminate; and the manual's worked examples. The working method itself — one module at a time, the session loop, the things to refuse — is authoritative as written.
+> **Post-original sourcing note (2026-07-03, revised 2026-07-04):** this manual predates the loss of ARGUS access. Wherever it says to export goldens from ARGUS or to compare against ARGUS output (sections 4 and 7), read the **Golden-File Strategy in [CLAUDE.md](CLAUDE.md)** instead: **five OM-based goldens** spanning complexity, each validated annually at fiscal-year level within $500/line; **dispute-triggered owner per-cell adjudication** (the owner recomputes the specific disputed cells in Excel from the source documents alone, without reading the engine's output or code first); and the manual's worked examples. The working method itself — one module at a time, the session loop, the things to refuse — is authoritative as written.
 
 ## 1. The honest framing
 

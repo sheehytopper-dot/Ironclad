@@ -46,14 +46,12 @@ rests on three independent sources:
    - **#2** multi-tenant with base-year or expense-stop recoveries
    - **#3** retail with percentage rent
    - **#4, #5** chosen from deal triage for coverage of gross-ups, caps, or absorption
-2. **An independent monthly hand schedule (Clorox only)** —
-   `tests/golden/clorox_northlake/hand_model.xlsx`, built by the owner **without reading
-   the engine**. Scope: a monthly-resolution schedule of base rent, steps, inflation
-   application, and expense growth (not a full DCF). Its purpose is adjudicating monthly
-   timing mechanics that annual OM data cannot discriminate; it is **authoritative only on
-   month-level timing questions where the OM's annual data is silent**. Claude must never
-   create, edit, or "fix" this file; when engine and hand schedule disagree, investigate
-   and report — the owner adjudicates.
+2. **Owner per-cell adjudication (standing):** when the engine and a golden's published
+   figures disagree beyond tolerance, or a month-level timing question arises that annual
+   data cannot discriminate, the owner recomputes the specific disputed cells in Excel
+   from the source documents alone, **WITHOUT reading the engine's output or code first**.
+   The owner's independently computed cells are the reference. Claude never produces
+   these reference cells.
 3. **The manual's worked examples as unit-level goldens** (Iron Rule 3): base rent examples
    [AE pp. 391-394], repeating payments [AE pp. 361-362], recovery gross-up [AE p. 407],
    resale methods [AE pp. 464-471], with page cites in test docstrings.
@@ -118,7 +116,7 @@ human against the source document before it is used for calculation.**
 | Phase | Scope | Gate |
 |---|---|---|
 | 0 — Scaffold | Repo, §3 pydantic models, JSON round-trip, timeline + inflation modules + tests | Tests pass |
-| 1 — Core ledger | Base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI | **Golden #1** (Clorox Northlake): OM annual fiscal-year within $500/line; month-level timing mechanics consistent with the owner's hand schedule |
+| 1 — Core ledger | Base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI | **Golden #1** (Clorox Northlake): OM annual fiscal-year within $500/line (FY2027-FY2028 per gate phasing; disputes resolved by owner per-cell adjudication) |
 | 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Goldens #2-#5** match (multi-tenant base-year/stop, retail % rent, two triage picks for gross-ups/caps/absorption) — sourced per Golden-File Strategy; Recovery Audit + Lease Audit built and matching |
 | 3 — Capital & valuation | TIs/LCs, capex, purchase, debt, resale, PV/IRR, sensitivity | IRR/PV/Resale match goldens; §9.3 invariants pass |
 | 4 — Reports & export | Full §7 catalog, PSF toggles, Excel package | Side-by-side export review vs ARGUS prints |
@@ -140,12 +138,6 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- **48-hour hand-schedule trigger (owner commitment, standing):** the Clorox monthly hand
-  schedule (`tests/golden/clorox_northlake/hand_model.xlsx`, NEXT_STEPS Step 3) is due
-  **within 48 hours of the owner's QA pass on the Clorox fixture**. When that QA pass
-  happens, note its date in NEXT_STEPS' status line; until the schedule lands, remind the
-  owner of the deadline at the start of every session. Claude still never creates, edits,
-  or "fixes" the file itself.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0 complete**
   (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1 per
   [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) — it begins once the Clorox Northlake

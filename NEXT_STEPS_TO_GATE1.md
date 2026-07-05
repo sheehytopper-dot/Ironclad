@@ -44,20 +44,17 @@ In `tests/golden/clorox_northlake/`:
 Fixture-building is transcription and schema work, not calc work — it needs
 no engine code and can start immediately.
 
-## Step 3 — Independent monthly hand schedule (owner-built; descoped 2026-07-03)
+## Step 3 — Owner per-cell adjudication (dispute-triggered; owner decision 2026-07-04)
 
-Topper builds `tests/golden/clorox_northlake/hand_model.xlsx` — a
-**monthly-resolution schedule for Clorox only**, covering base rent, steps,
-inflation timing, and expense growth (not a full DCF) — **independently,
-without reading the engine**. Independence is the point: its purpose is
-adjudicating month-level timing mechanics that the OM's annual figures cannot
-discriminate, and it is authoritative only on those questions (CLAUDE.md,
-Golden-File Strategy). Claude must never create, edit, or "fix" this file; if
-the engine and the hand schedule disagree, investigate and report, and let
-the owner adjudicate.
-
-**Due within 48 hours of Topper's QA pass on the Clorox fixture (Step 2)** —
-recorded as a standing convention in CLAUDE.md.
+There is **no standing hand model and no deadline**. Instead: when the engine
+and a golden's published figures disagree beyond tolerance, or a month-level
+timing question arises that the annual data cannot discriminate, Topper
+recomputes the **specific disputed cells** in Excel from the source documents
+alone, **WITHOUT reading the engine's output or code first** — independence
+is the point. The owner's independently computed cells are the reference;
+Claude never produces them. If the engine and the owner's cells disagree,
+that disagreement is the finding: investigate and report; the owner
+adjudicates.
 
 ## Step 4 — Phase 1 engine work (spec §10)
 
@@ -93,11 +90,9 @@ absorption & turnover vacancy, TI/LC). Assertions phase in accordingly
   (rollover blending, absorption/turnover); TI/LC/capital lines at **Gate 3**
 - **FY2032** is the resale look-forward year: transcribed in the CSV but not
   asserted before Phase 3
-- Engine monthly ledger vs the `hand_model.xlsx` monthly hand schedule, on
-  the lines it covers (base rent, steps, inflation timing, expense growth):
-  adjudicates **month-level timing questions the annual OM data cannot
-  discriminate** — authoritative only there
 - Sum(monthly) = annual for every account (spec §9.3)
+- Disputes and month-level timing questions: owner per-cell adjudication
+  (Step 3)
 
 ## Step 6 — Source additional OM goldens (parallel; due end of week 2)
 
@@ -127,9 +122,9 @@ only then — Phase 2 work may begin (Iron Rule 2).
 ---
 
 **Status:** Step 0 verified 2026-07-03. Step 1 done — the Clorox OM is staged
-in `tests/golden/clorox_northlake/source/`. **Step 2 complete: owner QA
-passed 2026-07-04 against OM pp. 25-28 (fixture-lock satisfied). That QA pass
-started the 48-hour hand-schedule clock — Step 3's `hand_model.xlsx` is due
-by 2026-07-06** (CLAUDE.md standing convention). Steps 3 and 6 are owner work
-(human-owned; not Claude tasks). Step 4 (Phase 1 engine work) starts next
-session.
+in `tests/golden/clorox_northlake/source/`. Step 2 complete: owner QA passed
+2026-07-04 against OM pp. 25-28 (fixture-lock satisfied). **Owner decision
+2026-07-04: the standing hand model and its 48-hour deadline are struck;
+Step 3 is now dispute-triggered per-cell adjudication (no standing artifact,
+no deadline).** Steps 3 and 6 are owner work (human-owned; not Claude tasks).
+Step 4 (Phase 1 engine work) starts next session.
