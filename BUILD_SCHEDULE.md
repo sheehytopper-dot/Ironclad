@@ -65,7 +65,7 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 
 **Week 4 scope:** Market leasing profiles, rollover blending algorithm (spec 4.2), lease chaining, absorption. 
 **Week 5 scope:** Full recovery structures: pools, gross-up, base year/stop, caps, admin fees, denominators. Recovery Audit report built early because you need it to debug.
-**Week 6 scope:** General vacancy with absorption/turnover offset, credit loss, tenant overrides, percentage rent with layered breakpoints. Golden 2 and Golden 3 reconciliation.
+**Week 6 scope:** General vacancy with absorption/turnover offset, credit loss, tenant overrides, percentage rent with layered breakpoints. Goldens 2, 4, and 5 reconciliation.
 
 **Your jobs:**
 - Week 4: sanity-check blended rollover economics by hand on one lease (you can do this math on a napkin: weighted rent, weighted downtime, weighted TI/LC). If the napkin disagrees with the engine, the engine is wrong until proven otherwise.
@@ -73,8 +73,8 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 - Week 6: full Golden 2 and Golden 3 diffs, cell-level review.
 
 **GATE 2 (end of week 6):**
-- [ ] Golden 2 matches: cash flow, Lease Audit, Recovery Audit
-- [ ] Golden 3 matches: cash flow including Percentage Rent line, Recovery Audit
+- [ ] Goldens 2, 4, and 5 match in full: cash flow, Lease Audit, Recovery Audit
+- [ ] Percentage-rent module built with the manual's worked-example unit tests (Iron Rule 3); **externally unvalidated pending golden #3** (standing opportunistic intake — CLAUDE.md, Known validation gaps)
 - [ ] Turnover vacancy does not double-count against general vacancy (verify total vacancy % equals stated rate in a test)
 - Slip risk is highest here. One week of slip is normal. Two triggers the Stall Protocol.
 

@@ -94,7 +94,7 @@ absorption & turnover vacancy, TI/LC). Assertions phase in accordingly
 - Disputes and month-level timing questions: owner per-cell adjudication
   (Step 3)
 
-## Step 6 — Source additional OM goldens (parallel; due end of week 2)
+## Step 6 — Additional OM goldens (#2/#4/#5 scheduled; #3 standing intake)
 
 **Owner: Topper (human). Not a Claude task — future sessions must not act on this.**
 
@@ -103,15 +103,17 @@ level **within $500 per line** (spec §9.1). Per the 2026-07-03 triage of the
 `OM/` pile:
 
 1. **#2 multi-tenant base-year/stop** → 8505 Freeport Parkway (in `OM/`)
-2. **#3 retail with percentage rent** → **not in the pile — the outstanding
-   broker ask** (ideally also covering recovery admin fees and/or absorption)
-3. **#4, #5 coverage picks** → Cedar Alt Bldgs 1 & 3 and Inland Logistics
+2. **#4, #5 coverage picks** → Cedar Alt Bldgs 1 & 3 and Inland Logistics
    (in `OM/`)
+3. **#3 retail with percentage rent — standing intake (owner decision
+   2026-07-05):** the first retail OM with a published Argus-based cash flow
+   including a Percentage Rent line that the owner obtains gets staged,
+   transcribed under the fixture-lock rule, and back-tested via the
+   Benchmark Comparison report (spec §7 report 24). Owner sources
+   opportunistically from deal flow; no deadline.
 
-Remaining sourcing (the retail % rent OM) **by end of week 2 (target:
-2026-07-17)** — Phase 2's gate depends on goldens #2-#5, and fixture
-transcription takes time, so late sourcing stalls Phase 2 directly. Runs in
-parallel with Steps 2-5.
+Goldens #2, #4, and #5 proceed on the existing schedule — their fixtures
+gate Phase 2. Runs in parallel with Steps 2-5.
 
 ## Step 7 — Gate 1 review
 

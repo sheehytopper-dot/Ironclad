@@ -42,9 +42,10 @@ rests on three independent sources:
 1. **Five OM-based goldens spanning complexity** — each an Offering Memorandum with a
    published Argus-based cash flow, each validated **annually at fiscal-year level, within
    $500 per line**:
-   - **#1** single-tenant NNN — `tests/golden/clorox_northlake/` (CBRE OM; staged)
+   - **#1** single-tenant NNN — `tests/golden/clorox_northlake/` (CBRE OM; owner-verified)
    - **#2** multi-tenant with base-year or expense-stop recoveries
-   - **#3** retail with percentage rent
+   - **#3** retail with percentage rent — **standing opportunistic intake** (owner decision
+     2026-07-05; no deadline — see Known validation gaps below)
    - **#4, #5** chosen from deal triage for coverage of gross-ups, caps, or absorption
 2. **Owner per-cell adjudication (standing):** when the engine and a golden's published
    figures disagree beyond tolerance, or a month-level timing question arises that annual
@@ -60,6 +61,17 @@ rests on three independent sources:
 source pages and committed before any engine comparison runs.** Every future deal validates
 against its source OM's published Argus output via the Benchmark Comparison report
 (spec §7 report 24) before assumptions are toggled.
+
+### Known validation gaps
+
+- **Percentage rent has no external Argus reference until golden #3 arrives** (standing
+  opportunistic intake, owner decision 2026-07-05: the first retail OM with a published
+  Argus-based cash flow including a Percentage Rent line that the owner obtains gets staged,
+  transcribed under the fixture-lock rule, and back-tested via the Benchmark Comparison
+  report). The Phase 2 percentage-rent module ships with the manual's worked-example unit
+  tests (Iron Rule 3) but is **externally unvalidated pending golden #3**. The owner accepts
+  this risk — percentage rent is rarely used in his practice. **Any retail underwriting
+  before the golden #3 back-test treats the Percentage Rent line as unverified.**
 
 The step-by-step path to Gate 1 is [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md).
 **Phase 1 is not blocked**: it begins once the Clorox fixture (NEXT_STEPS_TO_GATE1.md
@@ -117,7 +129,7 @@ human against the source document before it is used for calculation.**
 |---|---|---|
 | 0 — Scaffold | Repo, §3 pydantic models, JSON round-trip, timeline + inflation modules + tests | Tests pass |
 | 1 — Core ledger | Base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI | **Golden #1** (Clorox Northlake): OM annual fiscal-year within $500/line (FY2027-FY2028 per gate phasing; disputes resolved by owner per-cell adjudication) |
-| 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Goldens #2-#5** match (multi-tenant base-year/stop, retail % rent, two triage picks for gross-ups/caps/absorption) — sourced per Golden-File Strategy; Recovery Audit + Lease Audit built and matching |
+| 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Goldens #2, #4, #5** (Freeport, Cedar Alt, Inland) match in full — cash flow, Lease Audit, Recovery Audit; % rent module built with manual worked-example tests (Iron Rule 3) but **externally unvalidated pending golden #3** |
 | 3 — Capital & valuation | TIs/LCs, capex, purchase, debt, resale, PV/IRR, sensitivity | IRR/PV/Resale match goldens; §9.3 invariants pass |
 | 4 — Reports & export | Full §7 catalog, PSF toggles, Excel package | Side-by-side export review vs ARGUS prints |
 | 5 — UI | Streamlit per §6 | Full property built from scratch through UI only, calc, export |
