@@ -138,7 +138,13 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 0 complete**
-  (models, JSON round-trip, timeline + inflation modules + tests). Next: Phase 1 per
-  [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) — it begins once the Clorox Northlake
-  fixture (Step 2) lands in `tests/golden/clorox_northlake/`.
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 1 in
+  progress** — Clorox fixture landed (owner-verified 2026-07-04); `engine/calc/leases.py`
+  complete 2026-07-05 (base rent all §3.12 unit types, fixed/% steps, CPI, free rent;
+  manual worked examples [AE pp. 391-394, 253-254, 255-257] as tests; suite 71 green).
+  Next: [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 4 item 2, `engine/calc/expenses.py`.
+- **Next session's first prompt:** "Continue Phase 1 (NEXT_STEPS Step 4 item 2): implement
+  engine/calc/expenses.py — all §3.11 amount/unit/timing types, inflation, %-fixed occupancy
+  scaling, and repeating payments. Read [AE pp. 361-362] before coding; ship unit tests
+  reproducing the repeating-payments worked examples with page cites (Iron Rule 3); full
+  suite green; commit, push, update the progress note and this prompt."

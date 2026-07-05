@@ -44,3 +44,17 @@ are fixed, not listed.
   negative expense cannot faithfully represent (e.g., its own account name in
   reports, or interaction with recoveries/valuation that sign-flipping would
   distort).
+
+## 4. Free rent profiles: booleans vs the manual's per-component percentages
+
+- **Manual:** [AE pp. 253-254] free rent "elements to include" are
+  *percentages* per component — base rent 100%, fixed steps 100%, CPI 0%,
+  percentage rent 0%, recoveries 0%, miscellaneous 0% by default — and free
+  months may vary over time.
+- **Spec §3.8 / as built:** `FreeRentProfile` has three booleans
+  (`abate_base_rent`, `abate_recoveries`, `abate_miscellaneous`); fixed steps
+  ride with base rent at 100% and CPI is fixed at 0% —
+  `engine/calc/leases.py` implements exactly the manual's defaults.
+- **Revisit when:** a golden requires partial-percentage abatement, a
+  fixed-steps or CPI element different from the defaults, or time-varying
+  free months.
