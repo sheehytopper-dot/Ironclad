@@ -39,6 +39,27 @@ def rate_for_year(rates: list[YearRate], year: int) -> float:
     return applicable[-1] if applicable else 0.0
 
 
+def index_schedule(inflation: Inflation, ref: Optional[str],
+                   default: str = "general") -> list[YearRate]:
+    """Resolve an inflation index ref — a built-in name (``general``,
+    ``market_rent``, ``expense``, ``cpi``), a custom index name, or ``None``
+    meaning ``default`` — to its annual rate schedule. Named built-ins fall
+    back to the general rate when not entered (spec §3.3)."""
+    name = ref if ref is not None else default
+    if name == "general":
+        return inflation.general_rate
+    if name == "market_rent":
+        return inflation.market_rent_rate if inflation.market_rent_rate is not None else inflation.general_rate
+    if name == "expense":
+        return inflation.expense_rate if inflation.expense_rate is not None else inflation.general_rate
+    if name == "cpi":
+        return inflation.cpi_rate if inflation.cpi_rate is not None else inflation.general_rate
+    for index in inflation.custom_indices:
+        if index.name == name:
+            return index.rates
+    raise ValueError(f"unknown inflation index {name!r}")
+
+
 def inflation_factors(
     rates: list[YearRate],
     months: pd.PeriodIndex,

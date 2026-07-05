@@ -28,7 +28,7 @@ from typing import Optional
 
 import pandas as pd
 
-from engine.calc.inflation import rate_for_year
+from engine.calc.inflation import index_schedule, rate_for_year
 from engine.calc.timeline import snap_to_month_start
 from engine.models import (
     CPIMethod,
@@ -131,21 +131,9 @@ def contract_base_rent(lease: Lease, months: pd.PeriodIndex,
 # --------------------------------------------------------------------- #
 
 def _cpi_schedule(inflation: Inflation, index_ref: Optional[str]):
-    """Resolve a CPI spec's index ref to an annual rate schedule (spec §3.3:
-    named indices default to the general rate when not given)."""
-    general = inflation.general_rate
-    if index_ref is None or index_ref == "cpi":
-        return inflation.cpi_rate if inflation.cpi_rate is not None else general
-    if index_ref == "general":
-        return general
-    if index_ref == "market_rent":
-        return inflation.market_rent_rate if inflation.market_rent_rate is not None else general
-    if index_ref == "expense":
-        return inflation.expense_rate if inflation.expense_rate is not None else general
-    for index in inflation.custom_indices:
-        if index.name == index_ref:
-            return index.rates
-    raise ValueError(f"unknown inflation index {index_ref!r}")
+    """Resolve a CPI spec's index ref to an annual rate schedule; a CPI spec
+    with no index uses the cpi rate (spec §3.3/§3.7)."""
+    return index_schedule(inflation, index_ref, default="cpi")
 
 
 def _schedule_year(period: pd.Period, analysis_begin: dt.date,
