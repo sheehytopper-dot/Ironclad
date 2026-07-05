@@ -529,7 +529,7 @@ Every report is a builder function returning `(DataFrame, metadata)`; the UI ren
 # 9. VALIDATION & ACCEPTANCE
 
 ## 9.1 Golden-file testing (the credibility gate)
-There is no ARGUS access — no ARGUS output exports are coming. Validation rests on published OM cash flows plus one owner-built hand schedule (this section and CLAUDE.md's Golden-File Strategy state the same strategy):
+There is no ARGUS access — no ARGUS output exports are coming. Validation rests on published OM cash flows plus dispute-triggered owner per-cell adjudication (this section and CLAUDE.md's Golden-File Strategy state the same strategy):
 1. **Five OM-based goldens spanning complexity**, each an Offering Memorandum with a published Argus-based cash flow: (#1) single-tenant NNN (`tests/golden/clorox_northlake/`); (#2) multi-tenant with base-year or expense-stop recoveries; (#3) retail with percentage rent; (#4, #5) chosen from deal triage for coverage of gross-ups, caps, or absorption.
 2. For each golden: transcribe the OM's published cash flow line-for-line, recreate the inputs in our JSON schema, and record every stated and assumed input with page cites (`ASSUMPTIONS.md`). `pytest` compares the engine's annual fiscal-year cash flow **within $500 per line**. Where the OM publishes valuation results (PV/price, IRR, resale), compare IRR within 1bp and PV within $100.
 3. **Owner per-cell adjudication (standing; owner decision 2026-07-04):** when the engine and a golden's published figures disagree beyond tolerance, or a month-level timing question arises that annual data cannot discriminate, the owner recomputes the specific disputed cells in Excel from the source documents alone, without reading the engine's output or code first. The owner's independently computed cells are the reference; Claude never produces these reference cells.
@@ -551,7 +551,7 @@ Every worked example in the manual becomes a test: Rental Income examples [AE p.
 # 10. PHASED ROADMAP (acceptance-gated)
 
 **Phase 0 — Scaffold (days):** Repo, pydantic models for §3 complete, JSON round-trip, timeline + inflation modules + tests.
-**Phase 1 — Core ledger (1-2 wks of sessions):** Rent roll base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI. GATE: golden #1 annual fiscal-year cash flow matches within $500/line; month-level timing mechanics consistent with the owner's hand schedule (§9.1).
+**Phase 1 — Core ledger (1-2 wks of sessions):** Rent roll base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI. GATE: golden #1 annual fiscal-year cash flow matches within $500/line (FY2027-FY2028 per gate phasing); disputes resolved by owner per-cell adjudication (§9.1).
 **Phase 2 — Market machinery:** MLPs, rollover blending, absorption, general vacancy/credit loss with offsets, full recovery structures, % rent. GATE: goldens #2-#5 match (multi-tenant base-year/stop, retail % rent, and the two triage-selected coverage deals, §9.1); Recovery Audit and Lease Audit reports built and matching.
 **Phase 3 — Capital & valuation:** TIs/LCs, capex, purchase, debt, resale, PV/IRR, sensitivity. GATE: IRR/PV/Resale match goldens; invariants pass.
 **Phase 4 — Reports & export:** Full §7 catalog, PSF toggles, Excel package. GATE: side-by-side export review vs ARGUS prints.
