@@ -154,14 +154,21 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   progress** — Clorox fixture landed (owner-verified 2026-07-04); `engine/calc/leases.py`
   complete 2026-07-05 ([AE pp. 391-394, 253-254, 255-257] worked examples as tests);
   `engine/calc/expenses.py` complete 2026-07-05 (all §3.10/§3.11 units, inflation indices,
-  %-fixed occupancy scaling, repeating payments per [AE pp. 361-362], limits; suite 92
-  green). Next: [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 4 item 3,
-  `engine/calc/recoveries.py`.
-- **Next session's first prompt:** "Continue Phase 1 (NEXT_STEPS Step 4 item 3): implement
-  engine/calc/recoveries.py — simple net (100% pro-rata) recoveries only, per spec §3.14
-  system method 'net'. Read the recovery gross-up page [AE p. 407] for context but implement
-  only the net method this session; unit tests with page cites where the manual provides
-  examples (Iron Rule 3), including the Clorox shape (recoveries = sum of recoverable
-  operating expenses at 100% share, management fee included, fixed point with %-of-EGR
-  fees deferred to run.py). Full suite green; commit, push, update the progress note and
-  this prompt."
+  %-fixed occupancy scaling, repeating payments per [AE pp. 361-362], limits);
+  `engine/calc/recoveries.py` complete 2026-07-05 (net + none system methods per
+  [AE pp. 404-407]: pro-rata pool share, `is_recoverable` pool membership, no gross-up for
+  system methods; stops/base years/user structures raise as Phase 2; free-rent
+  abatement of recoveries also Phase 2; %-of-EGR fixed point deferred to run.py; suite
+  100 green). Next: [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 4 item 4,
+  `engine/calc/ledger.py`.
+- **Next session's first prompt:** "Continue Phase 1 (NEXT_STEPS Step 4 item 4): implement
+  engine/calc/ledger.py — the spec §2.3 Chart of Accounts tree and monthly ledger assembly:
+  occupancy/occupied-area/available-area series from the rent roll, per-lease revenue lines
+  from leases.py (base rent, CPI, free rent), expense lines from expenses.py, Expense
+  Recovery Revenue from recoveries.py, and the PGR/EGR/NOI rollups, with line names/order
+  matching the ARGUS Cash Flow report so exports diff cleanly (spec §2.3); annual/quarterly/
+  fiscal views are aggregations of the monthly ledger, never separately computed. %-of-EGR
+  expenses and the recovery fixed point stay deferred to run.py (spec §4.1 step 9). Unit
+  tests with page cites where the manual provides examples (Iron Rule 3); assert the
+  pre-valuation §9.3 invariants that apply (monthly sums = annual, occupied ≤ rentable).
+  Full suite green; commit, push, update the progress note and this prompt."
