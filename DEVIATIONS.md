@@ -31,3 +31,16 @@ are fixed, not listed.
 - **Revisit when:** a golden fixture's published cash flow demonstrably uses
   monthly inflation detail or index-value indices and cannot be matched within
   tolerance without them.
+
+## 3. Below-the-line revenue: encoded as a negative capital expense
+
+- **Gap:** the §3 schema has no capital-section revenue account.
+- **As built:** the Clorox fixture's Amortized CAM Revenue ($3,956.91/mo
+  through 12/2027, modeled below the line per the OM) is encoded as a
+  **negative capital `ExpenseItem`** — same ledger placement and sign as the
+  OM's capital-section credit line (ASSUMPTIONS.md §8, flag 1, in
+  `tests/golden/clorox_northlake/`).
+- **Revisit when:** a future golden needs true capital-section revenue that a
+  negative expense cannot faithfully represent (e.g., its own account name in
+  reports, or interaction with recoveries/valuation that sign-flipping would
+  distort).

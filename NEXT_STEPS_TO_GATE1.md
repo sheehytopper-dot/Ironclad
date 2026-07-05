@@ -81,9 +81,18 @@ Implement, in dependency order, each with manual worked-example unit tests
 
 `tests/golden/test_clorox_northlake.py`:
 
-- Engine annual (fiscal-year) cash flow vs `expected_annual_cash_flow.csv`:
-  **every line within $500 per fiscal year** — the standard for all five OM
-  goldens (spec §9.1)
+The Clorox lease expires 8/31/2028 — inside the analysis window — so fiscal
+years from FY2029 on depend on Phase 2/3 machinery (rollover blending,
+absorption & turnover vacancy, TI/LC). Assertions phase in accordingly
+(owner-approved 2026-07-03):
+
+- **Gate 1 asserts FY2027 and FY2028 only**: engine annual (fiscal-year) cash
+  flow vs `expected_annual_cash_flow.csv`, **every line within $500 per
+  fiscal year** — the standard for all five OM goldens (spec §9.1)
+- **FY2029–FY2031 activate later**: revenue/vacancy lines at **Gate 2**
+  (rollover blending, absorption/turnover); TI/LC/capital lines at **Gate 3**
+- **FY2032** is the resale look-forward year: transcribed in the CSV but not
+  asserted before Phase 3
 - Engine monthly ledger vs the `hand_model.xlsx` monthly hand schedule, on
   the lines it covers (base rent, steps, inflation timing, expense growth):
   adjudicates **month-level timing questions the annual OM data cannot
@@ -118,6 +127,9 @@ only then — Phase 2 work may begin (Iron Rule 2).
 ---
 
 **Status:** Step 0 verified 2026-07-03. Step 1 done — the Clorox OM is staged
-in `tests/golden/clorox_northlake/source/`. Steps 3 and 6 are owner work
-(human-owned; not Claude tasks). Steps 2 and 4 can start now and run in
-parallel.
+in `tests/golden/clorox_northlake/source/`. **Step 2 complete: owner QA
+passed 2026-07-04 against OM pp. 25-28 (fixture-lock satisfied). That QA pass
+started the 48-hour hand-schedule clock — Step 3's `hand_model.xlsx` is due
+by 2026-07-06** (CLAUDE.md standing convention). Steps 3 and 6 are owner work
+(human-owned; not Claude tasks). Step 4 (Phase 1 engine work) starts next
+session.

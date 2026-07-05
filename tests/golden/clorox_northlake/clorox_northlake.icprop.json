@@ -1,0 +1,135 @@
+{
+  "schema_version": "1.0",
+  "property": {
+    "name": "Clorox Northlake Distribution Center",
+    "property_type": "industrial",
+    "address": {
+      "city": "Northlake",
+      "state": "TX"
+    },
+    "analysis_begin": "2026-06-01",
+    "analysis_term_years": 5,
+    "fiscal_year_end_month": 5
+  },
+  "area_measures": {
+    "property_size": 540000,
+    "rentable_area_mode": "fixed",
+    "rentable_area_fixed": 540000
+  },
+  "inflation": {
+    "general_rate": [{"year": 2027, "rate": 3.0}],
+    "market_rent_rate": [{"year": 2027, "rate": 3.0}],
+    "expense_rate": [{"year": 2027, "rate": 3.0}],
+    "cpi_rate": [{"year": 2027, "rate": 3.0}],
+    "inflation_month": 1,
+    "timing_basis": "calendar_year"
+  },
+  "market_leasing_profiles": [
+    {
+      "name": "Industrial Market NNN",
+      "term_months": 60,
+      "renewal_probability": 75.0,
+      "months_vacant": 9.0,
+      "market_base_rent_new": {"amount": 7.15, "unit": "dollars_per_area_per_year"},
+      "market_base_rent_renew": {"pct_of_new": 100.0},
+      "rent_increases": [
+        {"month_offset": 12, "pct_increase": 3.5},
+        {"month_offset": 24, "pct_increase": 3.5},
+        {"month_offset": 36, "pct_increase": 3.5},
+        {"month_offset": 48, "pct_increase": 3.5}
+      ],
+      "free_rent_months_new": 3.0,
+      "free_rent_months_renew": 0.0,
+      "free_rent_profile": "Base Rent Only",
+      "recoveries": {"method": "net"},
+      "ti_new": {"amount": 2.0, "unit": "dollars_per_area"},
+      "ti_renew": {"amount": 0.5, "unit": "dollars_per_area"},
+      "lc_new": {"pct": 6.75},
+      "lc_renew": {"pct": 6.75},
+      "upon_expiration": "market",
+      "term_growth": true
+    }
+  ],
+  "free_rent_profiles": [
+    {
+      "name": "Base Rent Only",
+      "abate_base_rent": true,
+      "abate_recoveries": false,
+      "abate_miscellaneous": false
+    }
+  ],
+  "expenses": [
+    {
+      "name": "Common Area Maintenance",
+      "category": "operating",
+      "amount": 327480.49,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Utilities",
+      "category": "operating",
+      "amount": 0.10,
+      "unit": "dollars_per_area_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Management Fee",
+      "category": "operating",
+      "amount": 3.0,
+      "unit": "pct_of_egr"
+    },
+    {
+      "name": "Insurance",
+      "category": "operating",
+      "amount": 71761.98,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Real Estate Taxes",
+      "category": "operating",
+      "amount": 744905.91,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Capital Reserves",
+      "category": "capital",
+      "amount": 0.10,
+      "unit": "dollars_per_area_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Amortized CAM Revenue",
+      "category": "capital",
+      "amount": -3956.91,
+      "unit": "dollars_per_month",
+      "timing": {
+        "method": "date_range",
+        "start": "2026-06-01",
+        "end": "2027-12-31"
+      },
+      "inflation": [{"year": 2026, "rate": 0.0}]
+    }
+  ],
+  "rent_roll": [
+    {
+      "tenant_name": "The Clorox Sales Company",
+      "suite": "100",
+      "area": 540000,
+      "lease_type": "industrial",
+      "start_date": "2005-02-26",
+      "end_date": "2028-08-31",
+      "base_rent": {"amount": 216359.95, "unit": "dollars_per_month"},
+      "rent_steps": [
+        {"date": "2027-06-01", "amount": 222850.74, "unit": "dollars_per_month"},
+        {"date": "2028-06-01", "amount": 229536.27, "unit": "dollars_per_month"}
+      ],
+      "recoveries": {"method": "net"},
+      "market_leasing_profile": "Industrial Market NNN",
+      "upon_expiration": "market",
+      "notes": "Two 5-year renewal options at FMV, modeled as market rollover at 75% retention per OM p. 25. Management fee may not exceed 3% of property gross rents [OM p. 27]. Guarantor: The Clorox Company [OM p. 28]."
+    }
+  ]
+}

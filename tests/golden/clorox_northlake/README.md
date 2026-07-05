@@ -41,3 +41,12 @@ Adjudication, in order:
 If the engine and the adjudicating source then disagree, that disagreement is
 the finding: investigate, report, and let the owner adjudicate. Do not "fix"
 either side to match the other first.
+
+### Basis note (2026-07-03, fixture build)
+
+This fixture uses the **calendar-year inflation basis** per the OM ("All
+market rates are stated on a calendar-year basis" [OM p. 25]; growth steps in
+January), which **sidesteps the analysis-year mid-year question for this
+deal** — the open question above cannot be exercised by Clorox's published
+figures. It remains open for any future golden modeled on an analysis-year
+basis, and the ladder above still governs it there.
