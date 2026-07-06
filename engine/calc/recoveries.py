@@ -1,30 +1,47 @@
-"""Simple net expense recoveries (Phase 1; spec §4.1 step 6)
-[AE pp. 404-413].
+"""Expense recoveries — system methods (Phase 1 net/none; Phase 2 Step 5
+session 1 adds stops, base years, fixed) [AE pp. 404-413].
 
-The ``net`` system method recovers "all recoverable expenses ... based on
-their proportionate share of the building area" [AE p. 405]:
+System methods, per the manual's definitions [AE pp. 405-406, 408-409]:
 
-    recovery[m] = pool expense[m] × lease area / rentable area[m]
+- ``net`` — "all recoverable expenses ... based on their proportionate
+  share of the building area": recovery = pool × share.
+- ``base_stop`` — a **building** $/SF stop: the tenant reimburses its
+  share of recoverable expenses over the building stop amount
+  (stop $/SF × denominator area), floored at 0.
+- ``base_year`` / ``base_year_plus_1`` — the stop is the **actual
+  recoverable expenses of the base year, frozen**: the lease-start
+  calendar year (or the year after, for +1), or the explicit
+  ``base_year``; "tenants with leases that begin before the analysis
+  start will pay their pro-rata share of any increases over the amount of
+  reimbursable expenses in the first year of the analysis" [AE p. 408] —
+  pre-analysis starts use analysis year 1 for both variants (the manual's
+  +1 fallback [AE p. 409]). A base-year window truncated by the timeline
+  is annualized from its available months (a month-level convention
+  annual golden data cannot discriminate; disputes go to owner per-cell
+  adjudication).
+- ``fixed`` — a **tenant** amount [AE p. 409]: ``fixed_amount`` $/yr or
+  ``fixed_amount_per_area`` $/SF/yr × tenant area, flat unless
+  ``fixed_inflation`` names an index or schedule (opt-in inflation).
 
-posted as straight monthly accrual (the spec §3.14 v1 policy — no
-reconciliation-month true-up) for each month of the contract term, zero
-outside it and outside the analysis window.
+Posting is straight monthly accrual (spec §3.14 v1 policy): monthly
+recovery = max(0, pool_m − stop/12) × share — the annualized-with-true-up
+computation is a deferred policy toggle. Recoveries floor at 0: a tenant
+never pays the landlord's stop. Gross-up (including
+``base_year_gross_up_pct``) is a user-structure feature — system
+structures are never grossed up [AE p. 406] — and arrives with user
+structures, caps/floors [AE pp. 411-412], admin fees [AE pp. 519-520],
+denominators [AE p. 410], and adjustments in Step 5 session 2; until then
+those inputs raise loudly.
 
-Pool membership follows ``ExpenseItem.is_recoverable`` (spec §3.11:
-operating expenses default recoverable; capital and non-operating default
-not). %-of-EGR members — the Clorox-shape management fee — enter the pool
-at whatever projected series the caller supplies; the circularity
-(recoveries feed EGR, EGR feeds the fee, the fee feeds recoveries) is
-resolved by run.py's ordered/two-pass fixed point (spec §4.1 step 9),
-never inside this module.
-
-System recovery structures are never grossed up [AE p. 406]; gross-up
-belongs to user structures only, and then only to expenses' variable
-portions [AE p. 407] — a net tenant reimburses its share of the *actual*
-(occupancy-scaled) expense. Stops, base years, fixed amounts, user
-structures (pools, caps/floors, admin fees, expense adjustments), and
-free-rent abatement of recoveries (``FreeRentProfile.abate_recoveries``)
-are Phase 2 (spec §10).
+Pool membership follows ``ExpenseItem.is_recoverable`` (spec §3.11).
+%-of-EGR members enter at whatever series run.py's fixed point supplies
+(spec §4.1 step 9, DEVIATIONS.md §6). **Convergence with stops:**
+max(0, ·) is 1-Lipschitz, and a fee perturbation reaches a stop-method
+recovery both directly (through the month's pool) and through the frozen
+base-year stop (opposite sign), so the recovery response is bounded by
+2 × share — the fee update stays a contraction with factor
+≤ 2 × Σ(share × pct), far below 1 for any realistic fee, and run.py's
+iteration cap still turns pathological inputs into a loud error.
 
 Everything returns a monthly Period[M]-indexed Series (spec §2.3);
 recoveries post to Expense Recovery Revenue. The engine never imports UI
@@ -32,12 +49,21 @@ code (Iron Rule 1).
 """
 from __future__ import annotations
 
-from typing import Iterable, Union
+import datetime as dt
+from typing import Iterable, Optional, Union
 
 import pandas as pd
 
+from engine.calc.inflation import index_schedule, inflation_factors
 from engine.calc.leases import lease_term_periods
-from engine.models import ExpenseItem, Lease, RecoverySystemMethod
+from engine.calc.timeline import snap_to_month_start
+from engine.models import (
+    ExpenseItem,
+    Inflation,
+    Lease,
+    RecoveryAssignment,
+    RecoverySystemMethod,
+)
 
 #: (item, projected monthly series) pairs, as produced by
 #: engine.calc.expenses.project_expense over the same timeline.
@@ -80,57 +106,173 @@ def net_recoveries(lease: Lease, months: pd.PeriodIndex, pool: pd.Series,
     return series
 
 
+# ------------------------------------------------------------------ #
+# System-method dispatch over an occupancy window                     #
+# ------------------------------------------------------------------ #
+
+def _base_year_window(assignment: RecoveryAssignment,
+                      method: RecoverySystemMethod, start: pd.Period,
+                      analysis_begin: Optional[dt.date],
+                      where: str) -> tuple[pd.Period, pd.Period]:
+    """The frozen base-year window [AE pp. 405-406, 408-409]: the explicit
+    ``base_year`` (shifted +1 for the +1 method), else the lease-start
+    calendar year (+1); leases starting before the analysis use analysis
+    year 1 for both variants."""
+    plus = 12 if method == RecoverySystemMethod.base_year_plus_1 else 0
+    if assignment.base_year is not None:
+        first = pd.Period(f"{assignment.base_year}-01", freq="M") + plus
+        return first, first + 11
+    if analysis_begin is None:
+        raise ValueError(f"{where}: base-year recoveries need analysis_begin")
+    begin = pd.Period(snap_to_month_start(analysis_begin), freq="M")
+    if start < begin:
+        return begin, begin + 11  # analysis year 1 [AE pp. 408-409]
+    first = pd.Period(f"{start.year}-01", freq="M") + plus
+    return first, first + 11
+
+
+def _frozen_stop_annual(pool: pd.Series,
+                        window: tuple[pd.Period, pd.Period],
+                        where: str) -> float:
+    """The base-year pool total, frozen. A window truncated by the
+    timeline annualizes from its available months (module docstring)."""
+    lo, hi = window
+    available = pool[(pool.index >= lo) & (pool.index <= hi)]
+    if available.empty:
+        raise ValueError(
+            f"{where}: base year {lo}..{hi} lies entirely outside the "
+            "analysis timeline"
+        )
+    total = float(available.sum())
+    if len(available) < 12:
+        total *= 12.0 / len(available)
+    return total
+
+
+def _fixed_annual_series(assignment: RecoveryAssignment, area: float,
+                         months: pd.PeriodIndex,
+                         analysis_begin: Optional[dt.date],
+                         inflation: Optional[Inflation],
+                         where: str) -> pd.Series:
+    """The fixed method's annual tenant amount per month [AE p. 409]:
+    flat unless ``fixed_inflation`` opts into an index or schedule."""
+    annual = (assignment.fixed_amount
+              if assignment.fixed_amount is not None
+              else assignment.fixed_amount_per_area * area)
+    ref = assignment.fixed_inflation
+    if ref is None:
+        return pd.Series(float(annual), index=months)
+    if analysis_begin is None:
+        raise ValueError(f"{where}: inflated fixed recoveries need "
+                         "analysis_begin")
+    if isinstance(ref, list):
+        rates = ref
+        month = inflation.inflation_month if inflation is not None else None
+        basis_kwargs = ({"timing_basis": inflation.timing_basis}
+                        if inflation is not None else {})
+    else:
+        if inflation is None:
+            raise ValueError(f"{where}: fixed_inflation {ref!r} needs the "
+                             "property inflation assumptions")
+        rates = index_schedule(inflation, ref)
+        month = inflation.inflation_month
+        basis_kwargs = {"timing_basis": inflation.timing_basis}
+    factors = inflation_factors(rates, months, analysis_begin, month,
+                                **basis_kwargs)
+    return annual * factors
+
+
+def _window_recoveries(assignment: RecoveryAssignment, area: float,
+                       start: pd.Period, end: pd.Period,
+                       months: pd.PeriodIndex, expenses: ExpenseSeries,
+                       rentable_area: Union[pd.Series, float], where: str,
+                       analysis_begin: Optional[dt.date],
+                       inflation: Optional[Inflation]) -> pd.Series:
+    method = assignment.method
+    series = pd.Series(0.0, index=months, name="expense_recovery")
+    if method == RecoverySystemMethod.none:
+        return series
+
+    if method == RecoverySystemMethod.fixed:
+        annual = _fixed_annual_series(assignment, area, months,
+                                      analysis_begin, inflation, where)
+        for period in months:
+            if start <= period <= end:
+                series[period] = float(annual[period]) / 12.0
+        return series
+
+    if method == RecoverySystemMethod.structure:
+        raise NotImplementedError(
+            f"{where}: user recovery structures arrive in Phase 2 Step 5 "
+            "session 2 (spec §10); system methods only until then"
+        )
+
+    pool = recoverable_pool(expenses, months)
+
+    if method == RecoverySystemMethod.net:
+        stop_monthly = pd.Series(0.0, index=months)
+    elif method == RecoverySystemMethod.base_stop:
+        # a building stop: $/SF × denominator area [AE p. 409]
+        stop_monthly = pd.Series(
+            [assignment.stop_amount_per_area * _area_at(rentable_area, p) / 12.0
+             for p in months], index=months,
+        )
+    elif method in (RecoverySystemMethod.base_year,
+                    RecoverySystemMethod.base_year_plus_1):
+        if assignment.base_year_gross_up_pct is not None:
+            raise NotImplementedError(
+                f"{where}: base-year gross-up is a user-structure feature "
+                "(system structures are never grossed up [AE p. 406]) and "
+                "arrives in Phase 2 Step 5 session 2"
+            )
+        window = _base_year_window(assignment, method, start,
+                                   analysis_begin, where)
+        stop_annual = _frozen_stop_annual(pool, window, where)
+        stop_monthly = pd.Series(stop_annual / 12.0, index=months)
+    else:  # pragma: no cover - exhaustive over RecoverySystemMethod
+        raise ValueError(f"unhandled recovery method {method!r}")
+
+    for period in months:
+        if start <= period <= end:
+            share = area / _area_at(rentable_area, period)
+            excess = float(pool[period]) - float(stop_monthly[period])
+            series[period] = max(0.0, excess) * share  # never pay the stop
+    return series
+
+
 def project_recoveries(lease: Lease, months: pd.PeriodIndex,
                        expenses: ExpenseSeries,
-                       rentable_area: Union[pd.Series, float]) -> pd.Series:
+                       rentable_area: Union[pd.Series, float],
+                       analysis_begin: Optional[dt.date] = None,
+                       inflation: Optional[Inflation] = None) -> pd.Series:
     """Project one lease's contract-term expense recoveries onto the
-    monthly timeline (spec §4.1 step 6). Dispatch: ``none`` posts nothing
-    [AE p. 406]; ``net`` posts the pro-rata pool share [AE p. 405]; every
-    other method arrives with full recovery structures (Phase 2 Step 5,
-    spec §10, Iron Rule 2)."""
+    monthly timeline (spec §4.1 step 6) per its system method
+    [AE pp. 405-406, 408-409]. User structures arrive in Step 5
+    session 2."""
     start, end = lease_term_periods(lease)
     return _window_recoveries(
-        lease.recoveries.method, lease.area, start, end,
-        months, expenses, rentable_area,
-        where=f"lease {lease.tenant_name!r}",
+        lease.recoveries, lease.area, start, end, months, expenses,
+        rentable_area, where=f"lease {lease.tenant_name!r}",
+        analysis_begin=analysis_begin, inflation=inflation,
     )
 
 
 def project_segment_recoveries(segment, months: pd.PeriodIndex,
                                expenses: ExpenseSeries,
                                rentable_area: Union[pd.Series, float],
+                               analysis_begin: Optional[dt.date] = None,
+                               inflation: Optional[Inflation] = None,
                                ) -> pd.Series:
-    """Recoveries for one resolved lease segment (contract or speculative;
-    Phase 2 Step 2). The segment's own ``RecoveryAssignment`` governs —
-    speculative segments recover per their MLP (spec §3.6 [AE pp. 239-240]).
-    Recoveries post over occupied months only: downtime months post
-    nothing (the space is vacant; golden #1's FY2029 Expense Recoveries
-    confirm)."""
+    """Recoveries for one resolved lease segment (contract or speculative).
+    The segment's own ``RecoveryAssignment`` governs — speculative
+    segments recover per their MLP (spec §3.6 [AE pp. 239-240]); a
+    base-year segment's base year is its own start year (each segment is
+    a new lease; the manual's Continue Prior carry-over is not modeled,
+    DEVIATIONS.md §7). Recoveries post over occupied months only:
+    downtime months post nothing (golden #1's FY2029 confirms)."""
     return _window_recoveries(
-        segment.recoveries.method, segment.area, segment.start, segment.end,
+        segment.recoveries, segment.area, segment.start, segment.end,
         months, expenses, rentable_area,
         where=f"lease {segment.lease.tenant_name!r} segment {segment.start}",
-    )
-
-
-def _window_recoveries(method: RecoverySystemMethod, area: float,
-                       start: pd.Period, end: pd.Period,
-                       months: pd.PeriodIndex, expenses: ExpenseSeries,
-                       rentable_area: Union[pd.Series, float],
-                       where: str) -> pd.Series:
-    if method == RecoverySystemMethod.none:
-        return pd.Series(0.0, index=months, name="expense_recovery")
-    if method == RecoverySystemMethod.net:
-        pool = recoverable_pool(expenses, months)
-        series = pd.Series(0.0, index=months, name="expense_recovery")
-        for period in months:
-            if start <= period <= end:
-                series[period] = float(pool[period]) * area / _area_at(
-                    rentable_area, period
-                )
-        return series
-    raise NotImplementedError(
-        f"{where}: recovery method '{method.value}' arrives with full "
-        "recovery structures (Phase 2 Step 5, spec §10); 'net' and 'none' "
-        "only until then"
+        analysis_begin=analysis_begin, inflation=inflation,
     )

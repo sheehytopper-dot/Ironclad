@@ -271,8 +271,10 @@ def run_property(model: PropertyModel) -> RunResult:
     def recoveries_from(expense_series) -> dict[str, pd.Series]:
         return {
             tenant: sum(
-                (project_segment_recoveries(s, months, expense_series, rentable)
-                 for s in segments),
+                (project_segment_recoveries(
+                    s, months, expense_series, rentable,
+                    analysis_begin=begin, inflation=model.inflation,
+                ) for s in segments),
                 pd.Series(0.0, index=months),
             )
             for tenant, segments in chains.items()

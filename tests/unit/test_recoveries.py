@@ -159,11 +159,221 @@ class TestDispatch:
         series = project_recoveries(lease, MONTHS, expenses, rentable_area=540_000)
         assert series.sum() == 0.0
 
-    def test_phase2_methods_raise(self):
-        """Stops, base years, fixed amounts, and user structures are Phase 2;
-        asking for them must fail loudly, not silently post zero."""
-        lease = make_lease(area=540_000, method=RecoverySystemMethod.base_stop,
-                           stop_amount_per_area=2.50)
+    def test_user_structures_still_raise(self):
+        """User recovery structures are Step 5 session 2; asking for them
+        must fail loudly, not silently post zero."""
+        lease = make_lease(area=540_000, method=RecoverySystemMethod.structure,
+                           structure_ref="Custom CAM")
         expenses = [project(expense("CAM", 120_000))]
-        with pytest.raises(NotImplementedError, match="base_stop"):
+        with pytest.raises(NotImplementedError, match="structure"):
             project_recoveries(lease, MONTHS, expenses, rentable_area=540_000)
+
+
+class TestBaseStop:
+    """base_stop: a building $/SF stop — the tenant reimburses its share
+    of recoverable expenses over the building stop amount [AE p. 409]."""
+
+    def test_clorox_shaped_hand_case(self):
+        """Hand-computable Clorox shape: pool $1,198,148.38/yr flat, stop
+        $2.00/SF on 540,000 SF (building stop $90,000/mo), 100% share:
+        recovery = 99,845.70 − 90,000 = 9,845.70/mo [AE p. 409]."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_stop,
+                           stop_amount_per_area=2.00)
+        expenses = [project(expense("Operating", 1_198_148.38))]
+        series = project_recoveries(lease, MONTHS, expenses,
+                                    rentable_area=540_000)
+        assert series.iloc[0] == pytest.approx(1_198_148.38 / 12 - 90_000)
+
+    def test_pro_rata_share_of_the_excess(self):
+        """The excess over the building stop is shared pro-rata
+        [AE p. 409]: a 25% tenant recovers 25% of (pool − stop)."""
+        lease = make_lease(area=135_000,
+                           method=RecoverySystemMethod.base_stop,
+                           stop_amount_per_area=1.00)
+        expenses = [project(expense("CAM", 900_000))]
+        series = project_recoveries(lease, MONTHS, expenses,
+                                    rentable_area=540_000)
+        # pool 75,000/mo − stop 45,000/mo = 30,000 × 25%
+        assert series.iloc[0] == pytest.approx(7_500)
+
+    def test_floors_at_zero_never_pays_the_stop(self):
+        """A pool below the stop recovers nothing — the tenant never pays
+        the landlord's stop (spec §3.14 floor)."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_stop,
+                           stop_amount_per_area=5.00)
+        expenses = [project(expense("CAM", 120_000))]
+        series = project_recoveries(lease, MONTHS, expenses,
+                                    rentable_area=540_000)
+        assert (series == 0.0).all()
+
+
+class TestBaseYear:
+    """base_year / base_year_plus_1: the stop is the actual recoverable
+    expenses of the base year, frozen [AE pp. 405-406, 408-409]."""
+
+    def rising_pool(self):
+        """1,200,000/yr inflating 10% each analysis year."""
+        item = expense("Operating", 1_200_000,
+                       inflation=[YearRate(year=1, rate=10.0)])
+        return [project(item)]
+
+    def test_first_lease_year_stop_frozen(self):
+        """A lease starting at analysis begin freezes year-1 expenses as
+        its stop: year 1 recovers nothing; year 2 recovers the increase
+        [AE p. 408 "pro-rata share of any increases over the amount of
+        reimbursable expenses in the first year of the lease"]."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        assert series.iloc[:12].abs().sum() == 0.0        # base year
+        assert series.iloc[12] == pytest.approx(10_000)   # 110k − 100k
+        assert series.iloc[24] == pytest.approx(21_000)   # 121k − 100k
+
+    def test_pre_analysis_start_uses_analysis_year_one(self):
+        """"Tenants with leases that begin before the analysis start will
+        pay their pro-rata share of any increases over the amount of
+        reimbursable expenses in the first year of the analysis"
+        [AE p. 408]."""
+        lease = make_lease(area=540_000, start=dt.date(2020, 3, 1),
+                           term_months=120,
+                           method=RecoverySystemMethod.base_year)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        assert series.iloc[:12].abs().sum() == 0.0
+        assert series.iloc[12] == pytest.approx(10_000)
+
+    def test_base_year_plus_one_shifts_the_window(self):
+        """Base Year Stop +1: the stop is the recoverable expenses of the
+        year following the lease-begin year [AE pp. 406, 409] — so
+        recoveries begin in year 3."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year_plus_1)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        assert series.iloc[:24].abs().sum() == 0.0        # years 1-2
+        assert series.iloc[24] == pytest.approx(11_000)   # 121k − 110k
+
+    def test_explicit_base_year(self):
+        """An explicit calendar base_year overrides the lease-start rule
+        (spec §3.14 assignment)."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year,
+                           base_year=2027)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        # stop = 2027 expenses (year 2: 110k/mo): year-1 pool is below it
+        assert series.iloc[:24].abs().sum() == 0.0
+        assert series.iloc[24] == pytest.approx(11_000)
+
+    def test_base_year_gross_up_deferred_loudly(self):
+        """Gross-up is a user-structure feature — "expenses recovered
+        using system recovery structures will not be grossed up"
+        [AE p. 406]; the assignment's gross-up field defers to Step 5
+        session 2."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year,
+                           base_year_gross_up_pct=95.0)
+        with pytest.raises(NotImplementedError, match="gross-up"):
+            project_recoveries(lease, MONTHS, self.rising_pool(),
+                               rentable_area=540_000, analysis_begin=BEGIN)
+
+
+class TestFixedMethod:
+    """fixed: a tenant amount, not a building amount [AE p. 409]."""
+
+    def test_fixed_amount_posts_regardless_of_pool(self):
+        lease = make_lease(area=540_000, method=RecoverySystemMethod.fixed,
+                           fixed_amount=24_000)
+        series = project_recoveries(lease, MONTHS, [], rentable_area=540_000)
+        assert series.iloc[0] == pytest.approx(2_000)
+        assert series.iloc[30] == pytest.approx(2_000)
+
+    def test_fixed_amount_per_area_is_tenant_area(self):
+        """$/SF fixed recoveries apply to the tenant's area, "not a
+        building amount/area" [AE p. 409]."""
+        lease = make_lease(area=30_000, method=RecoverySystemMethod.fixed,
+                           fixed_amount_per_area=0.50)
+        series = project_recoveries(lease, MONTHS, [], rentable_area=540_000)
+        assert series.iloc[0] == pytest.approx(0.50 * 30_000 / 12)
+
+    def test_flat_unless_inflation_opted_in(self):
+        """The fixed amount is flat by default; fixed_inflation opts into
+        an explicit schedule (spec §3.14 "inflatable")."""
+        flat = make_lease(area=100_000, method=RecoverySystemMethod.fixed,
+                          fixed_amount=12_000)
+        inflated = make_lease(area=100_000,
+                              method=RecoverySystemMethod.fixed,
+                              fixed_amount=12_000,
+                              fixed_inflation=[YearRate(year=1, rate=3.0)])
+        flat_series = project_recoveries(flat, MONTHS, [],
+                                         rentable_area=100_000)
+        infl_series = project_recoveries(inflated, MONTHS, [],
+                                         rentable_area=100_000,
+                                         analysis_begin=BEGIN)
+        assert flat_series.iloc[12] == pytest.approx(1_000)
+        assert infl_series.iloc[12] == pytest.approx(1_030)
+
+
+class TestStopsInsideTheFixedPoint:
+    """Stops make recoveries piecewise-linear in the fee; the %-of-EGR
+    loop must still converge (recoveries.py docstring bound: contraction
+    factor ≤ 2 × share × pct)."""
+
+    def test_base_stop_with_recoverable_fee_converges(self):
+        """Hand-computable: SB 100,000/mo, CAM 10,000/mo, stop 5,000/mo
+        building, 100% share, 5% recoverable fee. rec = pool − 5,000 =
+        5,000 + fee; EGR = 105,000 + fee; fee = 5% × EGR → fee =
+        5,250/0.95 = 5,526.32; fee = 5% of final EGR exactly."""
+        from engine.calc.run import run_property
+        from engine.models import (
+            AreaMeasures,
+            PropertyInfo,
+            PropertyModel,
+            RentableAreaMode,
+        )
+
+        lease = Lease(
+            tenant_name="Tenant", area=100_000, lease_type="industrial",
+            start_date=BEGIN, term_months=60,
+            base_rent=MoneyRate(amount=12.0,
+                                unit=MoneyUnit.dollars_per_area_per_year),
+            recoveries=RecoveryAssignment(
+                method=RecoverySystemMethod.base_stop,
+                stop_amount_per_area=0.60,
+            ),
+            upon_expiration="vacate",
+        )
+        model = PropertyModel(
+            property=PropertyInfo(name="Stop", property_type="industrial",
+                                  analysis_begin=BEGIN,
+                                  analysis_term_years=2),
+            area_measures=AreaMeasures(
+                property_size=100_000,
+                rentable_area_mode=RentableAreaMode.fixed,
+                rentable_area_fixed=100_000,
+            ),
+            inflation=FLAT,
+            expenses=[
+                ExpenseItem(name="CAM", amount=120_000,
+                            unit=ExpenseUnit.dollars_per_year),
+                ExpenseItem(name="Management Fee", amount=5.0,
+                            unit=ExpenseUnit.pct_of_egr),
+            ],
+            rent_roll=[lease],
+        )
+        month = run_property(model).ledger.frame.iloc[0]
+        expected_fee = 5_250 / 0.95
+        assert month["Management Fee"] == pytest.approx(-expected_fee)
+        assert -month["Management Fee"] == pytest.approx(
+            0.05 * month["Effective Gross Revenue"]
+        )
+        assert month["Expense Recovery Revenue"] == pytest.approx(
+            5_000 + expected_fee
+        )

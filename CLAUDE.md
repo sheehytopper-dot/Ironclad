@@ -193,23 +193,40 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   A&T offset — corrected: pre-absorption space now grosses Base + A&T to market per
   [AE p. 538] (DEVIATIONS.md §8 revised; Scheduled/EGR/NOI confirmed unchanged by
   test).** Gate 2 criterion-5 test green: total vacancy = the stated 20% of
-  full-occupancy revenue in downtime and occupied months alike. Suite 180 green
-  (golden #1 regression intact; its General Vacancy = 0 transcribed).
+  full-occupancy revenue in downtime and occupied months alike. **Phase 2 Step 5
+  session 1 complete 2026-07-06:** system recovery methods (`recoveries.py`,
+  [AE pp. 404-413, 517-520] read) — base_stop (building $/SF stop, pro-rata excess
+  [AE p. 409]), base_year/±1 (frozen base-year pool as the stop, lease-start-relative,
+  pre-analysis → analysis year 1 [AE pp. 408-409]; truncated windows annualized),
+  fixed ($ tenant amount or $/SF × tenant area [AE p. 409], flat unless
+  fixed_inflation opts in); all floored at 0, dispatched through
+  project_segment_recoveries for contract + speculative segments (a spec segment's
+  base year = its own start year; Continue Prior not modeled — DEVIATIONS.md §7).
+  base_year_gross_up_pct defers loudly to session 2 (gross-up is user-structure
+  [AE p. 406]). Fixed-point convergence with stops verified and documented
+  (max(0,·) is 1-Lipschitz; contraction factor ≤ 2 × share × pct) with a
+  hand-computed base-stop + recoverable-fee test (fee = 5% of final EGR exactly).
+  Suite 192 green (golden #1 net regression intact).
 - **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 5,
-  session 1 of 2): full recovery structures — system methods. Read [AE pp. 404-413]
-  (recoveries; p. 407 gross-up; pp. 409-410 stops/denominators) and [AE pp. 517-520]
-  (admin fees) first. Extend engine/calc/recoveries.py: system methods base_stop
-  (stop_amount_per_area × tenant share denominator, recover the excess over the stop),
-  base_year / base_year_plus_1 (stop = actual recoverable expenses of the base
-  calendar year — frozen once computed, lease-start-relative per [AE pp. 405-406,
-  240]; leases starting pre-analysis use analysis year 1), and fixed ($ or $/SF,
-  inflatable on fixed_inflation). Honor RecoveryAssignment's base_year_gross_up_pct
-  only if trivially separable — otherwise defer gross-up wholesale to session 2's
-  user structures (it is a user-structure feature per [AE p. 406]; keep the guard
-  loud). Recoveries floor at 0 (never pay the landlord's stop). Wire dispatch through
-  project_segment_recoveries so contract and speculative segments both resolve; keep
-  the %-of-EGR fixed point converging (stops make recoveries nonlinear — verify the
-  loop still terminates and document why). Unit tests with page cites (Iron Rule 3),
-  including a Clorox-shaped base-stop case computable by hand. Full suite green
-  (golden #1 uses net — regression check). Commit, push, update the progress note and
-  this prompt."
+  session 2 of 2): user recovery structures + the Recovery Audit report. Re-read
+  [AE pp. 407-413, 517-520]. Implement RecoveryStructure/RecoveryPool resolution in
+  engine/calc/recoveries.py per spec §3.14: pools over expense refs and expense
+  groups (resolve group members; error on double-counted expenses per the [AE p. 408]
+  warning); per-pool methods (net/stop/base_year/fixed); the gross-up formula —
+  grossed expense = fixed portion + variable portion × (gross_up_pct / actual
+  occupancy) when actual < target, never gross down [AE p. 407; spec §3.14] — which
+  needs per-item fixed/variable splits and the occupancy series, and now also unlocks
+  base_year_gross_up_pct on system base-year assignments; denominators
+  (rentable_area / property_size / occupied_area / fixed_area [AE p. 410]);
+  pro_rata_share_override; admin_fee_pct applied before/after the stop
+  [AE pp. 519-520: default % of recoverable expenses]; caps/floors per pool
+  [AE pp. 411-412: floors/ceilings inflate on general by default, YoY and cumulative
+  caps]; expense_adjustments (exclude/add pct [AE p. 410]); free-rent abatement of
+  recoveries (abate_recoveries, deferred since Phase 1). Retain per-tenant per-pool
+  audit detail, and build the Recovery Audit report (engine/reports/, spec §7 report
+  18 — per tenant per pool: expenses, gross-up, stop, share, caps, fee) reconciling
+  exactly to the ledger — BUILD_SCHEDULE Week 5 requires it early as the debugging
+  tool (owner correction, NEXT_STEPS_TO_GATE2.md Step 5). Unit tests with page cites
+  incl. the [AE p. 407] gross-up formula (Iron Rule 3). Anchor contributions
+  ('Reimburse After' [AE pp. 410-411]) may defer with a loud schema-absent note.
+  Full suite green. Commit, push, update the progress note and this prompt."

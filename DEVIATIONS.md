@@ -114,6 +114,12 @@ are fixed, not listed.
   rejected with a readable error. Intelligent Renewals compares prior rent
   against the renewal market rent directly (the manual's rental-value
   substitution cases [AE p. 236] cannot arise without Rental Value).
+  Likewise the manual's **Continue Prior** recovery default [AE
+  pp. 239-240] (carry the expiring lease's recovery method forward, base
+  year stops not reset) is not modeled: the MLP's `RecoveryAssignment` is
+  explicit, and a base-year assignment on a speculative segment uses the
+  segment's own start year as its base year (each rollover is a new
+  lease).
 - **Revisit when:** a golden's published cash flow demonstrably uses
   speculative-term CPI or rental-value-driven renewal rents and cannot be
   matched within tolerance without them (then the §3.6 schema grows the

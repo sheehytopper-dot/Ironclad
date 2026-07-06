@@ -173,13 +173,13 @@ class TestSegmentRecoveries:
         )
         assert recovery[pd.Period("2026-06", freq="M")] == 0.0  # contract window
 
-    def test_non_net_methods_wait_for_step5(self):
-        profile = make_profile(recoveries={"method": "base_stop",
-                                           "stop_amount_per_area": 2.5})
+    def test_user_structures_wait_for_step5_session2(self):
+        profile = make_profile(recoveries={"method": "structure",
+                                           "structure_ref": "Custom"})
         seg = first_spec(profile=profile)
         cam = ExpenseItem(name="CAM", amount=240_000,
                           unit=ExpenseUnit.dollars_per_year)
-        with pytest.raises(NotImplementedError, match="base_stop"):
+        with pytest.raises(NotImplementedError, match="structure"):
             project_segment_recoveries(
                 seg, MONTHS, [(cam, pd.Series(20_000.0, index=MONTHS))],
                 rentable_area=400_000,
