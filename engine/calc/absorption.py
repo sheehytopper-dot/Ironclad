@@ -21,9 +21,16 @@ lease taking the remainder, so the generated areas always sum exactly to
 follow the manual's series pattern, e.g. "Vacant Office 2 of 8"
 [AE p. 403].
 
-Pre-absorption vacant months post **nothing** to revenue; the space counts
-in available (and rentable) area only — owner-directed v1 behavior,
-recorded with its manual tension in DEVIATIONS.md §8. ``reabsorb``
+Pre-absorption vacant months follow the manual's Cash Flow convention
+[AE p. 538]: Potential Base Rent includes "the market value of the
+currently vacant spaces," offset one-for-one by Absorption & Turnover
+Vacancy — ``pre_absorption_vacancy`` provides that market-value series per
+generated lease, month-by-month at the then-current market rent. Scheduled
+Base, EGR, and NOI are untouched by the gross-up (it nets to zero inside
+Scheduled); what it changes is the Potential Base Rent presentation and,
+critically, the A&T ledger line that general vacancy's
+``reduce_by_absorption_turnover`` offset consumes (spec §3.4;
+DEVIATIONS.md §8 records the 2026-07-06 correction). ``reabsorb``
 expirations (space returning to the absorption pool) have undefined
 re-pooling semantics in v1 and are refused loudly by run.py — also
 DEVIATIONS.md §8. The manual's separate Available-vs-Start dates and
@@ -143,3 +150,41 @@ def generate_absorption_leases(
             upon_expiration=upon,
         ))
     return leases
+
+
+def pre_absorption_vacancy(
+    leases: list[Lease],
+    profile: MarketLeasingProfile,
+    months: pd.PeriodIndex,
+    analysis_begin: dt.date,
+    inflation: Inflation,
+) -> dict[str, pd.Series]:
+    """Market value of each generated lease's space for the months before
+    its lease starts — the "market value of the currently vacant spaces"
+    that ARGUS carries in Potential Base Rent with the offsetting
+    Absorption & Turnover Vacancy entry [AE p. 538].
+
+    Valued month-by-month at the then-current market rent (the profile's
+    new-tenant rate inflated to each vacant month under ``term_growth`` —
+    "changes to market assumptions ... are dynamically incorporated"
+    [AE p. 395]). run.py posts each series positively to Base Rental
+    Revenue and negatively to Absorption & Turnover Vacancy, exactly like
+    rollover downtime (spec §4.2). Returns ``{tenant_name: series}``.
+    """
+    where = f"absorption profile {profile.name!r}"
+    vacancy: dict[str, pd.Series] = {}
+    for lease in leases:
+        start = pd.Period(snap_to_month_start(lease.start_date), freq="M")
+        series = pd.Series(0.0, index=months, name="pre_absorption_vacancy")
+        for period in months:
+            if period >= start:
+                break
+            factor = (
+                _market_factor(inflation, period, analysis_begin)
+                if profile.term_growth else 1.0
+            )
+            series[period] = _market_monthly(
+                profile.market_base_rent_new, lease.area, factor, None, where
+            )
+        vacancy[lease.tenant_name] = series
+    return vacancy

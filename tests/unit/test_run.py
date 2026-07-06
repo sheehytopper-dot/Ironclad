@@ -124,7 +124,9 @@ class TestPhaseGuards:
     """Inputs needing Phase 2/3 passes raise instead of silently posting
     nothing (Iron Rule 2; no silent numbers)."""
 
-    def test_general_vacancy_raises(self):
+    def test_general_vacancy_now_computes(self):
+        """The Step 4 guard is lifted: 5% of PGR posts to the General
+        Vacancy line and reduces EGR (spec §3.4 [AE pp. 224-225])."""
         model = make_model(
             [CAM],
             general_vacancy=GeneralVacancy(
@@ -132,8 +134,10 @@ class TestPhaseGuards:
                 rate=[YearRate(year=1, rate=5.0)],
             ),
         )
-        with pytest.raises(NotImplementedError, match="general vacancy"):
-            run_property(model)
+        month = run_property(model).ledger.frame.iloc[0]
+        # PGR = 100,000 rent + 5,000 recoveries; GV = 5%
+        assert month["General Vacancy"] == pytest.approx(-5_250.0)
+        assert month["Effective Gross Revenue"] == pytest.approx(99_750.0)
 
     def test_pct_of_account_expense_raises(self):
         item = ExpenseItem(name="Linked", amount=10.0,

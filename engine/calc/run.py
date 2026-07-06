@@ -8,11 +8,15 @@ expense resolution → recoveries → ledger assembly, and asserts the §9.3
 pre-valuation invariants on every run (CLAUDE.md Conventions). Inputs
 whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
-vacancy/credit loss (Phase 2 Step 4), non-net recovery structures
-(Step 5), percentage rent (Step 8), ``reabsorb`` expirations
-(DEVIATIONS.md §8), TI/LC posting, security deposits, and debt (Phase 3).
-Space absorption (Step 3) generates synthetic leases per spec §3.15 that
-join the rent roll for every downstream pass.
+non-net recovery structures (Step 5), percentage rent (Step 8),
+``reabsorb`` expirations (DEVIATIONS.md §8), TI/LC posting, security
+deposits, and debt (Phase 3). Space absorption (Step 3) generates
+synthetic leases per spec §3.15 that join the rent roll for every
+downstream pass; pre-absorption vacant space grosses Base Rental Revenue
+up to market with the offsetting A&T entry [AE p. 538]. General vacancy
+and credit loss (Step 4) compute inside the fixed point — their bases
+include recoveries, and the A&T offset consumes the vacancy already in
+the ledger (spec §3.4).
 
 Rollover projection (spec §4.2/§2.3): downtime months post the blended
 market rent to Base Rental Revenue and its negative to Absorption &
@@ -38,7 +42,10 @@ from typing import Optional
 
 import pandas as pd
 
-from engine.calc.absorption import generate_absorption_leases
+from engine.calc.absorption import (
+    generate_absorption_leases,
+    pre_absorption_vacancy,
+)
 from engine.calc.expenses import PCT_UNITS, project_expense
 from engine.calc.leases import (
     LeaseRentCashflows,
@@ -57,13 +64,17 @@ from engine.calc.ledger import (
 )
 from engine.calc.recoveries import project_segment_recoveries
 from engine.calc.timeline import build_month_index
+from engine.calc.vacancy import (
+    TenantRevenue,
+    credit_loss_series,
+    general_vacancy_series,
+)
 from engine.models import (
     ExpenseItem,
     ExpenseUnit,
     FreeRentProfile,
     PropertyModel,
     UponExpiration,
-    VacancyMethod,
 )
 
 #: Fixed-point controls for %-of-revenue expenses. The iteration is a
@@ -88,6 +99,8 @@ class RunResult:
     lease_rents: dict[str, LeaseRentCashflows]      # by tenant_name (chain totals)
     absorption_vacancy: dict[str, pd.Series]        # by tenant_name (negative)
     recoveries: dict[str, pd.Series]                # by tenant_name
+    general_vacancy: pd.Series                      # negative
+    credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
 
 
@@ -102,10 +115,6 @@ def _phase_guards(model: PropertyModel) -> None:
                 "remove the input or wait for that phase"
             )
 
-    refuse(model.general_vacancy.method != VacancyMethod.none,
-           "general vacancy", "Phase 2 Step 4")
-    refuse(model.credit_loss.method != VacancyMethod.none,
-           "credit loss", "Phase 2 Step 4")
     refuse(bool(model.miscellaneous_revenues or model.parking_revenues
                 or model.storage_revenues), "property revenues", "Phase 2")
     refuse(bool(model.loans), "debt", "Phase 3")
@@ -161,13 +170,17 @@ def run_property(model: PropertyModel) -> RunResult:
     # (spec §4.2). Pre-absorption vacant months post nothing to revenue;
     # the space counts in rentable/available area (DEVIATIONS.md §8).
     profiles = {p.name: p for p in model.market_leasing_profiles}
-    synthetic = [
-        lease
-        for spec in model.absorption
-        for lease in generate_absorption_leases(
+    synthetic: list = []
+    pre_vacancy: dict[str, pd.Series] = {}
+    for spec in model.absorption:
+        generated = generate_absorption_leases(
             spec, profiles, begin, model.inflation
         )
-    ]
+        synthetic.extend(generated)
+        pre_vacancy.update(pre_absorption_vacancy(
+            generated, profiles[spec.market_leasing_profile],
+            months, begin, model.inflation,
+        ))
     all_leases = list(model.rent_roll) + synthetic
     names = [lease.tenant_name for lease in all_leases]
     duplicates = {n for n in names if names.count(n) > 1}
@@ -213,6 +226,12 @@ def run_property(model: PropertyModel) -> RunResult:
             rents.base_rent += spec.base_rent
             rents.free_rent += spec.free_rent
             vacancy += spec.absorption_vacancy
+        # pre-absorption vacant space: market value to Base Rental Revenue,
+        # offset in A&T Vacancy [AE p. 538] (DEVIATIONS.md §8)
+        pre = pre_vacancy.get(lease.tenant_name)
+        if pre is not None:
+            rents.base_rent += pre
+            vacancy -= pre
         lease_rents[lease.tenant_name] = rents
         absorption[lease.tenant_name] = vacancy
 
@@ -239,12 +258,15 @@ def run_property(model: PropertyModel) -> RunResult:
     pct_items = [i for i in model.expenses if i.unit in PCT_UNITS]
     fixed_series = [(item, project(item)) for item in fixed_items]
 
-    # Pass 6 + the %-of-EGR fixed point (spec §4.1 step 9; DEVIATIONS.md
-    # §6): iterate fee → recoveries → EGR → fee to convergence, then take
-    # the recoveries computed from the converged fee. Recoveries run per
-    # segment: each segment's own assignment, occupied months only.
+    # Pass 6 + passes 9-10 inside one fixed point (spec §4.1;
+    # DEVIATIONS.md §6): recoveries feed EGR; general vacancy and credit
+    # loss deduct from it (their bases include recoveries); a %-of-EGR fee
+    # feeds recoveries — so all of it iterates together to convergence.
+    # Recoveries run per segment: each segment's own assignment, occupied
+    # months only.
     pct_series = {item.name: pd.Series(0.0, index=months)
                   for item in pct_items}
+    timing_basis = model.inflation.timing_basis
 
     def recoveries_from(expense_series) -> dict[str, pd.Series]:
         return {
@@ -256,19 +278,37 @@ def run_property(model: PropertyModel) -> RunResult:
             for tenant, segments in chains.items()
         }
 
+    def property_flows(expense_series):
+        """Recoveries → vacancy/credit loss → Total PGR / EGR, exactly as
+        the ledger defines them (spec §4.1 steps 6, 10)."""
+        recoveries = recoveries_from(expense_series)
+        tenants = {
+            tenant: TenantRevenue(
+                scheduled=(lease_rents[tenant].base_rent
+                           + absorption[tenant]
+                           + lease_rents[tenant].free_rent),
+                cpi=lease_rents[tenant].cpi_adjustment,
+                recoveries=recoveries[tenant],
+                absorption_vacancy=absorption[tenant],
+            )
+            for tenant in chains
+        }
+        gv = general_vacancy_series(model.general_vacancy, tenants, months,
+                                    begin, timing_basis)
+        cl = credit_loss_series(model.credit_loss, tenants, gv, months,
+                                begin, timing_basis)
+        recovery_total = sum(recoveries.values(),
+                             pd.Series(0.0, index=months))
+        pgr = (base_total + absorption_total + free_total + cpi_total
+               + recovery_total)
+        egr = pgr + gv + cl
+        return recoveries, gv, cl, pgr, egr
+
     for _ in range(_MAX_FIXED_POINT_ROUNDS):
         expense_series = fixed_series + [
             (item, pct_series[item.name]) for item in pct_items
         ]
-        recoveries = recoveries_from(expense_series)
-        recovery_total = sum(recoveries.values(),
-                             pd.Series(0.0, index=months))
-        # Total PGR / EGR exactly as the ledger defines them; general
-        # vacancy and credit loss are zero until Phase 2 Step 4, so
-        # EGR = Total PGR.
-        pgr = (base_total + absorption_total + free_total + cpi_total
-               + recovery_total)
-        egr = pgr
+        recoveries, gv, cl, pgr, egr = property_flows(expense_series)
         if not pct_items:
             break
         delta = 0.0
@@ -281,7 +321,7 @@ def run_property(model: PropertyModel) -> RunResult:
             expense_series = fixed_series + [
                 (item, pct_series[item.name]) for item in pct_items
             ]
-            recoveries = recoveries_from(expense_series)
+            recoveries, gv, cl, pgr, egr = property_flows(expense_series)
             break
     else:
         raise ValueError(
@@ -295,6 +335,8 @@ def run_property(model: PropertyModel) -> RunResult:
         recoveries=recoveries.values(),
         expenses=expense_series,
         absorption_vacancy=absorption_total,
+        general_vacancy=gv,
+        credit_loss=cl,
     )
     assert_invariants(
         ledger, analysis_begin=begin,
@@ -305,5 +347,6 @@ def run_property(model: PropertyModel) -> RunResult:
         ledger=ledger, months=months, occupied_area=occupied,
         rentable_area=rentable, occupancy=occupancy, segments=chains,
         lease_rents=lease_rents, absorption_vacancy=absorption,
-        recoveries=recoveries, expense_series=expense_series,
+        recoveries=recoveries, general_vacancy=gv, credit_loss=cl,
+        expense_series=expense_series,
     )

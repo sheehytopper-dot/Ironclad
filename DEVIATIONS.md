@@ -119,28 +119,63 @@ are fixed, not listed.
   matched within tolerance without them (then the §3.6 schema grows the
   fields, with SCHEMA_GUIDE/JSON-schema regeneration).
 
-## 8. Absorption v1: silent pre-absorption vacancy; reabsorb deferred
+## 8. Absorption: pre-absorption vacancy grosses PGR to market (corrected 2026-07-06); reabsorb deferred
 
 - **Manual:** the Cash Flow's Potential Base Rent "is derived from the
   combination of in-place rent and the market value of the currently
   vacant spaces," with Absorption & Turnover Vacancy carrying the
   offsetting "loss in rent due to downtime between leases and current
-  vacant space" [AE p. 538] — i.e., ARGUS grosses currently-vacant space
-  up to market in PGR.
-- **As built (owner-directed 2026-07-06):** pre-absorption vacant months
-  post **nothing** to revenue — no Base Rental Revenue, no A&T Vacancy
-  offset; the space counts in rentable and available area only (it still
-  drives occupancy-based expense scaling). Once a generated lease's chain
-  is running, rollover downtime posts Base + A&T normally (spec §4.2).
-  Scheduled Base Rental Revenue, EGR, and NOI are identical under either
-  convention; only the gross PGR presentation differs.
-- **Also deferred:** ``upon_expiration = 'reabsorb'`` (space returning to
-  the absorption pool). The manual does not define the re-pooling
+  vacant space" [AE p. 538].
+- **History:** the original Step 3 call (2026-07-06, same day) had
+  pre-absorption vacant months post nothing to revenue, reasoning that
+  Scheduled Base, EGR, and NOI are identical under either convention.
+  That held only while nothing consumed the A&T ledger line. Step 4's
+  hand-model showed the divergence: general vacancy's
+  ``reduce_by_absorption_turnover`` offset (spec §3.4, the ARGUS default)
+  subtracts A&T from the vacancy allowance — with pre-absorption A&T
+  missing, the engine would charge full general vacancy *on top of* the
+  economically-vacant space and run EGR/NOI materially below ARGUS for
+  every absorption month (≈ rate × grossed base, uncapped by the A&T
+  already suffered). Owner-directed correction, same day.
+- **As built:** ``pre_absorption_vacancy`` posts each not-yet-absorbed
+  space's market value to Base Rental Revenue with the offsetting
+  negative A&T entry, exactly like rollover downtime (spec §4.2) —
+  confirmed by test that Scheduled Base, EGR, and NOI are unchanged by
+  the gross-up; only Potential Base Rent, A&T, and the vacancy-offset
+  base move. Month-level convention: the vacant space is valued at the
+  then-current market rent, inflating month-by-month under
+  ``term_growth`` (annual golden data cannot discriminate this against
+  freeze-at-start; a dispute goes to owner per-cell adjudication).
+- **Still deferred:** ``upon_expiration = 'reabsorb'`` (space returning
+  to the absorption pool). The manual does not define the re-pooling
   mechanics (which schedule, what timing), so v1 refuses it loudly in
   run.py rather than letting the space sit silently vacant;
   ``resolve_lease_chain`` itself simply ends the chain.
 - **Revisit when:** goldens #4/#5 (triaged for absorption coverage)
-  back-test — if their published Argus cash flows show vacant-space
-  market value in Potential Base Rent (they will, if the line is
-  ARGUS-standard), the gross-up presentation gets implemented then, with
-  the golden as the reference; reabsorb waits for a deal that needs it.
+  back-test the corrected treatment against published Argus output;
+  reabsorb waits for a deal that needs it.
+
+## 9. General vacancy / credit loss: schema narrowings vs the manual
+
+- **Manual [AE pp. 224-231]:** an Annual Amount method (inflatable
+  currency schedules) alongside the three percentage methods; a
+  "Gross-Up Revenue by Absorption & Turnover Vacancy" base toggle
+  independent of the "Reduce General Vacancy Result by Absorption &
+  Turnover" checkbox; tenant overrides with adjust / increment / replace
+  methods and per-tenant override percentages, plus an After Expiration
+  reversion option.
+- **Spec §3.4/§3.5 / as built:** percentage methods only (no annual
+  amount); overrides are **exclusion-only** (`{tenant_ref, exclude}` —
+  the credit-tenant case; an excluded tenant leaves both the base and
+  the A&T offset). The two manual toggles are paired as one flag:
+  ``reduce_by_absorption_turnover = true`` computes the target on
+  revenue grossed to 100% occupancy ("calculations based on potential
+  revenue with 100% Occupancy" [AE p. 226]) and reduces the allowance by
+  A&T; ``false`` computes on as-scheduled revenue with no reduction
+  (separate line items [AE p. 226]). The manual's mixed pairings
+  (gross-up without reduction, reduction without gross-up) cannot be
+  expressed.
+- **Revisit when:** a golden's published cash flow needs an annual-amount
+  vacancy, a rate-modifying tenant override, or an unpaired
+  gross-up/reduce combination and cannot be matched within tolerance
+  without it.

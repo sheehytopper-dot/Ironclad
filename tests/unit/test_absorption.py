@@ -162,16 +162,29 @@ class TestRunIntegration:
         fields.update(overrides)
         return PropertyModel(**fields)
 
-    def test_pre_absorption_months_post_nothing_but_count_available(self):
-        """Pre-absorption vacant months post nothing to revenue; the space
-        counts in rentable/available area (owner-directed v1,
-        DEVIATIONS.md §8)."""
+    def test_pre_absorption_vacancy_grosses_pgr_to_market(self):
+        """Pre-absorption vacant space carries its market value in Base
+        Rental Revenue with the offsetting Absorption & Turnover Vacancy
+        entry [AE p. 538] — Scheduled nets to zero, nothing recovers, and
+        the space counts in rentable/available area (DEVIATIONS.md §8,
+        corrected 2026-07-06)."""
         result = run_property(self.make_model())
         frame = result.ledger.frame
         june = pd.Period("2026-06", freq="M")  # before first lease (Jul)
-        assert frame.loc[june, "Base Rental Revenue"] == 0.0
-        assert frame.loc[june, "Absorption & Turnover Vacancy"] == 0.0
+        market_value = 12.0 * 100_000 / 12  # all four spaces vacant
+        assert frame.loc[june, "Base Rental Revenue"] == pytest.approx(market_value)
+        assert frame.loc[june, "Absorption & Turnover Vacancy"] == pytest.approx(
+            -market_value
+        )
+        assert frame.loc[june, "Scheduled Base Rental Revenue"] == pytest.approx(0.0)
         assert frame.loc[june, "Expense Recovery Revenue"] == 0.0
+        # the gross-up nets to zero inside Scheduled: EGR and NOI are what
+        # the ungrossed convention would produce (DEVIATIONS.md §8) —
+        # only Potential Base Rent, A&T, and the vacancy base move
+        assert frame.loc[june, "Effective Gross Revenue"] == pytest.approx(0.0)
+        assert frame.loc[june, "Net Operating Income"] == pytest.approx(
+            -10_000  # the month's CAM, unrecovered
+        )
         assert result.rentable_area[june] == 100_000  # derived incl. absorption
         assert result.occupied_area[june] == 0.0
 
@@ -181,11 +194,20 @@ class TestRunIntegration:
         assert result.occupied_area[pd.Period("2026-07", freq="M")] == 30_000
         assert result.occupied_area[pd.Period("2026-10", freq="M")] == 60_000
         assert result.occupied_area[pd.Period("2027-04", freq="M")] == 100_000
-        # month 1 of lease 1: rent posts (free rent offsets it), recoveries
-        # at the tenant's 30% pro-rata share of the pool [AE p. 405]
+        # month 1 of lease 1: its rent posts (free rent offsets it) while
+        # the 70k SF not yet absorbed stays at market in Base + A&T
+        # [AE p. 538]; recoveries at the tenant's 30% pro-rata share of
+        # the pool [AE p. 405]
         july = pd.Period("2026-07", freq="M")
-        assert frame.loc[july, "Base Rental Revenue"] == pytest.approx(30_000)
+        assert frame.loc[july, "Base Rental Revenue"] == pytest.approx(
+            30_000 + 70_000
+        )
+        assert frame.loc[july, "Absorption & Turnover Vacancy"] == pytest.approx(
+            -70_000
+        )
         assert frame.loc[july, "Free Rent"] == pytest.approx(-30_000)
+        # Scheduled = Base + A&T + Free: month fully abated by free rent
+        assert frame.loc[july, "Scheduled Base Rental Revenue"] == pytest.approx(0.0)
         assert frame.loc[july, "Expense Recovery Revenue"] == pytest.approx(
             10_000 * 0.30
         )

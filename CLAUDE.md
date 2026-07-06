@@ -182,24 +182,34 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   at MLP new-tenant economics (rent inflated to each lease's own start, "N of M"
   naming per [AE p. 403]; area_per_lease → ceil count with remainder final lease so
   areas sum exactly), joining the rent roll for chains/occupancy/expenses/recoveries;
-  pre-absorption vacancy posts nothing (owner-directed; manual tension + reabsorb
-  loud-guard deferral recorded in DEVIATIONS.md §8); derived rentable area includes
-  absorption. Suite 167 green (golden #1 regression intact).
-- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 4):
-  general vacancy & credit loss with offsets. Read [AE pp. 224-232] first. Implement
-  engine/calc/vacancy.py per spec §3.4/§3.5: the three percentage methods
-  (percent_of_pgr, percent_of_scheduled_base_plus, percent_of_total_tenant_revenue)
-  with year-varying rates, include_in_pgr_accounts line selection, tenant overrides
-  (exclude named tenants' revenue from the base before applying the %), and — the
-  critical, frequently misimplemented core (spec §3.4) — reduce_by_absorption_turnover:
-  monthly General Vacancy = max(0, target vacancy − A&T vacancy already in the ledger),
-  so total vacancy equals the stated rate instead of stacking. Credit loss applies
-  after general vacancy on the reduced base, no A&T interaction (§3.5). Wire into
-  run.py (lift both guards; EGR in the %-of-EGR fixed point now includes the vacancy
-  terms — general vacancy depends on revenue, which the fee feeds, so both live inside
-  the loop) and post to the General Vacancy / Credit Loss ledger lines. Write the
-  Gate 2 criterion-5 test: a rollover property where total vacancy % of the base
-  equals the stated rate, not rate + downtime (NEXT_STEPS_TO_GATE2.md). Unit tests
-  with page cites (Iron Rule 3). Golden #1 has General Vacancy = 0 transcribed — the
-  full suite must stay green as the regression check. Commit, push, update the
-  progress note and this prompt."
+  derived rentable area includes absorption. **Phase 2 Step 4 complete 2026-07-06:**
+  general vacancy & credit loss (`engine/calc/vacancy.py`, [AE pp. 224-232]) — three
+  % methods with the manual's p. 225 examples as tests, year-varying rates,
+  include_in_pgr_accounts, exclusion-only tenant overrides (narrowings: DEVIATIONS.md
+  §9), reduce_by_absorption_turnover computing the target on 100%-occupancy revenue
+  and netting A&T from the allowance; credit loss after GV on the reduced base; both
+  live inside run.py's fixed point (EGR = PGR + GV + CL). **Step 4's hand-model
+  exposed that Step 3's silent pre-absorption vacancy would double-count against the
+  A&T offset — corrected: pre-absorption space now grosses Base + A&T to market per
+  [AE p. 538] (DEVIATIONS.md §8 revised; Scheduled/EGR/NOI confirmed unchanged by
+  test).** Gate 2 criterion-5 test green: total vacancy = the stated 20% of
+  full-occupancy revenue in downtime and occupied months alike. Suite 180 green
+  (golden #1 regression intact; its General Vacancy = 0 transcribed).
+- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 5,
+  session 1 of 2): full recovery structures — system methods. Read [AE pp. 404-413]
+  (recoveries; p. 407 gross-up; pp. 409-410 stops/denominators) and [AE pp. 517-520]
+  (admin fees) first. Extend engine/calc/recoveries.py: system methods base_stop
+  (stop_amount_per_area × tenant share denominator, recover the excess over the stop),
+  base_year / base_year_plus_1 (stop = actual recoverable expenses of the base
+  calendar year — frozen once computed, lease-start-relative per [AE pp. 405-406,
+  240]; leases starting pre-analysis use analysis year 1), and fixed ($ or $/SF,
+  inflatable on fixed_inflation). Honor RecoveryAssignment's base_year_gross_up_pct
+  only if trivially separable — otherwise defer gross-up wholesale to session 2's
+  user structures (it is a user-structure feature per [AE p. 406]; keep the guard
+  loud). Recoveries floor at 0 (never pay the landlord's stop). Wire dispatch through
+  project_segment_recoveries so contract and speculative segments both resolve; keep
+  the %-of-EGR fixed point converging (stops make recoveries nonlinear — verify the
+  loop still terminates and document why). Unit tests with page cites (Iron Rule 3),
+  including a Clorox-shaped base-stop case computable by hand. Full suite green
+  (golden #1 uses net — regression check). Commit, push, update the progress note and
+  this prompt."
