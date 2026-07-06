@@ -556,3 +556,70 @@ def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
         profile_ref = (profile.chained_profile
                        if behavior == UponExpiration.option else profile.name)
     return segments
+
+
+# --------------------------------------------------------------------- #
+# Speculative segment projection (Phase 2 Step 2; spec §4.2, §2.3)       #
+# --------------------------------------------------------------------- #
+
+@dataclass
+class SegmentRentCashflows:
+    """Monthly rent series for one speculative segment (spec §2.3 accounts).
+
+    ``base_rent`` is the full-occupancy basis: during downtime months it
+    posts the market rent the space would have earned, offset one-for-one
+    by ``absorption_vacancy`` (negative), so Scheduled Base Rental Revenue
+    nets to zero over downtime while PGR reflects full occupancy
+    (spec §4.2/§2.3; "Absorption & Turnover Vacancy: loss in rent due to
+    downtime between leases" [AE p. 538]).
+    """
+
+    base_rent: pd.Series
+    free_rent: pd.Series           # negative
+    absorption_vacancy: pd.Series  # negative
+
+
+def project_segment_rent(segment: LeaseSegment, months: pd.PeriodIndex,
+                         free_rent_profile: Optional[FreeRentProfile] = None,
+                         ) -> SegmentRentCashflows:
+    """Project one speculative segment's rent onto the monthly timeline
+    (spec §4.1 step 4, speculative portion; §4.2).
+
+    Downtime months post the segment's blended rent to Base Rental Revenue
+    and its negative to Absorption & Turnover Vacancy. Occupied months post
+    the blended rent with the MLP's steps. Weighted free rent abates the
+    first ``free_rent_months`` of the term front-loaded ("free rent is
+    applied at the beginning of the lease" [AE p. 239]) with a fractional
+    final month, honoring the profile's elements — base rent abates unless
+    the profile says otherwise [AE p. 254]. Speculative segments carry no
+    CPI (DEVIATIONS.md §7).
+    """
+    if not segment.speculative:
+        raise ValueError("project_segment_rent is for speculative segments; "
+                         "contract terms project via project_contract_rent")
+    base = pd.Series(0.0, index=months, name="base_rent")
+    free = pd.Series(0.0, index=months, name="free_rent")
+    absorption = pd.Series(0.0, index=months, name="absorption_vacancy")
+
+    downtime_start = segment.downtime_start
+    if downtime_start is not None:
+        for period in months:
+            if downtime_start <= period < segment.start:
+                base[period] += segment.initial_rent_monthly
+                absorption[period] -= segment.initial_rent_monthly
+
+    abate = free_rent_profile is None or free_rent_profile.abate_base_rent
+    for period in months:
+        if not segment.start <= period <= segment.end:
+            continue
+        level = segment_rent_level(segment, period)
+        base[period] += level
+        if abate:
+            month_index = (period.year - segment.start.year) * 12 + (
+                period.month - segment.start.month
+            )
+            fraction = min(1.0, max(0.0, segment.free_rent_months - month_index))
+            if fraction:
+                free[period] -= fraction * level
+    return SegmentRentCashflows(base_rent=base, free_rent=free,
+                                absorption_vacancy=absorption)

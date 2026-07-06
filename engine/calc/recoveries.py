@@ -83,18 +83,54 @@ def net_recoveries(lease: Lease, months: pd.PeriodIndex, pool: pd.Series,
 def project_recoveries(lease: Lease, months: pd.PeriodIndex,
                        expenses: ExpenseSeries,
                        rentable_area: Union[pd.Series, float]) -> pd.Series:
-    """Project one lease's expense recoveries onto the monthly timeline
-    (spec §4.1 step 6). Phase 1 dispatch: ``none`` posts nothing
+    """Project one lease's contract-term expense recoveries onto the
+    monthly timeline (spec §4.1 step 6). Dispatch: ``none`` posts nothing
     [AE p. 406]; ``net`` posts the pro-rata pool share [AE p. 405]; every
-    other method is Phase 2 (spec §10, Iron Rule 2)."""
-    method = lease.recoveries.method
+    other method arrives with full recovery structures (Phase 2 Step 5,
+    spec §10, Iron Rule 2)."""
+    start, end = lease_term_periods(lease)
+    return _window_recoveries(
+        lease.recoveries.method, lease.area, start, end,
+        months, expenses, rentable_area,
+        where=f"lease {lease.tenant_name!r}",
+    )
+
+
+def project_segment_recoveries(segment, months: pd.PeriodIndex,
+                               expenses: ExpenseSeries,
+                               rentable_area: Union[pd.Series, float],
+                               ) -> pd.Series:
+    """Recoveries for one resolved lease segment (contract or speculative;
+    Phase 2 Step 2). The segment's own ``RecoveryAssignment`` governs —
+    speculative segments recover per their MLP (spec §3.6 [AE pp. 239-240]).
+    Recoveries post over occupied months only: downtime months post
+    nothing (the space is vacant; golden #1's FY2029 Expense Recoveries
+    confirm)."""
+    return _window_recoveries(
+        segment.recoveries.method, segment.area, segment.start, segment.end,
+        months, expenses, rentable_area,
+        where=f"lease {segment.lease.tenant_name!r} segment {segment.start}",
+    )
+
+
+def _window_recoveries(method: RecoverySystemMethod, area: float,
+                       start: pd.Period, end: pd.Period,
+                       months: pd.PeriodIndex, expenses: ExpenseSeries,
+                       rentable_area: Union[pd.Series, float],
+                       where: str) -> pd.Series:
     if method == RecoverySystemMethod.none:
         return pd.Series(0.0, index=months, name="expense_recovery")
     if method == RecoverySystemMethod.net:
-        return net_recoveries(
-            lease, months, recoverable_pool(expenses, months), rentable_area
-        )
+        pool = recoverable_pool(expenses, months)
+        series = pd.Series(0.0, index=months, name="expense_recovery")
+        for period in months:
+            if start <= period <= end:
+                series[period] = float(pool[period]) * area / _area_at(
+                    rentable_area, period
+                )
+        return series
     raise NotImplementedError(
-        f"recovery method '{method.value}' is Phase 2 (spec §10); "
-        "Phase 1 implements 'net' and 'none' only"
+        f"{where}: recovery method '{method.value}' arrives with full "
+        "recovery structures (Phase 2 Step 5, spec §10); 'net' and 'none' "
+        "only until then"
     )

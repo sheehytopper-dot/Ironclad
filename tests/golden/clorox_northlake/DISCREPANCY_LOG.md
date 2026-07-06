@@ -1,11 +1,26 @@
-# Gate 1 Discrepancy Log — Clorox Northlake (golden #1)
+# Discrepancy Log — Clorox Northlake (golden #1)
 
-Required by NEXT_STEPS_TO_GATE1.md Step 7: a short log of anything explained
-within tolerance. Engine run of 2026-07-05 (`engine/calc/run.py`) vs
-`expected_annual_cash_flow.csv` (owner-verified 2026-07-04), Gate 1 fiscal
-years FY2027 and FY2028, tolerance $500/line (spec §9.1).
+Short log of anything explained within tolerance (NEXT_STEPS_TO_GATE1.md
+Step 7 for Gate 1; carried forward for the Gate 2 scope). Engine vs
+`expected_annual_cash_flow.csv` (owner-verified 2026-07-04), tolerance
+$500/line (spec §9.1).
 
-## Result: all 21 transcribed lines within $1 in both fiscal years
+## Gate 2 scope activation (2026-07-06): FY2029-FY2031, worst deviation $0.86
+
+With rollover projection (Phase 2 Step 2), the FY2029-FY2031 revenue,
+vacancy, expense, and NOI lines are asserted (capital lines wait for
+Gate 3). Every line lands within $1: the largest deviation is $0.86
+(FY2029 CAM), the same OM whole-dollar-rounding effect as Gate 1's.
+Notable confirmations of the §4.2 rollover model against the OM's Argus
+output: downtime months post no recoveries and no management fee (FY2029
+Expense Recoveries within $1); free rent (0.75 weighted months,
+$256,008) reduces EGR before the fee; A&T Vacancy = 2 downtime months at
+the blended market rent ($682,689 exactly). Nothing rises to owner
+per-cell adjudication.
+
+## Gate 1 (2026-07-05): FY2027-FY2028, all lines within $1
+
+All 21 transcribed lines within $1 in both fiscal years.
 
 The only non-zero deltas are **+$1 on Total Potential Gross Revenue and
 Effective Gross Revenue in FY2027** (engine 3,927,263 vs OM 3,927,262).

@@ -102,14 +102,34 @@ class MonthlyLedger:
 
 def occupied_area_series(leases: Iterable[Lease],
                          months: pd.PeriodIndex) -> pd.Series:
-    """Occupied SF per month: the sum of each lease's area over its contract
-    term. Always computed, never input (spec §3.2). Speculative/absorption
-    segments are Phase 2."""
+    """Occupied SF per month from contract terms only: the sum of each
+    lease's area over its term. Always computed, never input (spec §3.2).
+    For resolved chains (rollover) use :func:`occupied_area_from_chains`."""
     occupied = pd.Series(0.0, index=months, name="occupied_area")
     for lease in leases:
         start, end = lease_term_periods(lease)
         mask = (months >= start) & (months <= end)
         occupied[mask] += lease.area
+    return occupied
+
+
+def occupied_area_from_chains(chains: Iterable[list],
+                              months: pd.PeriodIndex) -> pd.Series:
+    """Occupied SF per month from resolved lease chains (Phase 2 Step 2).
+
+    Each segment's occupied months carry its full area; downtime months
+    preceding a speculative segment carry ``renewal_weight × area`` — the
+    §4.2 partial-occupancy weighting (occupied drops by (1 − p) × area,
+    the ARGUS default treating downtime area as fully vacant weighted by
+    (1 − p)). Months after a chain ends (vacate/reabsorb) are vacant."""
+    occupied = pd.Series(0.0, index=months, name="occupied_area")
+    for segments in chains:
+        for segment in segments:
+            mask = (months >= segment.start) & (months <= segment.end)
+            occupied[mask] += segment.area
+            if segment.downtime_months:
+                down = (months >= segment.downtime_start) & (months < segment.start)
+                occupied[down] += segment.renewal_weight * segment.area
     return occupied
 
 

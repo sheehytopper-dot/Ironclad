@@ -167,24 +167,29 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   blending with weighted rent/downtime/free/TI/LC; market/option/renew/vacate/reabsorb
   chaining; pct_of_last_rent; Intelligent Renewals as a four-way rule — schema field
   `intelligent_renewals` changed bool → enum [AE pp. 235-236], schema docs regenerated;
-  MLP narrowings recorded in DEVIATIONS.md §7). Hand-computed Clorox blending example
-  as tests (downtime 2 mo, 341,344.575/mo blended, 0.75 free months — matches the
-  golden's transcribed FY2029 within rounding). Suite 144 green.
-- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 2):
-  project rollover into the ledger. Extend run.py's pass 3 to use resolve_lease_chain
-  and project speculative segments: Base Rental Revenue at the blended rent from
-  segment start (full-occupancy basis — during downtime months post the market rent
-  the space would have earned to Base Rental Revenue AND as a negative to Absorption &
-  Turnover Vacancy, spec §4.2/§2.3); weighted free rent posts to Free Rent over the
-  first free_rent_months of each speculative segment (front timing, fractional final
-  month, honoring the segment's free-rent profile); occupied area during downtime
-  drops by (1 − renewal_weight) × area (§4.2); speculative segments' net recoveries
-  use their RecoveryAssignment with occupancy-consistent expense scaling. TI/LC stay
-  recorded, unposted (Phase 3); lift run.py's guards only for what now computes.
-  Then activate golden #1's FY2029-FY2031 revenue/vacancy/expense/NOI assertions in
-  tests/golden/test_clorox_northlake.py (capital lines stay Gate 3 — keep them
-  excluded for those years). §4.2's warning applies: this is the most common
-  divergence source; if any activated line misses $500, write it to
-  DISCREPANCY_LOG.md and refer to owner per-cell adjudication — never tune inputs.
-  Unit tests with page cites (Iron Rule 3). Full suite green; commit, push, update
-  the progress note and this prompt."
+  MLP narrowings recorded in DEVIATIONS.md §7). **Phase 2 Step 2 complete 2026-07-06:**
+  rollover projected into the ledger (project_segment_rent — downtime posts blended
+  rent to Base Rental Revenue and negative A&T Vacancy; weighted free rent front-loaded
+  with fractional final month; occupied_area_from_chains — downtime occupancy = p ×
+  area; project_segment_recoveries — per-segment assignment, occupied months only,
+  nothing during downtime; run.py wired to chains, MLP guards added for %-rent/misc/
+  deposits). **Golden #1 FY2029-FY2031 revenue/vacancy/expense/NOI assertions active
+  and green — worst deviation $0.86** (capital lines wait for Gate 3;
+  DISCREPANCY_LOG.md updated). `scripts/dump_monthly.py` (owner request) dumps any
+  .icprop.json's full monthly ledger + fiscal subtotals to .xlsx (`*.monthly.xlsx`
+  gitignored). Suite 155 green.
+- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 3):
+  space absorption. Read [AE pp. 395-403] first. Implement engine/calc/absorption.py
+  per spec §3.15: generate synthetic leases on the schedule (total_area with
+  number_of_leases or area_per_lease; start_date; interval_months between lease
+  starts), each taking its terms from the referenced MLP (new-tenant economics — no
+  renewal blending on first generation: 100% new rent, new free rent, new TI/LC) and
+  thereafter behaving like a rent roll lease (chaining per the profile's
+  upon_expiration through resolve_lease_chain, including reabsorb returning space to
+  the absorption pool — decide and document reabsorb's v1 semantics, deferring with a
+  loud guard is acceptable if the spec/manual is ambiguous). Pre-absorption vacant
+  months post nothing to revenue but the space counts in available area; wire into
+  run.py (lift the absorption guard), occupancy, expenses' pct_fixed scaling, and
+  recoveries. Unit tests with page cites (Iron Rule 3). Golden #1 has no absorption —
+  the full suite (incl. all golden years) must stay green as the regression check.
+  Commit, push, update the progress note and this prompt."

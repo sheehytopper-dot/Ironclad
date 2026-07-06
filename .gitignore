@@ -26,3 +26,6 @@ desktop.ini
 # Raw OM library (confidential source documents; goldens are transcribed
 # into tests/golden/<property>/ deliberately, never committed wholesale)
 OM/
+
+# Generated ledger dumps (scripts/dump_monthly.py)
+*.monthly.xlsx
