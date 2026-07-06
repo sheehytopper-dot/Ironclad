@@ -1,0 +1,95 @@
+"""Gate 1 golden comparison — Clorox Northlake (golden #1, spec §9.1;
+NEXT_STEPS_TO_GATE1.md Step 5).
+
+The engine's fiscal-year cash flow is compared to the OM's published
+Argus-based cash flow transcribed in ``expected_annual_cash_flow.csv``
+(owner-verified 2026-07-04, fixture-lock satisfied). Assertion phasing is
+owner-approved (2026-07-03):
+
+- **Gate 1 (asserted here): FY2027 and FY2028, every line within $500.**
+- FY2029-FY2031 depend on rollover blending, absorption/turnover vacancy,
+  and TI/LC — revenue/vacancy lines activate at Gate 2, capital lines at
+  Gate 3. FY2032 is the resale look-forward (Phase 3). Transcribed but not
+  asserted yet.
+
+Disputes beyond tolerance go to owner per-cell adjudication (NEXT_STEPS
+Step 3) — inputs are never tuned to force a match (fixture-lock rule).
+
+Account-name note: the CSV's "Capital Expenses" row is the spec §2.3 line
+name for the OM's Capital Reserves line; the engine posts the expense under
+its fixture input name ("Capital Reserves"). The mapping below bridges the
+two so neither the locked fixture nor the locked CSV needs editing.
+"""
+import csv
+from pathlib import Path
+
+import pytest
+
+from engine.calc.ledger import to_fiscal_annual
+from engine.calc.run import run_property
+from engine.models.io import load_property
+
+FIXTURE_DIR = Path(__file__).parent / "clorox_northlake"
+GATE1_FISCAL_YEARS = [2027, 2028]
+TOLERANCE = 500.0  # $ per line per fiscal year (spec §9.1)
+
+#: CSV account name → engine ledger column, where the two differ.
+ACCOUNT_TO_COLUMN = {"Capital Expenses": "Capital Reserves"}
+
+
+@pytest.fixture(scope="module")
+def result():
+    model = load_property(FIXTURE_DIR / "clorox_northlake.icprop.json")
+    return run_property(model)
+
+
+@pytest.fixture(scope="module")
+def fiscal(result):
+    return to_fiscal_annual(result.ledger.frame, fiscal_year_end_month=5)
+
+
+@pytest.fixture(scope="module")
+def expected():
+    with open(FIXTURE_DIR / "expected_annual_cash_flow.csv",
+              encoding="utf-8", newline="") as handle:
+        return {row["account"]: row for row in csv.DictReader(handle)}
+
+
+def test_gate1_every_line_within_tolerance(fiscal, expected):
+    """Gate 1: FY2027 + FY2028, every transcribed line within $500 of the
+    OM's published Argus cash flow (spec §9.1, §10 Phase 1 gate)."""
+    misses = []
+    for account, row in expected.items():
+        column = ACCOUNT_TO_COLUMN.get(account, account)
+        assert column in fiscal.columns, f"ledger is missing line {column!r}"
+        for year in GATE1_FISCAL_YEARS:
+            published = float(row[f"FY{year}"])
+            engine = float(fiscal.loc[year, column])
+            if abs(engine - published) > TOLERANCE:
+                misses.append(
+                    f"  {account} FY{year}: engine {engine:,.0f} vs "
+                    f"OM {published:,.0f} (diff {engine - published:+,.0f})"
+                )
+    assert not misses, (
+        "Gate 1 lines beyond $500 tolerance — refer to owner per-cell "
+        "adjudication (NEXT_STEPS Step 3), do not tune inputs:\n"
+        + "\n".join(misses)
+    )
+
+
+def test_monthly_sums_equal_fiscal_annual(result, fiscal):
+    """Sum(monthly) = annual for every account (spec §9.3), on the fiscal
+    aggregation the golden asserts against."""
+    frame = result.ledger.frame
+    for account in frame.columns:
+        assert fiscal[account].sum() == pytest.approx(frame[account].sum())
+
+
+def test_fiscal_years_cover_the_transcription(fiscal, expected):
+    """The engine timeline produces exactly the transcribed fiscal years
+    FY2027-FY2032 (5 analysis years + resale look-forward, June-May)."""
+    sample = next(iter(expected.values()))
+    csv_years = sorted(
+        int(key[2:]) for key in sample if key.startswith("FY")
+    )
+    assert list(fiscal.index) == csv_years

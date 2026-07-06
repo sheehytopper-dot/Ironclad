@@ -150,34 +150,28 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 1 in
-  progress** — Clorox fixture landed (owner-verified 2026-07-04); `engine/calc/leases.py`
-  complete 2026-07-05 ([AE pp. 391-394, 253-254, 255-257] worked examples as tests);
-  `engine/calc/expenses.py` complete 2026-07-05 (all §3.10/§3.11 units, inflation indices,
-  %-fixed occupancy scaling, repeating payments per [AE pp. 361-362], limits);
-  `engine/calc/recoveries.py` complete 2026-07-05 (net + none system methods per
-  [AE pp. 404-407]: pro-rata pool share, `is_recoverable` pool membership, no gross-up for
-  system methods; stops/base years/user structures raise as Phase 2; free-rent
-  abatement of recoveries also Phase 2; %-of-EGR fixed point deferred to run.py);
-  `engine/calc/ledger.py` complete 2026-07-05 (Cash Flow account tree + rollups per
-  [AE pp. 535-539] — line order per the manual, not the spec §2.3 sketch, see
-  DEVIATIONS.md §5; occupied/rentable/occupancy series; annual/quarterly/fiscal views as
-  groupby-sums of the monthly frame; §9.3 pre-valuation invariants in `assert_invariants`;
-  suite 116 green). Next: [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 4 items
-  5-6, `engine/calc/run.py`.
-- **Next session's first prompt:** "Continue Phase 1 (NEXT_STEPS Step 4 items 5-6):
-  implement engine/calc/run.py — orchestrate spec §4.1 passes 1-6 for a PropertyModel:
-  timeline, inflation, contract leases (no rollover — terms end where they end), expenses,
-  the %-of-EGR two-pass (compute EGR excluding %-based items, then %-based expense items,
-  then final EGR — ARGUS behavior per spec §4.1 step 9; the Clorox management fee + net
-  recovery circularity resolves here: fee is 3% of EGR where EGR includes recoveries that
-  include the fee — verify against the golden's Management Fee ≈ 3% of EGR relationship),
-  net recoveries, ledger assembly, and §9.3 invariants asserted on every run
-  (Convention). Then Step 5: tests/golden/test_clorox_northlake.py asserting FY2027-FY2028
-  every line within $500 vs expected_annual_cash_flow.csv (Gate 1 phasing; later-FY lines
-  transcribed but not asserted), plus sum(monthly)=annual. Handle the CSV's 'Capital
-  Expenses' account naming vs the fixture's 'Capital Reserves' item via the ExpenseItem
-  `account` field or a test-side map — surface the choice in the summary. Full suite
-  green; commit, push, update the progress note and this prompt. If any Gate 1 line
-  misses tolerance, report the discrepancy for owner per-cell adjudication — do not
-  tune inputs to force a match (fixture-lock rule)."
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 1 engine
+  work complete; Gate 1 comparison green; owner Gate 1 review (NEXT_STEPS Step 7)
+  pending.** All of Step 4 landed 2026-07-05: `leases.py` ([AE pp. 391-394, 253-257]),
+  `expenses.py` ([AE pp. 361-362]), `recoveries.py` (net/none per [AE pp. 404-407]),
+  `ledger.py` (Cash Flow tree per [AE pp. 535-539]; DEVIATIONS.md §5), and `run.py`
+  (spec §4.1 passes 1-6; recoverable %-of-EGR fees iterate to a fixed point through the
+  net recovery pool — fee = pct × final EGR, confirmed by the golden at 3.0000%; Phase 2/3
+  inputs raise NotImplementedError; §9.3 pre-valuation invariants asserted on every run).
+  `tests/golden/test_clorox_northlake.py` (Step 5) asserts FY2027-FY2028 every line
+  within $500: **actual max deviation $1** (OM whole-dollar rounding — see
+  `tests/golden/clorox_northlake/DISCREPANCY_LOG.md`); the CSV's "Capital Expenses" row
+  maps to the fixture's "Capital Reserves" item via a documented test-side name map
+  (neither locked file edited). Suite 126 green.
+- **Next session's first prompt:** "Phase 1 engine work and the Gate 1 comparison are
+  complete and green (max deviation $1; DISCREPANCY_LOG.md in the Clorox golden dir).
+  Ask nothing and build nothing new until you check with the owner: has the owner
+  reviewed the Gate 1 evidence and declared Gate 1 passed (NEXT_STEPS Step 7)? If yes:
+  mark Gate 1 passed in BUILD_SCHEDULE.md and NEXT_STEPS_TO_GATE1.md, then start Phase 2
+  planning — read spec §4.2 (rollover blending, the most common divergence source) and
+  §3.6/§3.7 (MLPs), propose the Phase 2 session sequence (rollover blending → absorption
+  → general vacancy/credit loss offsets → full recovery structures → % rent last, it
+  stays externally unvalidated pending golden #3), and note that goldens #2/#4/#5
+  fixtures (owner work, Step 6) gate the phase's completion. If no: address whatever the
+  owner's review raised; if a cell is disputed, follow owner per-cell adjudication
+  (Step 3) — never tune inputs to force a match (fixture-lock rule)."
