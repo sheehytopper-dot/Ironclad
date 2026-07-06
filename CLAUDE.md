@@ -177,19 +177,29 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   and green — worst deviation $0.86** (capital lines wait for Gate 3;
   DISCREPANCY_LOG.md updated). `scripts/dump_monthly.py` (owner request) dumps any
   .icprop.json's full monthly ledger + fiscal subtotals to .xlsx (`*.monthly.xlsx`
-  gitignored). Suite 155 green.
-- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 3):
-  space absorption. Read [AE pp. 395-403] first. Implement engine/calc/absorption.py
-  per spec §3.15: generate synthetic leases on the schedule (total_area with
-  number_of_leases or area_per_lease; start_date; interval_months between lease
-  starts), each taking its terms from the referenced MLP (new-tenant economics — no
-  renewal blending on first generation: 100% new rent, new free rent, new TI/LC) and
-  thereafter behaving like a rent roll lease (chaining per the profile's
-  upon_expiration through resolve_lease_chain, including reabsorb returning space to
-  the absorption pool — decide and document reabsorb's v1 semantics, deferring with a
-  loud guard is acceptable if the spec/manual is ambiguous). Pre-absorption vacant
-  months post nothing to revenue but the space counts in available area; wire into
-  run.py (lift the absorption guard), occupancy, expenses' pct_fixed scaling, and
-  recoveries. Unit tests with page cites (Iron Rule 3). Golden #1 has no absorption —
-  the full suite (incl. all golden years) must stay green as the regression check.
-  Commit, push, update the progress note and this prompt."
+  gitignored). **Phase 2 Step 3 complete 2026-07-06:** space absorption
+  (`engine/calc/absorption.py`, [AE pp. 395-403]) — synthetic leases on the schedule
+  at MLP new-tenant economics (rent inflated to each lease's own start, "N of M"
+  naming per [AE p. 403]; area_per_lease → ceil count with remainder final lease so
+  areas sum exactly), joining the rent roll for chains/occupancy/expenses/recoveries;
+  pre-absorption vacancy posts nothing (owner-directed; manual tension + reabsorb
+  loud-guard deferral recorded in DEVIATIONS.md §8); derived rentable area includes
+  absorption. Suite 167 green (golden #1 regression intact).
+- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 4):
+  general vacancy & credit loss with offsets. Read [AE pp. 224-232] first. Implement
+  engine/calc/vacancy.py per spec §3.4/§3.5: the three percentage methods
+  (percent_of_pgr, percent_of_scheduled_base_plus, percent_of_total_tenant_revenue)
+  with year-varying rates, include_in_pgr_accounts line selection, tenant overrides
+  (exclude named tenants' revenue from the base before applying the %), and — the
+  critical, frequently misimplemented core (spec §3.4) — reduce_by_absorption_turnover:
+  monthly General Vacancy = max(0, target vacancy − A&T vacancy already in the ledger),
+  so total vacancy equals the stated rate instead of stacking. Credit loss applies
+  after general vacancy on the reduced base, no A&T interaction (§3.5). Wire into
+  run.py (lift both guards; EGR in the %-of-EGR fixed point now includes the vacancy
+  terms — general vacancy depends on revenue, which the fee feeds, so both live inside
+  the loop) and post to the General Vacancy / Credit Loss ledger lines. Write the
+  Gate 2 criterion-5 test: a rollover property where total vacancy % of the base
+  equals the stated rate, not rate + downtime (NEXT_STEPS_TO_GATE2.md). Unit tests
+  with page cites (Iron Rule 3). Golden #1 has General Vacancy = 0 transcribed — the
+  full suite must stay green as the regression check. Commit, push, update the
+  progress note and this prompt."

@@ -8,9 +8,11 @@ expense resolution → recoveries → ledger assembly, and asserts the §9.3
 pre-valuation invariants on every run (CLAUDE.md Conventions). Inputs
 whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
-space absorption and vacancy/credit loss (Phase 2 Steps 3-4), non-net
-recovery structures (Step 5), percentage rent (Step 8), TI/LC posting,
-security deposits, and debt (Phase 3).
+vacancy/credit loss (Phase 2 Step 4), non-net recovery structures
+(Step 5), percentage rent (Step 8), ``reabsorb`` expirations
+(DEVIATIONS.md §8), TI/LC posting, security deposits, and debt (Phase 3).
+Space absorption (Step 3) generates synthetic leases per spec §3.15 that
+join the rent roll for every downstream pass.
 
 Rollover projection (spec §4.2/§2.3): downtime months post the blended
 market rent to Base Rental Revenue and its negative to Absorption &
@@ -36,6 +38,7 @@ from typing import Optional
 
 import pandas as pd
 
+from engine.calc.absorption import generate_absorption_leases
 from engine.calc.expenses import PCT_UNITS, project_expense
 from engine.calc.leases import (
     LeaseRentCashflows,
@@ -59,6 +62,7 @@ from engine.models import (
     ExpenseUnit,
     FreeRentProfile,
     PropertyModel,
+    UponExpiration,
     VacancyMethod,
 )
 
@@ -98,7 +102,6 @@ def _phase_guards(model: PropertyModel) -> None:
                 "remove the input or wait for that phase"
             )
 
-    refuse(bool(model.absorption), "space absorption", "Phase 2 Step 3")
     refuse(model.general_vacancy.method != VacancyMethod.none,
            "general vacancy", "Phase 2 Step 4")
     refuse(model.credit_loss.method != VacancyMethod.none,
@@ -116,6 +119,9 @@ def _phase_guards(model: PropertyModel) -> None:
                where + "contract TIs/LCs", "Phase 3")
         refuse(lease.security_deposit is not None,
                where + "security deposits", "Phase 3")
+        refuse(lease.upon_expiration == UponExpiration.reabsorb,
+               where + "upon_expiration 'reabsorb'",
+               "re-pooling semantics are defined (DEVIATIONS.md §8)")
     for profile in model.market_leasing_profiles:
         where = f"market leasing profile {profile.name!r}: "
         refuse(profile.percentage_rent is not None,
@@ -124,6 +130,9 @@ def _phase_guards(model: PropertyModel) -> None:
                where + "rollover miscellaneous items", "Phase 2")
         refuse(profile.security_deposit is not None,
                where + "security deposits", "Phase 3")
+        refuse(profile.upon_expiration == UponExpiration.reabsorb,
+               where + "upon_expiration 'reabsorb'",
+               "re-pooling semantics are defined (DEVIATIONS.md §8)")
     for item in model.expenses:
         refuse(item.unit == ExpenseUnit.pct_of_account,
                f"expense {item.name!r}: unit 'pct_of_account'", "Phase 2")
@@ -146,17 +155,35 @@ def run_property(model: PropertyModel) -> RunResult:
     # projection call via the shared inflation module.
     months = build_month_index(begin, model.property.analysis_term_years)
 
-    # Pass 3: lease chain resolution — contract term + speculative
-    # segments per MLP through timeline end (spec §4.2).
+    # Pass 3: lease chain resolution — contract terms + absorption-generated
+    # leases (spec §3.15: each behaves like a rent roll lease thereafter),
+    # each resolved into speculative segments per MLP through timeline end
+    # (spec §4.2). Pre-absorption vacant months post nothing to revenue;
+    # the space counts in rentable/available area (DEVIATIONS.md §8).
     profiles = {p.name: p for p in model.market_leasing_profiles}
+    synthetic = [
+        lease
+        for spec in model.absorption
+        for lease in generate_absorption_leases(
+            spec, profiles, begin, model.inflation
+        )
+    ]
+    all_leases = list(model.rent_roll) + synthetic
+    names = [lease.tenant_name for lease in all_leases]
+    duplicates = {n for n in names if names.count(n) > 1}
+    if duplicates:
+        raise ValueError(
+            f"tenant names collide across rent roll and absorption: "
+            f"{sorted(duplicates)}"
+        )
     chains = {
         lease.tenant_name: resolve_lease_chain(
             lease, months, begin, model.inflation, profiles
         )
-        for lease in model.rent_roll
+        for lease in all_leases
     }
     occupied = occupied_area_from_chains(chains.values(), months)
-    rentable = rentable_area_series(model.area_measures, model.rent_roll, months)
+    rentable = rentable_area_series(model.area_measures, all_leases, months)
     occupancy = occupancy_series(occupied, rentable)
     available = (rentable - occupied).rename("available_area")
 
@@ -164,7 +191,7 @@ def run_property(model: PropertyModel) -> RunResult:
     # vacancy per lease (contract portion + speculative segments).
     lease_rents: dict[str, LeaseRentCashflows] = {}
     absorption: dict[str, pd.Series] = {}
-    for lease in model.rent_roll:
+    for lease in all_leases:
         contract_free = (
             _free_rent_profile(lease.free_rent.profile, model)
             if lease.free_rent is not None else None

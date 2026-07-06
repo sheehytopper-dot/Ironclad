@@ -118,3 +118,29 @@ are fixed, not listed.
   speculative-term CPI or rental-value-driven renewal rents and cannot be
   matched within tolerance without them (then the §3.6 schema grows the
   fields, with SCHEMA_GUIDE/JSON-schema regeneration).
+
+## 8. Absorption v1: silent pre-absorption vacancy; reabsorb deferred
+
+- **Manual:** the Cash Flow's Potential Base Rent "is derived from the
+  combination of in-place rent and the market value of the currently
+  vacant spaces," with Absorption & Turnover Vacancy carrying the
+  offsetting "loss in rent due to downtime between leases and current
+  vacant space" [AE p. 538] — i.e., ARGUS grosses currently-vacant space
+  up to market in PGR.
+- **As built (owner-directed 2026-07-06):** pre-absorption vacant months
+  post **nothing** to revenue — no Base Rental Revenue, no A&T Vacancy
+  offset; the space counts in rentable and available area only (it still
+  drives occupancy-based expense scaling). Once a generated lease's chain
+  is running, rollover downtime posts Base + A&T normally (spec §4.2).
+  Scheduled Base Rental Revenue, EGR, and NOI are identical under either
+  convention; only the gross PGR presentation differs.
+- **Also deferred:** ``upon_expiration = 'reabsorb'`` (space returning to
+  the absorption pool). The manual does not define the re-pooling
+  mechanics (which schedule, what timing), so v1 refuses it loudly in
+  run.py rather than letting the space sit silently vacant;
+  ``resolve_lease_chain`` itself simply ends the chain.
+- **Revisit when:** goldens #4/#5 (triaged for absorption coverage)
+  back-test — if their published Argus cash flows show vacant-space
+  market value in Potential Base Rent (they will, if the line is
+  ARGUS-standard), the gross-up presentation gets implemented then, with
+  the golden as the reference; reabsorb waits for a deal that needs it.
