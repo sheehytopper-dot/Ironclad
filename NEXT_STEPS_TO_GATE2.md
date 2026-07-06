@@ -18,6 +18,9 @@ market machinery (spec §10) — to **Gate 2**. Companion to the closed
 4. **Percentage rent** built with the manual's worked-example unit tests
    (Iron Rule 3) but **externally unvalidated pending golden #3** (standing
    opportunistic intake, owner decision 2026-07-05).
+5. **Turnover vacancy does not double-count against general vacancy** — a
+   test verifies total vacancy % equals the stated rate (BUILD_SCHEDULE
+   Gate 2).
 
 **Sequencing rationale (owner-directed):** rollover blending first — golden
 #1's FY2029-FY2031 columns give it immediate external validation with no
@@ -39,6 +42,17 @@ Transcription sessions can be Claude-assisted like Clorox was, but owner
 QA seals each fixture. **These gate the phase's completion, not its
 start** — Steps 1-6 proceed against golden #1's later years and the
 manual's worked examples.
+
+Two verification checks during staging (owner-approved 2026-07-05):
+
+- **Freeport (#2):** confirm when staged that the deal is genuinely
+  multi-tenant with base-year or expense-stop recoveries — golden #2's
+  slot requires exactly that coverage. **If it is not, escalate to the
+  owner immediately** (a replacement deal must be triaged before Step 7
+  plans around it).
+- **Inland (#5):** confirm the cash flow's Argus provenance **from the
+  page image** — no Argus attribution exists in the document's text
+  layer, so text search cannot settle it.
 
 ## Step 1 — Lease chain resolution & market rent machinery (session 1)
 
@@ -90,14 +104,18 @@ example test [AE p. 407]), denominators, admin fees before/after stop
 [AE p. 520], caps/floors [AE pp. 411-412], expense adjustments
 [AE p. 410], pro-rata overrides; free-rent abatement of recoveries
 (`abate_recoveries`, deferred from Phase 1); per-tenant per-pool audit
-detail retained for the Recovery Audit report.
+detail retained. **The Recovery Audit report (spec §7 report 18 — per
+tenant per pool: expenses, gross-up, stop, share, caps, fee) is built at
+the end of this step's second session**, not later: BUILD_SCHEDULE Week 5
+requires it early as the debugging tool for everything recovery-shaped
+that follows. It must reconcile exactly to the ledger.
 
-## Step 6 — Lease Audit & Recovery Audit reports (session 7)
+## Step 6 — Lease Audit report (session 7)
 
 `engine/reports/`: Lease Audit (spec §7 report 16 — per-tenant monthly
-rent build-up) and Recovery Audit (report 18 — per tenant per pool:
-expenses, gross-up, stop, share, caps, fee). Both must reconcile exactly
-to the ledger. **Owner review of both reports is a Gate 2 criterion.**
+rent build-up: base, steps, CPI, free, recoveries, % rent as built so
+far), reconciling exactly to the ledger. **Owner review of both audit
+reports — this one and Step 5's Recovery Audit — is a Gate 2 criterion.**
 
 ## Step 7 — Golden comparisons #2, #4, #5 (sessions 8+; needs Step 0)
 
