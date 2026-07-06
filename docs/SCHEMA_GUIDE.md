@@ -192,7 +192,7 @@ What happens when a lease expires: renewal-probability blending of renew vs. new
 | `upon_expiration` | `market` \| `option` \| `renew` \| `vacate` \| `reabsorb` | `market` | `market` = reuse this profile |
 | `chained_profile` | ref | null | required when `upon_expiration` = `option` |
 | `term_growth` | bool | `true` | inflate market rents by the market-rent index |
-| `intelligent_renewals` | bool | `false` | ARGUS toggle behavior |
+| `intelligent_renewals` | `market` \| `prior` \| `lesser_of` \| `greater_of` | `market` | how the renewal-side rate is chosen ("Use Market or Prior"); `market` = plain renewal market rent (Intelligent Renewals off); `prior` = the expiring rent; `lesser_of`/`greater_of` compare the two |
 
 **LC spec** (`lc_new`, `lc_renew`, and `rent_roll[].leasing_costs.lc`): exactly one of
 `pct` (% of rent; optional `pct_years` lists which lease years), `rate` (MoneyRate), or

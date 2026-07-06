@@ -97,3 +97,24 @@ are fixed, not listed.
 - **Revisit when:** never expected — golden-confirmed ARGUS behavior; the
   spec's single-pass claim stays true for the §3.10 revenue items it was
   written about.
+
+## 7. Market leasing profiles: no speculative CPI, no Rental Value machinery
+
+- **Manual:** MLPs carry CPI increase options for market leases [AE
+  pp. 237-238] and a Rental Value section (rental value + inflation,
+  Continue Prior renewal rents, Renewal Override, % of Prior Rent) [AE
+  pp. 235, 238].
+- **Spec:** §3.6's schema lists neither a CPI field nor rental-value
+  fields (renewal rent is `MoneyRate | {pct_of_new}` only) — though §3.7
+  says CPI "applies to ... speculative leases (via MLP)", a spec-internal
+  inconsistency resolved here on the §3.6 side.
+- **As built:** speculative segments carry no CPI, and market base rents
+  accept $/SF/yr, $/SF/mo, $/yr, $/mo, and % of last rent only —
+  `pct_of_market` (the manual's "% of Market" against Rental Value) is
+  rejected with a readable error. Intelligent Renewals compares prior rent
+  against the renewal market rent directly (the manual's rental-value
+  substitution cases [AE p. 236] cannot arise without Rental Value).
+- **Revisit when:** a golden's published cash flow demonstrably uses
+  speculative-term CPI or rental-value-driven renewal rents and cannot be
+  matched within tolerance without them (then the §3.6 schema grows the
+  fields, with SCHEMA_GUIDE/JSON-schema regeneration).

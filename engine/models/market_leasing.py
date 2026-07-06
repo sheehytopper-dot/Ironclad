@@ -37,6 +37,17 @@ class UponExpiration(str, Enum):
     reabsorb = "reabsorb"  # space returns to absorption
 
 
+class IntelligentRenewalRule(str, Enum):
+    """How the renewal-side rate is determined when blending ("Use Market
+    or Prior" [AE pp. 235-236]). ``market`` is the default behavior — the
+    profile's renewal market rent — and equals Intelligent Renewals off."""
+
+    market = "market"          # renewal market rent (default; IR off)
+    prior = "prior"            # the prior (expiring) rent
+    lesser_of = "lesser_of"    # min(prior rent, renewal market rent)
+    greater_of = "greater_of"  # max(prior rent, renewal market rent)
+
+
 class LCSpec(StrictModel):
     """Leasing commission on a speculative lease: % of rent for given years,
     or a $/SF / $ amount [AE pp. 246-248]. Give exactly one of ``pct`` /
@@ -79,7 +90,7 @@ class MarketLeasingProfile(StrictModel):
     upon_expiration: UponExpiration = UponExpiration.market
     chained_profile: Optional[Ref] = None             # required for option
     term_growth: bool = True  # inflate market rents by the market-rent index
-    intelligent_renewals: bool = False  # toggle behavior per [AE p. 235]
+    intelligent_renewals: IntelligentRenewalRule = IntelligentRenewalRule.market  # [AE pp. 235-236]
 
     @model_validator(mode="after")
     def _chain(self) -> "MarketLeasingProfile":

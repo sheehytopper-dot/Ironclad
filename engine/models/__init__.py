@@ -44,7 +44,12 @@ from .leases import (
     LeaseType,
     LeasingCosts,
 )
-from .market_leasing import LCSpec, MarketLeasingProfile, UponExpiration
+from .market_leasing import (
+    IntelligentRenewalRule,
+    LCSpec,
+    MarketLeasingProfile,
+    UponExpiration,
+)
 from .profiles import (
     BreakpointLayer,
     FreeRentProfile,
@@ -110,7 +115,7 @@ __all__ = [
     # vacancy / credit loss
     "CreditLoss", "GeneralVacancy", "TenantOverride", "VacancyMethod",
     # market leasing
-    "LCSpec", "MarketLeasingProfile", "UponExpiration",
+    "IntelligentRenewalRule", "LCSpec", "MarketLeasingProfile", "UponExpiration",
     # cpi
     "CPIMethod", "CPISpec",
     # profiles

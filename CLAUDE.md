@@ -159,21 +159,32 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
   %-of-EGR fee iterates to a fixed point through the recovery pool — DEVIATIONS.md §6;
   §9.3 pre-valuation invariants on every run). Golden #1 Gate 1 scope: FY2027-FY2028
-  every line within $1 (tolerance $500; DISCREPANCY_LOG.md). Suite 126 green. Phase 2
-  session sequence: [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md) (rollover blending
-  first — golden #1 FY2029-31 validates it; % rent last — unvalidated pending golden
-  #3; goldens #2/#4/#5 transcription is owner-gated Step 0, runs in parallel).
-- **Next session's first prompt:** "Begin Phase 2 (NEXT_STEPS_TO_GATE2.md Step 1): lease
-  chain resolution and market rent machinery. Read [AE pp. 233-252] first. Implement
-  spec §4.1 pass 3 in full: resolve each rent roll lease into a segment chain — contract
-  term → weighted speculative segments per its MLP → chained profiles
-  (market/option/renew/vacate/reabsorb) — through analysis end + resale horizon, with
-  §4.2 blending: weighted rent (p × renew + (1−p) × new), weighted downtime
-  ((1−p) × months_vacant, rounded to months), weighted free rent and TI/LC (record costs
-  on segments; posting is Phase 3), market rent inflated on the market index with
-  term_growth, and the Intelligent Renewals toggle per the manual's stated behavior
-  [AE p. 235]. Output: per-lease segment lists (dates, area, rent spec, costs, recovery
-  assignment, speculative flag + renewal_weight) that Step 2 will project into the
-  ledger. Unit tests with manual page cites (Iron Rule 3), including a hand-computed
-  §4.2 blending example. Do not touch golden #1's FY2029-31 assertions yet — that is
-  Step 2. Full suite green; commit, push, update the progress note and this prompt."
+  every line within $1 (tolerance $500; DISCREPANCY_LOG.md). Phase 2 session sequence:
+  [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md) (owner-corrected 2026-07-05:
+  vacancy double-count criterion, Recovery Audit built early in Step 5, Step 0
+  verification checks for Freeport/Inland). **Phase 2 Step 1 complete 2026-07-05:**
+  lease chain resolution in `engine/calc/leases.py` ([AE pp. 233-252] read; §4.2
+  blending with weighted rent/downtime/free/TI/LC; market/option/renew/vacate/reabsorb
+  chaining; pct_of_last_rent; Intelligent Renewals as a four-way rule — schema field
+  `intelligent_renewals` changed bool → enum [AE pp. 235-236], schema docs regenerated;
+  MLP narrowings recorded in DEVIATIONS.md §7). Hand-computed Clorox blending example
+  as tests (downtime 2 mo, 341,344.575/mo blended, 0.75 free months — matches the
+  golden's transcribed FY2029 within rounding). Suite 144 green.
+- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 2):
+  project rollover into the ledger. Extend run.py's pass 3 to use resolve_lease_chain
+  and project speculative segments: Base Rental Revenue at the blended rent from
+  segment start (full-occupancy basis — during downtime months post the market rent
+  the space would have earned to Base Rental Revenue AND as a negative to Absorption &
+  Turnover Vacancy, spec §4.2/§2.3); weighted free rent posts to Free Rent over the
+  first free_rent_months of each speculative segment (front timing, fractional final
+  month, honoring the segment's free-rent profile); occupied area during downtime
+  drops by (1 − renewal_weight) × area (§4.2); speculative segments' net recoveries
+  use their RecoveryAssignment with occupancy-consistent expense scaling. TI/LC stay
+  recorded, unposted (Phase 3); lift run.py's guards only for what now computes.
+  Then activate golden #1's FY2029-FY2031 revenue/vacancy/expense/NOI assertions in
+  tests/golden/test_clorox_northlake.py (capital lines stay Gate 3 — keep them
+  excluded for those years). §4.2's warning applies: this is the most common
+  divergence source; if any activated line misses $500, write it to
+  DISCREPANCY_LOG.md and refer to owner per-cell adjudication — never tune inputs.
+  Unit tests with page cites (Iron Rule 3). Full suite green; commit, push, update
+  the progress note and this prompt."

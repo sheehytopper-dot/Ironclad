@@ -1,10 +1,12 @@
-"""Contract-term lease rent: base rent unit conversion, fixed and percent
-steps, CPI adjustments, and free rent (Phase 1; spec §4.1 step 4).
+"""Lease-domain calculations: contract-term rent (Phase 1; spec §4.1
+step 4) and lease chain resolution into segments (Phase 2; spec §4.1
+pass 3, §4.2).
 
 Base rent calculation examples are normative [AE pp. 391-394]; free rent
-profiles [AE pp. 253-254]; CPI increases [AE pp. 255-257]. Rollover chains
-and speculative segments are Phase 2 (spec §4.2); this module projects the
-contract term only.
+profiles [AE pp. 253-254]; CPI increases [AE pp. 255-257]; market leasing
+profiles and rollover blending [AE pp. 233-252]. Projection of speculative
+segments into the ledger is Phase 2 Step 2 (NEXT_STEPS_TO_GATE2.md); this
+module resolves the chains and their blended economics.
 
 Conventions (spec §2.3): every output is a monthly pandas Series indexed by
 the canonical Period[M] timeline, zero outside the lease term and analysis
@@ -23,23 +25,29 @@ them (spec §3.12).
 from __future__ import annotations
 
 import datetime as dt
-from dataclasses import dataclass
-from typing import Optional
+from dataclasses import dataclass, field
+from typing import Mapping, Optional
 
 import pandas as pd
 
-from engine.calc.inflation import index_schedule, rate_for_year
+from engine.calc.inflation import index_schedule, inflation_factors, rate_for_year
 from engine.calc.timeline import snap_to_month_start
 from engine.models import (
     CPIMethod,
     FreeRentProfile,
     FreeRentTiming,
     Inflation,
+    IntelligentRenewalRule,
+    LCSpec,
     Lease,
+    MarketLeasingProfile,
     MoneyRate,
     MoneyUnit,
+    PctOfNew,
+    RecoveryAssignment,
     RentStep,
     TimingBasis,
+    UponExpiration,
 )
 
 
@@ -270,3 +278,281 @@ def project_contract_rent(lease: Lease, months: pd.PeriodIndex,
     )
     free = free_rent(lease, months, market_rent_annual, free_rent_profile)
     return LeaseRentCashflows(base_rent=base, cpi_adjustment=cpi, free_rent=free)
+
+
+# --------------------------------------------------------------------- #
+# Lease chain resolution (spec §4.1 pass 3; §4.2) [AE pp. 233-252]       #
+# --------------------------------------------------------------------- #
+
+@dataclass
+class LeaseSegment:
+    """One resolved occupancy segment of a lease chain (spec §4.1 pass 3).
+
+    The contract segment carries no economics of its own — its rent, steps,
+    CPI, and free rent live on the ``Lease`` and project via
+    ``project_contract_rent``. Speculative segments carry the §4.2 blended
+    economics: ``initial_rent_monthly`` is the weighted market rent in
+    dollars per month as of ``start``; ``rent_increases`` are the MLP's
+    steps offset from segment start; ``free_rent_months`` / ``ti`` /
+    ``lc_pct`` / ``lc_rate`` are probability-weighted (costs are recorded
+    here and posted in Phase 3). ``downtime_months`` is the weighted vacant
+    period immediately preceding ``start`` — Step 2 posts it as Absorption
+    & Turnover Vacancy and reduces occupied area by ``(1 − renewal_weight)
+    × area`` (spec §4.2).
+    """
+
+    lease: Lease
+    profile: Optional[MarketLeasingProfile]  # None on the contract segment
+    start: pd.Period
+    end: pd.Period                           # inclusive
+    speculative: bool
+    renewal_weight: float                    # p used in blending (1.0 if n/a)
+    downtime_months: int
+    initial_rent_monthly: Optional[float]    # None on the contract segment
+    rent_increases: list[RentStep] = field(default_factory=list)
+    free_rent_months: float = 0.0
+    free_rent_profile: Optional[str] = None
+    recoveries: RecoveryAssignment = field(default_factory=RecoveryAssignment)
+    ti: Optional[MoneyRate] = None           # weighted [AE p. 245; §4.2]
+    lc_pct: Optional[float] = None           # weighted % of rent [AE pp. 246-248]
+    lc_rate: Optional[MoneyRate] = None      # weighted $/SF or $ amount
+
+    @property
+    def area(self) -> float:
+        return self.lease.area
+
+    @property
+    def downtime_start(self) -> Optional[pd.Period]:
+        """First vacant month preceding this segment (None if no downtime)."""
+        if self.downtime_months == 0:
+            return None
+        return self.start - self.downtime_months
+
+
+def segment_rent_level(segment: LeaseSegment, period: pd.Period,
+                       market_rent_annual: Optional[float] = None) -> float:
+    """Monthly base rent (incl. steps) in force during ``period`` for a
+    segment. Contract segments delegate to :func:`rent_level`; speculative
+    segments apply the MLP's ``rent_increases`` to the blended initial rent
+    (amount steps re-base per their unit, % steps compound — same semantics
+    as contract steps [AE pp. 237, 391-392])."""
+    if not segment.speculative:
+        return rent_level(segment.lease, period, market_rent_annual)
+    level = float(segment.initial_rent_monthly)
+    for step in sorted(segment.rent_increases,
+                       key=lambda s: _step_period(s, segment.start)):
+        if _step_period(step, segment.start) > period:
+            break
+        if step.amount is not None:
+            level = monthly_base_rent(
+                MoneyRate(amount=step.amount, unit=step.unit), segment.area
+            )
+        else:
+            level *= 1.0 + step.pct_increase / 100.0
+    return level
+
+
+def _market_factor(inflation: Inflation, period: pd.Period,
+                   analysis_begin: dt.date) -> float:
+    """Market-rent inflation factor as of ``period`` (MLP ``term_growth``:
+    "This entry inflates with market inflation" [AE p. 235])."""
+    rates = index_schedule(inflation, None, default="market_rent")
+    begin = pd.Period(snap_to_month_start(analysis_begin), freq="M")
+    idx = pd.period_range(begin, max(period, begin), freq="M")
+    series = inflation_factors(rates, idx, analysis_begin,
+                               inflation.inflation_month, inflation.timing_basis)
+    return float(series.iloc[-1])
+
+
+def _market_monthly(rate: MoneyRate, area: float, factor: float,
+                    prior_rent: Optional[float], where: str) -> float:
+    """A market base rent in dollars per month: unit conversion per the
+    normative examples [AE p. 391], inflated by ``factor`` — except
+    ``pct_of_last_rent``, which is a percent of the expiring rent and does
+    not inflate (spec §3.6 "% of last rent")."""
+    if rate.unit == MoneyUnit.pct_of_last_rent:
+        if prior_rent is None:
+            raise ValueError(f"{where}: pct_of_last_rent needs a prior rent")
+        return prior_rent * rate.amount / 100.0
+    if rate.unit in (MoneyUnit.pct_of_market, MoneyUnit.dollars_per_area,
+                     MoneyUnit.dollars):
+        raise ValueError(
+            f"{where}: unit '{rate.unit.value}' is not a market base rent "
+            "unit (the manual's Rental Value machinery is not modeled — "
+            "spec §3.6 narrows market rents to $/SF/yr, $/SF/mo, $/yr, "
+            "$/mo, and % of last rent)"
+        )
+    return monthly_base_rent(rate, area) * factor
+
+
+def _blend_money(new: Optional[MoneyRate], renew: Optional[MoneyRate],
+                 p: float, where: str) -> Optional[MoneyRate]:
+    """Probability-weighted MoneyRate: p × renew + (1−p) × new, missing
+    side = 0 in the other's unit (§4.2; TI example [AE p. 245])."""
+    if new is None and renew is None:
+        return None
+    if new is not None and renew is not None and new.unit != renew.unit:
+        raise ValueError(f"{where}: new/renew units differ; cannot blend")
+    unit = (new or renew).unit
+    amount = (p * (renew.amount if renew is not None else 0.0)
+              + (1.0 - p) * (new.amount if new is not None else 0.0))
+    return MoneyRate(amount=amount, unit=unit)
+
+
+def _blend_lc(new: Optional[LCSpec], renew: Optional[LCSpec], p: float,
+              where: str) -> tuple[Optional[float], Optional[MoneyRate]]:
+    """Weighted leasing commission (§4.2) [AE pp. 246-248]: both sides %
+    → weighted percent; both sides rate → weighted MoneyRate; missing side
+    = 0. Category refs and mixed forms defer to Phase 3 posting."""
+    if new is None and renew is None:
+        return None, None
+    for side in (new, renew):
+        if side is not None and side.category_ref is not None:
+            raise NotImplementedError(
+                f"{where}: LC categories blend at posting time (Phase 3)"
+            )
+    pcts = [s.pct for s in (new, renew) if s is not None and s.pct is not None]
+    rates = [s for s in (new, renew) if s is not None and s.rate is not None]
+    if pcts and rates:
+        raise ValueError(f"{where}: cannot blend a % LC with a $ LC")
+    if pcts:
+        pct = (p * (renew.pct if renew is not None and renew.pct is not None else 0.0)
+               + (1.0 - p) * (new.pct if new is not None and new.pct is not None else 0.0))
+        return pct, None
+    return None, _blend_money(
+        new.rate if new is not None else None,
+        renew.rate if renew is not None else None, p, where,
+    )
+
+
+def _contract_prior_rent(lease: Lease, period: pd.Period,
+                         months: pd.PeriodIndex, analysis_begin: dt.date,
+                         inflation: Optional[Inflation],
+                         market_rent_annual: Optional[float]) -> float:
+    """The contract's "standard rent" in force at expiration — base rent +
+    fixed steps + CPI [AE p. 236 Prior Rent] — used for pct_of_last_rent
+    market rents and Intelligent Renewals comparisons."""
+    prior = rent_level(lease, period, market_rent_annual)
+    if lease.cpi is not None and inflation is not None:
+        cpi = cpi_adjustments(lease, months, analysis_begin, inflation,
+                              market_rent_annual)
+        if period in cpi.index:
+            prior += float(cpi[period])
+    return prior
+
+
+def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
+                        analysis_begin: dt.date,
+                        inflation: Optional[Inflation],
+                        profiles: Mapping[str, MarketLeasingProfile],
+                        market_rent_annual: Optional[float] = None,
+                        ) -> list[LeaseSegment]:
+    """Resolve one rent roll lease into its full segment chain through the
+    end of the timeline (spec §4.1 pass 3): the contract term, then
+    speculative segments per its MLP, chaining per each profile's
+    ``upon_expiration`` [AE pp. 233-252].
+
+    §4.2 blending per rollover with renewal probability p: downtime =
+    (1−p) × months_vacant rounded to whole months; blended rent =
+    p × renewal-side + (1−p) × new, where the new/renew market rents
+    inflate on the market index to segment start when ``term_growth``
+    [AE p. 235] and the renewal side follows the profile's
+    ``intelligent_renewals`` rule (market / prior / lesser_of / greater_of
+    [AE pp. 235-236]). ``renew`` expirations are a 100%-probability
+    renewal (no downtime, renewal terms); ``vacate`` and ``reabsorb`` end
+    the chain (reabsorbed space returns via the absorption engine,
+    Phase 2 Step 3). Speculative segments carry no CPI — DEVIATIONS.md §7.
+    """
+    start, end = lease_term_periods(lease)
+    contract = LeaseSegment(
+        lease=lease, profile=None, start=start, end=end, speculative=False,
+        renewal_weight=1.0, downtime_months=0, initial_rent_monthly=None,
+        rent_increases=list(lease.rent_steps),
+        free_rent_months=(lease.free_rent.months if lease.free_rent else 0.0),
+        free_rent_profile=(lease.free_rent.profile if lease.free_rent else None),
+        recoveries=lease.recoveries,
+        ti=(lease.leasing_costs.ti if lease.leasing_costs else None),
+    )
+    if lease.leasing_costs is not None and lease.leasing_costs.lc is not None:
+        contract.lc_pct, contract.lc_rate = _blend_lc(
+            lease.leasing_costs.lc, lease.leasing_costs.lc, 1.0,
+            f"lease {lease.tenant_name!r}",
+        )
+    segments = [contract]
+
+    timeline_end = months[-1]
+    behavior = lease.upon_expiration
+    profile_ref = (lease.option_profile
+                   if behavior == UponExpiration.option
+                   else lease.market_leasing_profile)
+    prior = _contract_prior_rent(lease, end, months, analysis_begin,
+                                 inflation, market_rent_annual)
+    prev_end = end
+
+    while prev_end < timeline_end and behavior not in (
+        UponExpiration.vacate, UponExpiration.reabsorb
+    ):
+        if profile_ref is None:
+            raise ValueError(
+                f"lease {lease.tenant_name!r}: upon_expiration "
+                f"'{behavior.value}' requires a market leasing profile"
+            )
+        try:
+            profile = profiles[profile_ref]
+        except KeyError:
+            raise ValueError(
+                f"lease {lease.tenant_name!r}: unknown market leasing "
+                f"profile {profile_ref!r}"
+            ) from None
+        where = f"lease {lease.tenant_name!r} / profile {profile.name!r}"
+
+        p = 1.0 if behavior == UponExpiration.renew else (
+            profile.renewal_probability / 100.0
+        )
+        downtime = int((1.0 - p) * profile.months_vacant + 0.5)  # §4.2 round
+        seg_start = prev_end + 1 + downtime
+        seg_end = seg_start + profile.term_months - 1
+
+        factor = (
+            _market_factor(inflation, seg_start, analysis_begin)
+            if profile.term_growth and inflation is not None else 1.0
+        )
+        new_rent = _market_monthly(profile.market_base_rent_new, lease.area,
+                                   factor, prior, where)
+        if isinstance(profile.market_base_rent_renew, PctOfNew):
+            renew_market = new_rent * profile.market_base_rent_renew.pct_of_new / 100.0
+        else:
+            renew_market = _market_monthly(profile.market_base_rent_renew,
+                                           lease.area, factor, prior, where)
+        rule = profile.intelligent_renewals
+        if rule == IntelligentRenewalRule.prior:
+            renew_side = prior
+        elif rule == IntelligentRenewalRule.lesser_of:
+            renew_side = min(prior, renew_market)
+        elif rule == IntelligentRenewalRule.greater_of:
+            renew_side = max(prior, renew_market)
+        else:
+            renew_side = renew_market
+        blended = p * renew_side + (1.0 - p) * new_rent
+
+        lc_pct, lc_rate = _blend_lc(profile.lc_new, profile.lc_renew, p, where)
+        segment = LeaseSegment(
+            lease=lease, profile=profile, start=seg_start, end=seg_end,
+            speculative=True, renewal_weight=p, downtime_months=downtime,
+            initial_rent_monthly=blended,
+            rent_increases=list(profile.rent_increases or []),
+            free_rent_months=(p * profile.free_rent_months_renew
+                              + (1.0 - p) * profile.free_rent_months_new),
+            free_rent_profile=profile.free_rent_profile,
+            recoveries=profile.recoveries,
+            ti=_blend_money(profile.ti_new, profile.ti_renew, p, where),
+            lc_pct=lc_pct, lc_rate=lc_rate,
+        )
+        segments.append(segment)
+
+        prior = segment_rent_level(segment, seg_end)
+        prev_end = seg_end
+        behavior = profile.upon_expiration
+        profile_ref = (profile.chained_profile
+                       if behavior == UponExpiration.option else profile.name)
+    return segments

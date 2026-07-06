@@ -1060,6 +1060,17 @@
       "title": "Inflation",
       "type": "object"
     },
+    "IntelligentRenewalRule": {
+      "description": "How the renewal-side rate is determined when blending (\"Use Market\nor Prior\" [AE pp. 235-236]). ``market`` is the default behavior \u2014 the\nprofile's renewal market rent \u2014 and equals Intelligent Renewals off.",
+      "enum": [
+        "market",
+        "prior",
+        "lesser_of",
+        "greater_of"
+      ],
+      "title": "IntelligentRenewalRule",
+      "type": "string"
+    },
     "LCCategory": {
       "additionalProperties": false,
       "description": "Named leasing-commission spec (spec \u00a73.9) [AE pp. 246-248, 258-262].\n\n``include_escalations`` flags whether commissions calculate on base rent\nonly or base + escalations (elements-to-include).",
@@ -1965,9 +1976,8 @@
           "type": "boolean"
         },
         "intelligent_renewals": {
-          "default": false,
-          "title": "Intelligent Renewals",
-          "type": "boolean"
+          "$ref": "#/$defs/IntelligentRenewalRule",
+          "default": "market"
         }
       },
       "required": [
