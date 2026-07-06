@@ -58,3 +58,21 @@ are fixed, not listed.
 - **Revisit when:** a golden requires partial-percentage abatement, a
   fixed-steps or CPI element different from the defaults, or time-varying
   free months.
+
+## 5. Cash Flow line order: the manual's report layout over spec §2.3's sketch
+
+- **Spec:** the §2.3 account tree lists Free Rent *after* Scheduled Base
+  Rental Revenue, and Expense Recovery Revenue *before* Percentage Rent.
+- **Manual:** the Cash Flow report [AE p. 538] defines Scheduled Base Rent as
+  "the potential rent minus vacancy and free rent" — Free Rent is a component
+  of (and printed above) the Scheduled Base Rent subtotal — and the Other
+  Tenant Revenue section lists Percentage Rent before expense recoveries.
+- **As built:** `engine/calc/ledger.py` follows the manual (which governs on
+  behavior, CLAUDE.md): line order Base Rental Revenue → Absorption & Turnover
+  Vacancy → Free Rent → Scheduled Base Rental Revenue (= sum of the three) →
+  CPI → Percentage Rent → Expense Recovery Revenue. The Clorox golden's
+  transcribed CSV confirms the rollup (FY2029: 3,760,710 − 682,689 − 256,008
+  = 2,822,012 ≈ Total Scheduled Base Rent). The §9.3 "PGR identity" invariant
+  is asserted in this manual-consistent form.
+- **Revisit when:** never expected — this is the golden-file-confirmed ARGUS
+  behavior; the spec sketch was simply imprecise.

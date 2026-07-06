@@ -158,17 +158,26 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   `engine/calc/recoveries.py` complete 2026-07-05 (net + none system methods per
   [AE pp. 404-407]: pro-rata pool share, `is_recoverable` pool membership, no gross-up for
   system methods; stops/base years/user structures raise as Phase 2; free-rent
-  abatement of recoveries also Phase 2; %-of-EGR fixed point deferred to run.py; suite
-  100 green). Next: [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 4 item 4,
-  `engine/calc/ledger.py`.
-- **Next session's first prompt:** "Continue Phase 1 (NEXT_STEPS Step 4 item 4): implement
-  engine/calc/ledger.py — the spec §2.3 Chart of Accounts tree and monthly ledger assembly:
-  occupancy/occupied-area/available-area series from the rent roll, per-lease revenue lines
-  from leases.py (base rent, CPI, free rent), expense lines from expenses.py, Expense
-  Recovery Revenue from recoveries.py, and the PGR/EGR/NOI rollups, with line names/order
-  matching the ARGUS Cash Flow report so exports diff cleanly (spec §2.3); annual/quarterly/
-  fiscal views are aggregations of the monthly ledger, never separately computed. %-of-EGR
-  expenses and the recovery fixed point stay deferred to run.py (spec §4.1 step 9). Unit
-  tests with page cites where the manual provides examples (Iron Rule 3); assert the
-  pre-valuation §9.3 invariants that apply (monthly sums = annual, occupied ≤ rentable).
-  Full suite green; commit, push, update the progress note and this prompt."
+  abatement of recoveries also Phase 2; %-of-EGR fixed point deferred to run.py);
+  `engine/calc/ledger.py` complete 2026-07-05 (Cash Flow account tree + rollups per
+  [AE pp. 535-539] — line order per the manual, not the spec §2.3 sketch, see
+  DEVIATIONS.md §5; occupied/rentable/occupancy series; annual/quarterly/fiscal views as
+  groupby-sums of the monthly frame; §9.3 pre-valuation invariants in `assert_invariants`;
+  suite 116 green). Next: [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 4 items
+  5-6, `engine/calc/run.py`.
+- **Next session's first prompt:** "Continue Phase 1 (NEXT_STEPS Step 4 items 5-6):
+  implement engine/calc/run.py — orchestrate spec §4.1 passes 1-6 for a PropertyModel:
+  timeline, inflation, contract leases (no rollover — terms end where they end), expenses,
+  the %-of-EGR two-pass (compute EGR excluding %-based items, then %-based expense items,
+  then final EGR — ARGUS behavior per spec §4.1 step 9; the Clorox management fee + net
+  recovery circularity resolves here: fee is 3% of EGR where EGR includes recoveries that
+  include the fee — verify against the golden's Management Fee ≈ 3% of EGR relationship),
+  net recoveries, ledger assembly, and §9.3 invariants asserted on every run
+  (Convention). Then Step 5: tests/golden/test_clorox_northlake.py asserting FY2027-FY2028
+  every line within $500 vs expected_annual_cash_flow.csv (Gate 1 phasing; later-FY lines
+  transcribed but not asserted), plus sum(monthly)=annual. Handle the CSV's 'Capital
+  Expenses' account naming vs the fixture's 'Capital Reserves' item via the ExpenseItem
+  `account` field or a test-side map — surface the choice in the summary. Full suite
+  green; commit, push, update the progress note and this prompt. If any Gate 1 line
+  misses tolerance, report the discrepancy for owner per-cell adjudication — do not
+  tune inputs to force a match (fixture-lock rule)."
