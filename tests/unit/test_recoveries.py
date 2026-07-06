@@ -159,13 +159,14 @@ class TestDispatch:
         series = project_recoveries(lease, MONTHS, expenses, rentable_area=540_000)
         assert series.sum() == 0.0
 
-    def test_user_structures_still_raise(self):
-        """User recovery structures are Step 5 session 2; asking for them
-        must fail loudly, not silently post zero."""
+    def test_user_structures_need_a_context(self):
+        """User recovery structures resolve through a RecoveryContext
+        (run.py supplies one); calling without it fails loudly, never
+        silently posting zero."""
         lease = make_lease(area=540_000, method=RecoverySystemMethod.structure,
                            structure_ref="Custom CAM")
         expenses = [project(expense("CAM", 120_000))]
-        with pytest.raises(NotImplementedError, match="structure"):
+        with pytest.raises(ValueError, match="RecoveryContext"):
             project_recoveries(lease, MONTHS, expenses, rentable_area=540_000)
 
 
@@ -272,15 +273,14 @@ class TestBaseYear:
         assert series.iloc[:24].abs().sum() == 0.0
         assert series.iloc[24] == pytest.approx(11_000)
 
-    def test_base_year_gross_up_deferred_loudly(self):
-        """Gross-up is a user-structure feature — "expenses recovered
-        using system recovery structures will not be grossed up"
-        [AE p. 406]; the assignment's gross-up field defers to Step 5
-        session 2."""
+    def test_base_year_gross_up_needs_occupancy_context(self):
+        """base_year_gross_up_pct (unlocked in Step 5 session 2) grosses
+        the frozen base-year value [AE p. 407 formula]; it needs the
+        occupancy series and fails loudly without a RecoveryContext."""
         lease = make_lease(area=540_000,
                            method=RecoverySystemMethod.base_year,
                            base_year_gross_up_pct=95.0)
-        with pytest.raises(NotImplementedError, match="gross-up"):
+        with pytest.raises(ValueError, match="RecoveryContext"):
             project_recoveries(lease, MONTHS, self.rising_pool(),
                                rentable_area=540_000, analysis_begin=BEGIN)
 

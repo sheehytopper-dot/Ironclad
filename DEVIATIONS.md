@@ -185,3 +185,39 @@ are fixed, not listed.
   vacancy, a rate-modifying tenant override, or an unpaired
   gross-up/reduce combination and cannot be matched within tolerance
   without it.
+
+## 10. Recovery structures: v1 narrowings and fixed policies
+
+- **Anchor contributions not modeled (schema-absent):** the manual's
+  "Reimburse After" machinery — deducting an anchor tenant group's
+  recovery contribution from an in-line pool via the common expense
+  factor [AE pp. 410-411] — has no spec §3.14 field and cannot be
+  requested. First golden needing it drives the schema addition.
+- **Admin fee flavor:** % of recoverable expenses only (the ARGUS
+  default), applied before or after the stop per the schema flag; the
+  "% of Recovery" alternative [AE p. 520] is not modeled. The default
+  policy pairing holds: the base-year stop basis includes the admin fee
+  when the fee applies before the stop ("Calculate Base Year Stop Before
+  Admin Fees" unchecked [AE p. 520]).
+- **Gross-up of %-of-revenue lines:** the manual's "Gross Up Percent of
+  Line" policy [AE p. 519] is fixed at its no-adjustment (100% Fixed)
+  setting — %-of-EGR/PGR expenses pass through pools ungrossed. This is
+  also what keeps the %-of-EGR fixed point a contraction with gross-up
+  active (recoveries.py docstring): every gross-up ratio is constant
+  with respect to the fee. The 100%-Variable setting would amplify the
+  fee feedback by gross_up/occupancy — unbounded at low occupancy — so
+  any future policy toggle must re-derive the convergence bound first.
+- **Zero-occupancy gross-up:** a fully variable expense (pct_fixed = 0)
+  in a zero-occupancy month cannot be grossed from its occupancy-scaled
+  series (observed 0; base unrecoverable) — loud ValueError, remedy in
+  the message.
+- **Caps/floors conventions:** min/max are annual $ amounts (the
+  manual's amount/area units are not modeled), inflating on the general
+  rate by default [AE p. 412]; YoY and cumulative growth caps apply to
+  calendar-year totals — the v1 stand-in for ARGUS recovery years, like
+  the straight monthly accrual policy (spec §3.14).
+- **Fiscal base-year windows:** ``BaseYearSpec.fiscal`` raises
+  (calendar windows only until a golden needs fiscal).
+- **Revisit when:** goldens #2/#4/#5 — Freeport (#2) is the base-year/
+  stop coverage deal and will exercise most of this section within
+  tolerance or drive corrections.

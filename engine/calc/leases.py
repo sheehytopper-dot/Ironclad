@@ -216,21 +216,16 @@ def cpi_adjustments(lease: Lease, months: pd.PeriodIndex,
 # Free rent [AE pp. 253-254]                                             #
 # --------------------------------------------------------------------- #
 
-def free_rent(lease: Lease, months: pd.PeriodIndex,
-              market_rent_annual: Optional[float] = None,
-              profile: Optional[FreeRentProfile] = None) -> pd.Series:
-    """Monthly free-rent abatement (negative) for a contract lease.
-
-    Elements to include follow the manual's defaults [AE p. 254]: base rent
-    and fixed steps abate at 100%, CPI at 0% — so the abated amount is the
-    stepped base rent level, never the CPI adjustment. ``front`` timing
-    abates the first N lease months (a fractional N abates a fraction of the
-    final month); ``custom`` timing abates the listed 1-based lease months in
-    full (spec §3.12).
-    """
-    series = pd.Series(0.0, index=months, name="free_rent")
+def contract_free_fraction(lease: Lease, months: pd.PeriodIndex) -> pd.Series:
+    """Fraction (0..1) of each month's charges the contract lease's
+    free-rent spec abates: ``front`` timing abates the first N lease
+    months with a fractional final month; ``custom`` abates the listed
+    1-based lease months in full (spec §3.12 [AE pp. 253-254]). Which
+    charge types the fraction applies to is the profile's decision
+    [AE p. 254]."""
+    series = pd.Series(0.0, index=months, name="free_fraction")
     fr = lease.free_rent
-    if fr is None or (profile is not None and not profile.abate_base_rent):
+    if fr is None:
         return series
     start, end = lease_term_periods(lease)
     custom = set(fr.custom_months or [])
@@ -239,9 +234,47 @@ def free_rent(lease: Lease, months: pd.PeriodIndex,
             continue
         lease_month = (period.year - start.year) * 12 + (period.month - start.month)
         if fr.timing == FreeRentTiming.front:
-            fraction = min(1.0, max(0.0, fr.months - lease_month))
+            series[period] = min(1.0, max(0.0, fr.months - lease_month))
         else:
-            fraction = 1.0 if (lease_month + 1) in custom else 0.0
+            series[period] = 1.0 if (lease_month + 1) in custom else 0.0
+    return series
+
+
+def segment_free_fraction(segment: "LeaseSegment",
+                          months: pd.PeriodIndex) -> pd.Series:
+    """Fraction (0..1) abated per month by a speculative segment's
+    weighted free rent: front-loaded from segment start with a fractional
+    final month ("free rent is applied at the beginning of the lease"
+    [AE p. 239]; §4.2 weighting)."""
+    series = pd.Series(0.0, index=months, name="free_fraction")
+    for period in months:
+        if not segment.start <= period <= segment.end:
+            continue
+        month_index = (period.year - segment.start.year) * 12 + (
+            period.month - segment.start.month
+        )
+        series[period] = min(1.0, max(0.0, segment.free_rent_months - month_index))
+    return series
+
+
+def free_rent(lease: Lease, months: pd.PeriodIndex,
+              market_rent_annual: Optional[float] = None,
+              profile: Optional[FreeRentProfile] = None) -> pd.Series:
+    """Monthly free-rent abatement (negative) for a contract lease.
+
+    Elements to include follow the manual's defaults [AE p. 254]: base rent
+    and fixed steps abate at 100%, CPI at 0% — so the abated amount is the
+    stepped base rent level, never the CPI adjustment (fractions per
+    :func:`contract_free_fraction`).
+    """
+    series = pd.Series(0.0, index=months, name="free_rent")
+    if lease.free_rent is None or (
+        profile is not None and not profile.abate_base_rent
+    ):
+        return series
+    fractions = contract_free_fraction(lease, months)
+    for period in months:
+        fraction = float(fractions[period])
         if fraction:
             series[period] = -fraction * rent_level(lease, period, market_rent_annual)
     return series
@@ -609,16 +642,14 @@ def project_segment_rent(segment: LeaseSegment, months: pd.PeriodIndex,
                 absorption[period] -= segment.initial_rent_monthly
 
     abate = free_rent_profile is None or free_rent_profile.abate_base_rent
+    fractions = segment_free_fraction(segment, months)
     for period in months:
         if not segment.start <= period <= segment.end:
             continue
         level = segment_rent_level(segment, period)
         base[period] += level
         if abate:
-            month_index = (period.year - segment.start.year) * 12 + (
-                period.month - segment.start.month
-            )
-            fraction = min(1.0, max(0.0, segment.free_rent_months - month_index))
+            fraction = float(fractions[period])
             if fraction:
                 free[period] -= fraction * level
     return SegmentRentCashflows(base_rent=base, free_rent=free,

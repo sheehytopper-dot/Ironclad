@@ -50,9 +50,11 @@ from engine.calc.expenses import PCT_UNITS, project_expense
 from engine.calc.leases import (
     LeaseRentCashflows,
     LeaseSegment,
+    contract_free_fraction,
     project_contract_rent,
     project_segment_rent,
     resolve_lease_chain,
+    segment_free_fraction,
 )
 from engine.calc.ledger import (
     MonthlyLedger,
@@ -62,7 +64,11 @@ from engine.calc.ledger import (
     occupied_area_from_chains,
     rentable_area_series,
 )
-from engine.calc.recoveries import project_segment_recoveries
+from engine.calc.recoveries import (
+    PoolAudit,
+    RecoveryContext,
+    project_segment_recoveries,
+)
 from engine.calc.timeline import build_month_index
 from engine.calc.vacancy import (
     TenantRevenue,
@@ -99,6 +105,7 @@ class RunResult:
     lease_rents: dict[str, LeaseRentCashflows]      # by tenant_name (chain totals)
     absorption_vacancy: dict[str, pd.Series]        # by tenant_name (negative)
     recoveries: dict[str, pd.Series]                # by tenant_name
+    recovery_audit: list[PoolAudit]                 # per tenant per pool
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
@@ -268,22 +275,55 @@ def run_property(model: PropertyModel) -> RunResult:
                   for item in pct_items}
     timing_basis = model.inflation.timing_basis
 
-    def recoveries_from(expense_series) -> dict[str, pd.Series]:
+    # Context for user structures / gross-up, and per-segment free-rent
+    # abatement fractions (applied when the segment's profile abates
+    # recoveries [AE p. 254]) — all fee-independent, computed once.
+    recovery_context = RecoveryContext(
+        occupancy=occupancy, occupied_area=occupied, property_size=area,
+        structures={s.name: s for s in model.recovery_structures},
+        expense_groups={g.name: list(g.members) for g in model.expense_groups},
+    )
+
+    def _segment_abatement(lease, segment) -> Optional[pd.Series]:
+        if segment.speculative:
+            profile = _free_rent_profile(segment.free_rent_profile, model)
+            if profile is not None and profile.abate_recoveries:
+                return segment_free_fraction(segment, months)
+            return None
+        if lease.free_rent is None:
+            return None
+        profile = _free_rent_profile(lease.free_rent.profile, model)
+        if profile is not None and profile.abate_recoveries:
+            return contract_free_fraction(lease, months)
+        return None
+
+    abatements = {
+        lease.tenant_name: [
+            _segment_abatement(lease, segment)
+            for segment in chains[lease.tenant_name]
+        ]
+        for lease in all_leases
+    }
+
+    def recoveries_from(expense_series,
+                        audit: Optional[list] = None) -> dict[str, pd.Series]:
         return {
             tenant: sum(
                 (project_segment_recoveries(
                     s, months, expense_series, rentable,
                     analysis_begin=begin, inflation=model.inflation,
-                ) for s in segments),
+                    context=recovery_context, abatement=fraction,
+                    audit=audit,
+                ) for s, fraction in zip(segments, abatements[tenant])),
                 pd.Series(0.0, index=months),
             )
             for tenant, segments in chains.items()
         }
 
-    def property_flows(expense_series):
+    def property_flows(expense_series, audit: Optional[list] = None):
         """Recoveries → vacancy/credit loss → Total PGR / EGR, exactly as
         the ledger defines them (spec §4.1 steps 6, 10)."""
-        recoveries = recoveries_from(expense_series)
+        recoveries = recoveries_from(expense_series, audit=audit)
         tenants = {
             tenant: TenantRevenue(
                 scheduled=(lease_rents[tenant].base_rent
@@ -323,13 +363,18 @@ def run_property(model: PropertyModel) -> RunResult:
             expense_series = fixed_series + [
                 (item, pct_series[item.name]) for item in pct_items
             ]
-            recoveries, gv, cl, pgr, egr = property_flows(expense_series)
             break
     else:
         raise ValueError(
             "%-of-revenue expenses did not converge — their combined "
             "percentages likely meet or exceed 100% of revenue"
         )
+
+    # Final pass with the converged fee, collecting the per-tenant per-pool
+    # audit detail the Recovery Audit report consumes (spec §7 report 18).
+    recovery_audit: list[PoolAudit] = []
+    recoveries, gv, cl, pgr, egr = property_flows(expense_series,
+                                                  audit=recovery_audit)
 
     ledger = assemble_ledger(
         months,
@@ -349,6 +394,7 @@ def run_property(model: PropertyModel) -> RunResult:
         ledger=ledger, months=months, occupied_area=occupied,
         rentable_area=rentable, occupancy=occupancy, segments=chains,
         lease_rents=lease_rents, absorption_vacancy=absorption,
-        recoveries=recoveries, general_vacancy=gv, credit_loss=cl,
+        recoveries=recoveries, recovery_audit=recovery_audit,
+        general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
     )

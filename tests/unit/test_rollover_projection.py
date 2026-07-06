@@ -173,13 +173,15 @@ class TestSegmentRecoveries:
         )
         assert recovery[pd.Period("2026-06", freq="M")] == 0.0  # contract window
 
-    def test_user_structures_wait_for_step5_session2(self):
+    def test_user_structures_need_a_context(self):
+        """A structure-method segment resolves through a RecoveryContext
+        (run.py supplies one); without it the call fails loudly."""
         profile = make_profile(recoveries={"method": "structure",
                                            "structure_ref": "Custom"})
         seg = first_spec(profile=profile)
         cam = ExpenseItem(name="CAM", amount=240_000,
                           unit=ExpenseUnit.dollars_per_year)
-        with pytest.raises(NotImplementedError, match="structure"):
+        with pytest.raises(ValueError, match="RecoveryContext"):
             project_segment_recoveries(
                 seg, MONTHS, [(cam, pd.Series(20_000.0, index=MONTHS))],
                 rentable_area=400_000,
