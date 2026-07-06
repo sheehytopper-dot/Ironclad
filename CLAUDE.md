@@ -220,23 +220,38 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   occupancy and stays unimplemented (DEVIATIONS.md §10, with anchor contributions and
   other narrowings). **Recovery Audit report built** (`engine/reports/recovery_audit.py`,
   spec §7 report 18) from per-tenant per-pool PoolAudit detail on every run;
-  `reconcile_to_ledger` proves exact reconciliation (tested to 1e-9). Suite 218 green
-  (golden #1 regression intact). Step 5 done — Gate 2 remaining: Step 6 (Lease Audit),
-  Step 7 (goldens #2/#4/#5, owner-gated fixtures), Step 8 (% rent).
-- **Next session's first prompt:** "Continue Phase 2 (NEXT_STEPS_TO_GATE2.md Step 6):
-  the Lease Audit report. Implement engine/reports/lease_audit.py (spec §7 report 16
-  — per-tenant monthly rent build-up: base rent, steps within it, CPI, free rent,
-  absorption & turnover vacancy, expense recoveries, and % rent when it exists):
-  one row per (tenant, month) built from RunResult's retained detail (lease_rents,
-  absorption_vacancy, recoveries; segments for lease-phase labeling — contract vs
-  speculative vs downtime), reconciling exactly to the ledger's revenue lines
-  (Base Rental Revenue, Free Rent, A&T Vacancy, CPI, Expense Recovery Revenue) via a
-  reconcile function like the Recovery Audit's. The manual hyperlinks Potential Base
-  Rent to this report [AE p. 535] — it is the tenant-level drill-down of the Cash
-  Flow's rental revenue section [AE p. 538]. Unit tests: reconciliation on a
-  multi-tenant property with rollover + absorption + free rent; page cites where the
-  manual defines the lines (Iron Rule 3). Remember owner review of BOTH audit
-  reports is a Gate 2 criterion — after this session, flag to the owner that the
-  Lease Audit and Recovery Audit are ready for review (dump helpers akin to
-  scripts/dump_monthly.py are welcome if useful for that review). Full suite green.
-  Commit, push, update the progress note and this prompt."
+  `reconcile_to_ledger` proves exact reconciliation (tested to 1e-9). **Phase 2 Step 6
+  complete 2026-07-06:** Lease Audit report (`engine/reports/lease_audit.py`, spec §7
+  report 16 — the [AE p. 535] Potential Base Rent drill-down): one row per active
+  (tenant, month) with phase labels from the resolved chains (contract / speculative /
+  downtime / vacant; absorption first generations labeled speculative per the lease
+  status [AE p. 398]), the [AE p. 538] line decomposition with per-row Scheduled and
+  total identities, reconciling exactly to the ledger's five revenue lines
+  (`reconcile_lease_audit`, tested to 1e-9 on a multi-tenant rollover + absorption +
+  free-rent property). `scripts/dump_audits.py` (owner review helper) writes both
+  audit reports + a reconciliation sheet to .xlsx (`*.audits.xlsx` gitignored); run on
+  Clorox: reconciliation exactly 0. Suite 226 green. **BOTH audit reports are ready
+  for the Gate 2 owner review** (a Gate 2 criterion). Gate 2 remaining: owner review
+  of the audits, Step 7 (goldens #2/#4/#5 — owner-gated fixtures), Step 8 (% rent).
+- **Next session's first prompt:** "Phase 2 Steps 1-6 are complete; both audit
+  reports await owner review (dump with scripts/dump_audits.py on any fixture).
+  Check with the owner: (a) has the audit-report review happened, and (b) have any
+  golden #2/#4/#5 fixtures been staged (NEXT_STEPS_TO_GATE2.md Step 0)? If a fixture
+  has landed owner-verified: Step 7 — write its comparison test (same shape as the
+  Clorox Gate 1 test: fiscal-year, $500/line, misses to a DISCREPANCY_LOG and owner
+  adjudication, never input tuning; verify Freeport is genuinely multi-tenant with
+  base-year/stop recoveries when staging it — escalate if not). If no fixture yet:
+  Step 8 — percentage rent. Read [AE pp. 249-250, 376] (and re-check p. 413 offsets).
+  Implement engine/calc/percentage_rent.py per spec §3.13: sales volume ($ or $/SF
+  per year) with growth on its index; breakpoints natural (the manual defines
+  natural = base + steps + CPI [AE p. 250]), fixed_amount, zero; up to 6 layers of
+  overage (Σ max(0, sales − breakpoint) × pct); post to the Percentage Rent ledger
+  line through run.py (lift the guards for lease and MLP percentage rent;
+  speculative segments carry the MLP's spec); % rent joins the vacancy bases
+  (percent_of_pgr / total_tenant_revenue) and the Lease Audit column. The
+  [AE p. 413] recovery offset is schema-checked: implement if §3.13 carries the
+  field, else defer with a DEVIATIONS note. Manual worked-example unit tests
+  (Iron Rule 3). REMEMBER the standing gap (CLAUDE.md): percentage rent is
+  externally unvalidated pending golden #3 — say so in the module docstring and
+  the summary. Full suite green. Commit, push, update the progress note and this
+  prompt."
