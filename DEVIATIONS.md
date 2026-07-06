@@ -76,3 +76,24 @@ are fixed, not listed.
   is asserted in this manual-consistent form.
 - **Revisit when:** never expected — this is the golden-file-confirmed ARGUS
   behavior; the spec sketch was simply imprecise.
+
+## 6. %-of-EGR expenses: fixed-point iteration, not the spec's single second pass
+
+- **Spec:** §4.1 step 9 says %-of-EGR items "reference EGR excluding
+  themselves; a single second pass suffices, no fixed-point iteration
+  needed."
+- **Reality:** that holds only for %-of-EGR *revenue* items, which exclude
+  themselves directly. A **recoverable %-of-EGR expense** (the Clorox
+  management fee) re-enters EGR indirectly: the fee joins the net recovery
+  pool, recoveries join EGR, and the fee is a percent of EGR. A single
+  second pass computes the fee off pre-fee EGR and understates it — for
+  Clorox FY2027 by ≈$3,535, seven times the $500 golden tolerance.
+- **As built:** `engine/calc/run.py` iterates fee → recoveries → EGR → fee
+  to convergence (a contraction with factor pro-rata share × fee pct, so a
+  handful of rounds; non-convergent inputs — percentages ≥100% of revenue —
+  raise). Golden #1 confirms the converged behavior is ARGUS's: Management
+  Fee = 3.0000% of **final** EGR in both Gate 1 fiscal years, equal to the
+  closed form pct/(1−pct) × (EGR excluding the fee) at 100% share.
+- **Revisit when:** never expected — golden-confirmed ARGUS behavior; the
+  spec's single-pass claim stays true for the §3.10 revenue items it was
+  written about.

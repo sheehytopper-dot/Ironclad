@@ -123,10 +123,14 @@ only then — Phase 2 work may begin (Iron Rule 2).
 
 ---
 
-**Status:** Step 0 verified 2026-07-03. Step 1 done — the Clorox OM is staged
-in `tests/golden/clorox_northlake/source/`. Step 2 complete: owner QA passed
-2026-07-04 against OM pp. 25-28 (fixture-lock satisfied). **Owner decision
-2026-07-04: the standing hand model and its 48-hour deadline are struck;
-Step 3 is now dispute-triggered per-cell adjudication (no standing artifact,
-no deadline).** Steps 3 and 6 are owner work (human-owned; not Claude tasks).
-Step 4 (Phase 1 engine work) starts next session.
+**Status: GATE 1 PASSED — owner declaration 2026-07-05.** Step 0 verified
+2026-07-03. Step 1 done. Step 2 complete (owner QA 2026-07-04, fixture-lock
+satisfied). Step 3 became dispute-triggered per-cell adjudication (owner
+decision 2026-07-04) — never triggered: no Gate 1 line missed tolerance.
+Step 4 (all six engine modules) and Step 5 (golden comparison test) landed
+2026-07-05: FY2027-FY2028 every line within $1 (tolerance $500). Step 7
+review completed by the owner 2026-07-05 with the discrepancy log at
+`tests/golden/clorox_northlake/DISCREPANCY_LOG.md` (only +$1 subtotal
+roundings, explained). Step 6 (goldens #2/#4/#5) remains owner work and now
+gates **Phase 2 completion** — see [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md)
+for the Phase 2 path. This document is closed.

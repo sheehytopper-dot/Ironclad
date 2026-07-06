@@ -73,9 +73,11 @@ against its source OM's published Argus output via the Benchmark Comparison repo
   this risk — percentage rent is rarely used in his practice. **Any retail underwriting
   before the golden #3 back-test treats the Percentage Rent line as unverified.**
 
-The step-by-step path to Gate 1 is [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md).
-**Phase 1 is not blocked**: it begins once the Clorox fixture (NEXT_STEPS_TO_GATE1.md
-Step 2 — inputs JSON + transcribed OM cash flow + assumptions log) lands.
+**Gate 1 passed (owner declaration 2026-07-05)** — its path,
+[NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md), is closed. The step-by-step path
+through Phase 2 to Gate 2 is [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md); golden
+#2/#4/#5 fixture transcription there (Step 0) is owner-gated and gates the phase's
+completion, not its start.
 
 ## Intake Surfaces (standing policy)
 
@@ -150,28 +152,28 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **Phase 1 engine
-  work complete; Gate 1 comparison green; owner Gate 1 review (NEXT_STEPS Step 7)
-  pending.** All of Step 4 landed 2026-07-05: `leases.py` ([AE pp. 391-394, 253-257]),
-  `expenses.py` ([AE pp. 361-362]), `recoveries.py` (net/none per [AE pp. 404-407]),
-  `ledger.py` (Cash Flow tree per [AE pp. 535-539]; DEVIATIONS.md §5), and `run.py`
-  (spec §4.1 passes 1-6; recoverable %-of-EGR fees iterate to a fixed point through the
-  net recovery pool — fee = pct × final EGR, confirmed by the golden at 3.0000%; Phase 2/3
-  inputs raise NotImplementedError; §9.3 pre-valuation invariants asserted on every run).
-  `tests/golden/test_clorox_northlake.py` (Step 5) asserts FY2027-FY2028 every line
-  within $500: **actual max deviation $1** (OM whole-dollar rounding — see
-  `tests/golden/clorox_northlake/DISCREPANCY_LOG.md`); the CSV's "Capital Expenses" row
-  maps to the fixture's "Capital Reserves" item via a documented test-side name map
-  (neither locked file edited). Suite 126 green.
-- **Next session's first prompt:** "Phase 1 engine work and the Gate 1 comparison are
-  complete and green (max deviation $1; DISCREPANCY_LOG.md in the Clorox golden dir).
-  Ask nothing and build nothing new until you check with the owner: has the owner
-  reviewed the Gate 1 evidence and declared Gate 1 passed (NEXT_STEPS Step 7)? If yes:
-  mark Gate 1 passed in BUILD_SCHEDULE.md and NEXT_STEPS_TO_GATE1.md, then start Phase 2
-  planning — read spec §4.2 (rollover blending, the most common divergence source) and
-  §3.6/§3.7 (MLPs), propose the Phase 2 session sequence (rollover blending → absorption
-  → general vacancy/credit loss offsets → full recovery structures → % rent last, it
-  stays externally unvalidated pending golden #3), and note that goldens #2/#4/#5
-  fixtures (owner work, Step 6) gate the phase's completion. If no: address whatever the
-  owner's review raised; if a cell is disputed, follow owner per-cell adjudication
-  (Step 3) — never tune inputs to force a match (fixture-lock rule)."
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 1 PASSED
+  (owner declaration 2026-07-05); Phase 2 begins.** Phase 1 shipped 2026-07-05:
+  `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
+  `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
+  [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
+  %-of-EGR fee iterates to a fixed point through the recovery pool — DEVIATIONS.md §6;
+  §9.3 pre-valuation invariants on every run). Golden #1 Gate 1 scope: FY2027-FY2028
+  every line within $1 (tolerance $500; DISCREPANCY_LOG.md). Suite 126 green. Phase 2
+  session sequence: [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md) (rollover blending
+  first — golden #1 FY2029-31 validates it; % rent last — unvalidated pending golden
+  #3; goldens #2/#4/#5 transcription is owner-gated Step 0, runs in parallel).
+- **Next session's first prompt:** "Begin Phase 2 (NEXT_STEPS_TO_GATE2.md Step 1): lease
+  chain resolution and market rent machinery. Read [AE pp. 233-252] first. Implement
+  spec §4.1 pass 3 in full: resolve each rent roll lease into a segment chain — contract
+  term → weighted speculative segments per its MLP → chained profiles
+  (market/option/renew/vacate/reabsorb) — through analysis end + resale horizon, with
+  §4.2 blending: weighted rent (p × renew + (1−p) × new), weighted downtime
+  ((1−p) × months_vacant, rounded to months), weighted free rent and TI/LC (record costs
+  on segments; posting is Phase 3), market rent inflated on the market index with
+  term_growth, and the Intelligent Renewals toggle per the manual's stated behavior
+  [AE p. 235]. Output: per-lease segment lists (dates, area, rent spec, costs, recovery
+  assignment, speculative flag + renewal_weight) that Step 2 will project into the
+  ledger. Unit tests with manual page cites (Iron Rule 3), including a hand-computed
+  §4.2 blending example. Do not touch golden #1's FY2029-31 assertions yet — that is
+  Step 2. Full suite green; commit, push, update the progress note and this prompt."

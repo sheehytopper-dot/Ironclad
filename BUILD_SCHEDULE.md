@@ -2,7 +2,7 @@
 
 Companion to ARGUS_REBUILD_SPEC.md. This schedule assumes 10 hours per week: three weeknight sessions of 1.5 to 2 hours plus one 4-hour weekend block. If your real capacity is 6 hours, multiply every duration by 1.6 and stop pretending otherwise. The schedule is gated, not dated: you advance when the gate passes, not when the week ends.
 
-> **Current status (2026-07-05):** Phase 0 complete. Phase 1 engine work complete — leases, expenses, net recoveries, ledger, and run.py orchestration (spec §4.1 passes 1-6 incl. the %-of-EGR fixed point), 126 tests green. **Gate 1 comparison test green:** Clorox FY2027-FY2028, every line within $1 of the OM transcription (tolerance $500/line; see `tests/golden/clorox_northlake/DISCREPANCY_LOG.md`). **Owner Gate 1 review ([NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md) Step 7) pending — Phase 2 does not start until the owner declares the gate passed.**
+> **Current status (2026-07-05): GATE 1 PASSED — owner declaration 2026-07-05** after review of the Gate 1 evidence (`tests/golden/clorox_northlake/DISCREPANCY_LOG.md`, 126-test green suite, independent verification). Phase 1 complete: leases, expenses, net recoveries, ledger, run.py (spec §4.1 passes 1-6 incl. the %-of-EGR fixed point, DEVIATIONS.md §6); Clorox FY2027-FY2028 every line within $1 of the OM (tolerance $500/line). **Phase 2 begins** — session sequence in [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md); goldens #2/#4/#5 fixture transcription (Freeport, Cedar Alt, Inland) is owner-gated staging work that gates the phase's completion, not its start.
 >
 > **Post-original sourcing note (2026-07-03, revised 2026-07-04):** the plan below predates the loss of ARGUS access. Wherever it says to export goldens from ARGUS or to reconcile against "the ARGUS export" (Week 1 jobs, Gates 0-3), read the **Golden-File Strategy in [CLAUDE.md](CLAUDE.md)** instead: **five OM-based goldens** spanning complexity, each validated annually at fiscal-year level within $500/line; **dispute-triggered owner per-cell adjudication** (the owner recomputes the specific disputed cells in Excel from the source documents alone, without reading the engine's output or code first); and the manual's worked examples. Everything else — week structure, job splits, gates as checklists, protocols — is authoritative as written. (This file was merged 2026-07-03 from BUILD_SCHEDULE_ORIGINAL.md.)
 
@@ -51,7 +51,7 @@ If you skip the golden exports because setup ate the week, do not start Week 2. 
 
 **Claude Code's jobs:** implement, test, produce the comparison workbook, trace any divergent cell on demand.
 
-**GATE 1 (end of week 3):**
+**GATE 1 (end of week 3): PASSED — owner declaration 2026-07-05.**
 - [x] Golden 1 annual fiscal-year cash flow matches the OM transcription within $500/line for FY2027-FY2028 (criterion revised 2026-07-03 with the no-ARGUS-access golden strategy, spec §9.1/§10 — this line previously read "monthly within $1/month vs the ARGUS export", which is impossible without ARGUS exports; achieved 2026-07-05 at within $1/line)
 - [x] All manual worked-example unit tests pass with page cites (2026-07-05)
 - [x] Invariants from spec 9.3 asserted and passing (pre-valuation subset, on every run; 2026-07-05)
