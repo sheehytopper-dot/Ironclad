@@ -19,6 +19,7 @@ from engine.models import (
     GeneralVacancy,
     Inflation,
     Lease,
+    Limits,
     MoneyRate,
     MoneyUnit,
     PropertyInfo,
@@ -27,6 +28,7 @@ from engine.models import (
     VacancyMethod,
     YearRate,
 )
+from engine.reports.recovery_audit import recovery_audit, reconcile_to_ledger
 
 BEGIN = dt.date(2026, 1, 1)
 
@@ -118,6 +120,77 @@ class TestFixedPoint:
                           unit=ExpenseUnit.pct_of_egr)
         with pytest.raises(ValueError, match="did not converge"):
             run_property(make_model([fee]))
+
+
+class TestFeeFloorInFixedPoint:
+    """A recoverable %-of-EGR fee with limits.min (per-period clamp
+    [AE p. 279]) inside the fixed point — owner request from the Gate 2
+    audit review: a management fee must hold its dollar floor even in
+    full vacancy instead of computing to zero.
+
+    Convergence with the clamp active: the iteration map becomes
+    clamp ∘ (pct × EGR(·)); min/max clamps are 1-Lipschitz, so the
+    session-1/session-2 contraction bound carries over unchanged
+    (recoveries.py module docstring).
+    """
+
+    FLOOR_FEE = ExpenseItem(name="Management Fee", amount=3.0,
+                            unit=ExpenseUnit.pct_of_egr,
+                            limits=Limits(min=5_000.0))
+
+    def vacant_then_occupied(self):
+        """100,000 SF, single tenant at $6/SF/yr ($50,000/mo) whose lease
+        starts 2026-07-01 — Jan-Jun 2026 fully vacant, no MLP/absorption."""
+        lease = make_lease(start_date=dt.date(2026, 7, 1),
+                           base_rent=MoneyRate(
+                               amount=6.0,
+                               unit=MoneyUnit.dollars_per_area_per_year))
+        return run_property(make_model([self.FLOOR_FEE], rent_roll=[lease]))
+
+    def test_floor_holds_through_full_vacancy(self):
+        """Vacant month: EGR = 0, 3% × 0 = 0, the fee posts at the $5,000
+        floor with no recovery (no occupied tenant), NOI = -5,000."""
+        month = self.vacant_then_occupied().ledger.frame.iloc[0]  # Jan 2026
+        assert month["Effective Gross Revenue"] == pytest.approx(0.0)
+        assert month["Management Fee"] == pytest.approx(-5_000.0)
+        assert month["Expense Recovery Revenue"] == pytest.approx(0.0)
+        assert month["Net Operating Income"] == pytest.approx(-5_000.0)
+
+    def test_binding_floor_flows_through_the_net_pool(self):
+        """Occupied month with the floor still binding: the floored fee is
+        recovered net at 100% share, EGR = 50,000 + 5,000 = 55,000, and the
+        fixed point is self-consistent — max(5,000, 3% × 55,000 = 1,650)
+        = 5,000 exactly."""
+        frame = self.vacant_then_occupied().ledger.frame
+        month = frame.loc["2026-07"]
+        assert month["Management Fee"] == pytest.approx(-5_000.0)
+        assert month["Expense Recovery Revenue"] == pytest.approx(5_000.0)
+        assert month["Effective Gross Revenue"] == pytest.approx(55_000.0)
+        assert month["Net Operating Income"] == pytest.approx(50_000.0)
+
+    def test_binding_floor_reconciles_through_recovery_audit(self):
+        """The Recovery Audit report reconciles exactly to the ledger with
+        the floored fee in the pool — vacant and occupied months alike
+        (Gate 2 requirement, spec §7 report 18)."""
+        result = self.vacant_then_occupied()
+        diff = reconcile_to_ledger(recovery_audit(result), result)
+        assert float(diff.abs().max()) < 1e-9
+
+    def test_slack_floor_changes_nothing(self):
+        """When 3% of EGR clears the floor, the clamp is inert: the fee
+        keeps the golden relationship fee = pct × final EGR (= pct/(1-pct)
+        × pre-fee EGR at 100% share), not the floor."""
+        lease = make_lease(base_rent=MoneyRate(
+            amount=60.0, unit=MoneyUnit.dollars_per_area_per_year))
+        frame = run_property(
+            make_model([self.FLOOR_FEE], rent_roll=[lease])
+        ).ledger.frame
+        month = frame.iloc[0]
+        expected_fee = 0.03 * 500_000 / 0.97  # 15,463.92 > the 5,000 floor
+        assert -month["Management Fee"] == pytest.approx(expected_fee)
+        assert -month["Management Fee"] == pytest.approx(
+            0.03 * month["Effective Gross Revenue"]
+        )
 
 
 class TestPhaseGuards:

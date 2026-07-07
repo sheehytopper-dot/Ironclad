@@ -49,6 +49,21 @@ max(g / occ) — unbounded at low occupancy — so any future policy toggle
 must re-derive the bound before shipping; it is deliberately not
 implemented (DEVIATIONS.md §10).
 
+**Fixed-point convergence with expense limits (extending both bounds
+above; Gate 2 audit-review request):** a recoverable %-of-revenue fee may
+carry per-month min/max clamps (``ExpenseItem.limits`` [AE p. 279]) —
+e.g. a management fee floored at a dollar minimum that must hold through
+full vacancy. ``run_property`` re-projects the fee off EGR each round and
+``project_expense`` clamps after applying the percentage, so the
+iteration map becomes clamp ∘ (pct × EGR(·)). Min/max clamps are
+1-Lipschitz — |clamp(a) − clamp(b)| ≤ |a − b| — and locally constant
+(factor 0) wherever a bound binds, so composing them can only tighten
+the session-1/session-2 contraction bound, never loosen it. Verified
+against the iteration code: the fee series is stored, compared for
+convergence, and fed to EGR post-clamp, so the composition above is
+exactly what iterates (tests/unit/test_run.py::TestFeeFloorInFixedPoint,
+including exact Recovery Audit reconciliation with a binding floor).
+
 Not modeled (schema-absent, DEVIATIONS.md §10): anchor contributions /
 "Reimburse After" common-expense factors [AE pp. 410-411], the
 "% of Recovery" admin-fee flavor [AE p. 520], fiscal base-year windows

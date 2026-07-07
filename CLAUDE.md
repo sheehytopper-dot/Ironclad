@@ -233,6 +233,19 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   Clorox: reconciliation exactly 0. Suite 226 green. **BOTH audit reports are ready
   for the Gate 2 owner review** (a Gate 2 criterion). Gate 2 remaining: owner review
   of the audits, Step 7 (goldens #2/#4/#5 — owner-gated fixtures), Step 8 (% rent).
+  **Gate 2 audit-review follow-up complete 2026-07-06:** recoverable %-of-EGR fee
+  with `limits.min` (owner request: a management fee must hold a dollar floor —
+  e.g. $5,000/mo — through full vacancy) verified end-to-end: the existing
+  `project_expense` clamp already produced the right numbers, now proven by
+  tests/unit/test_run.py::TestFeeFloorInFixedPoint — floor holds in fully vacant
+  months (fee = floor, no recovery, NOI = −floor), binding-floor occupied months
+  flow through the net pool self-consistently (max(floor, pct × EGR) = floor),
+  Recovery Audit reconciles exactly, slack floor is inert. Convergence with clamps
+  re-derived against the actual iteration (map = clamp ∘ (pct × EGR(·)); min/max
+  clamps are 1-Lipschitz, locally constant where binding — only tightens the
+  session-1/session-2 bound) and documented beside those proofs in the
+  recoveries.py module docstring. NOTE: golden #1 sets no limits, so only this
+  test proves the behavior — green CI without it is not evidence.
 - **Next session's first prompt:** "Phase 2 Steps 1-6 are complete; both audit
   reports await owner review (dump with scripts/dump_audits.py on any fixture).
   Check with the owner: (a) has the audit-report review happened, and (b) have any

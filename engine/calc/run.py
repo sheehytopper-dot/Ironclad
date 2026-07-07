@@ -84,9 +84,11 @@ from engine.models import (
 )
 
 #: Fixed-point controls for %-of-revenue expenses. The iteration is a
-#: contraction with factor Σ(share × pct); 100 rounds is far beyond any
-#: plausible convergence need and exists only to turn a divergent input
-#: (fees summing past 100% of revenue) into a loud error.
+#: contraction with factor Σ(share × pct); per-month min/max limits on a
+#: fee are 1-Lipschitz clamps that only tighten it (recoveries.py module
+#: docstring). 100 rounds is far beyond any plausible convergence need
+#: and exists only to turn a divergent input (fees summing past 100% of
+#: revenue) into a loud error.
 _MAX_FIXED_POINT_ROUNDS = 100
 _FIXED_POINT_TOL = 1e-9
 
