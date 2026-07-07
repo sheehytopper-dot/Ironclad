@@ -246,25 +246,44 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   session-1/session-2 bound) and documented beside those proofs in the
   recoveries.py module docstring. NOTE: golden #1 sets no limits, so only this
   test proves the behavior — green CI without it is not evidence.
-- **Next session's first prompt:** "Phase 2 Steps 1-6 are complete; both audit
-  reports await owner review (dump with scripts/dump_audits.py on any fixture).
-  Check with the owner: (a) has the audit-report review happened, and (b) have any
-  golden #2/#4/#5 fixtures been staged (NEXT_STEPS_TO_GATE2.md Step 0)? If a fixture
-  has landed owner-verified: Step 7 — write its comparison test (same shape as the
-  Clorox Gate 1 test: fiscal-year, $500/line, misses to a DISCREPANCY_LOG and owner
-  adjudication, never input tuning; verify Freeport is genuinely multi-tenant with
-  base-year/stop recoveries when staging it — escalate if not). If no fixture yet:
-  Step 8 — percentage rent. Read [AE pp. 249-250, 376] (and re-check p. 413 offsets).
-  Implement engine/calc/percentage_rent.py per spec §3.13: sales volume ($ or $/SF
-  per year) with growth on its index; breakpoints natural (the manual defines
-  natural = base + steps + CPI [AE p. 250]), fixed_amount, zero; up to 6 layers of
-  overage (Σ max(0, sales − breakpoint) × pct); post to the Percentage Rent ledger
-  line through run.py (lift the guards for lease and MLP percentage rent;
-  speculative segments carry the MLP's spec); % rent joins the vacancy bases
-  (percent_of_pgr / total_tenant_revenue) and the Lease Audit column. The
-  [AE p. 413] recovery offset is schema-checked: implement if §3.13 carries the
-  field, else defer with a DEVIATIONS note. Manual worked-example unit tests
-  (Iron Rule 3). REMEMBER the standing gap (CLAUDE.md): percentage rent is
-  externally unvalidated pending golden #3 — say so in the module docstring and
-  the summary. Full suite green. Commit, push, update the progress note and this
-  prompt."
+  **Phase 2 Step 8 complete 2026-07-06:** percentage rent
+  (`engine/calc/percentage_rent.py`, [AE pp. 249-251, 376-377, 590] read; spec
+  §3.13) — % rent due = Σ per layer max(0, sales − breakpoint) × pct [AE p. 590];
+  sales volume $/yr or $/SF/yr × tenant area growing on its index; breakpoints
+  natural = (base + step + CPI) / layer pct [AE pp. 250-251, 377, 590] (free rent
+  does not reduce it), fixed annual $, zero = % of total sales; up to 6 tiered
+  layers. Projection is per segment over occupied months only (contract term
+  carries the lease's spec, speculative terms the MLP's [AE p. 376]; nothing in
+  downtime — Step 2 recovery convention), posting 1/12 of the month's annualized
+  run rate (the spec §3.14 straight monthly accrual policy). Wired through
+  run.py as a fee-independent constant in the fixed point (contraction bound
+  untouched): Percentage Rent ledger line, Total PGR/EGR, both vacancy bases
+  (percent_of_pgr / total_tenant_revenue), and the Lease Audit column with the
+  reconciliation extended to six revenue lines. The [AE p. 413] recovery offset
+  is schema-absent (it lives on recovery structures, §3.14 has no field) →
+  deferred loudly with all narrowings in DEVIATIONS.md §11 (single sales
+  category, no Continue Prior, no per-layer caps, no $/SF breakpoints, no
+  property-type gate, blended-rent natural breakpoints on spec segments).
+  Manual-definition unit tests incl. the [AE p. 392] % of Sales number
+  (Iron Rule 3); suite 245 green (golden #1 untouched). **STANDING GAP: the
+  module is externally unvalidated pending golden #3** — any retail
+  underwriting before that back-test treats the Percentage Rent line as
+  unverified.
+- **Next session's first prompt:** "Phase 2 engine work (Steps 1-6, 8) is
+  complete; suite 245 green. Gate 2 now blocks entirely on owner-gated items.
+  Check with the owner: (a) has the audit-report review happened (dump with
+  scripts/dump_audits.py on any fixture — reviewing both reports is a Gate 2
+  criterion), and (b) have any golden #2/#4/#5 fixtures been staged
+  (NEXT_STEPS_TO_GATE2.md Step 0)? If a fixture has landed owner-verified:
+  Step 7 — write its comparison test (same shape as the Clorox Gate 1 test:
+  fiscal-year, $500/line, misses to a DISCREPANCY_LOG and owner per-cell
+  adjudication, never input tuning; verify Freeport is genuinely multi-tenant
+  with base-year/stop recoveries when staging it — escalate if not). While a
+  comparison runs, remember Freeport exercises the DEVIATIONS.md §10 recovery
+  policies and any percentage-rent line in an OM is golden #3 material (standing
+  opportunistic intake). If nothing is staged and the audits are unreviewed,
+  there is NO engine work to invent — do not start Phase 3 (Iron Rule 2) and do
+  not scaffold cancelled intake ('Phase 7'). Useful holding-pattern work only if
+  the owner asks: hand-verify audit dumps, tighten docs. REMEMBER the standing
+  gap (CLAUDE.md): percentage rent is externally unvalidated pending golden #3.
+  Commit, push, update the progress note and this prompt."

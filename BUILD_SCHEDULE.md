@@ -74,7 +74,7 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 
 **GATE 2 (end of week 6):**
 - [ ] Goldens #2, #4, #5 cash flows match the OM within tolerance; Lease Audit and Recovery Audit reports built, reconciling exactly to the ledger, and owner-reviewed
-- [ ] Percentage-rent module built with the manual's worked-example unit tests (Iron Rule 3); **externally unvalidated pending golden #3** (standing opportunistic intake — CLAUDE.md, Known validation gaps)
+- [x] Percentage-rent module built with the manual's worked-example unit tests (Iron Rule 3) (2026-07-06); **externally unvalidated pending golden #3** (standing opportunistic intake — CLAUDE.md, Known validation gaps)
 - [ ] Turnover vacancy does not double-count against general vacancy (verify total vacancy % equals stated rate in a test)
 - Slip risk is highest here. One week of slip is normal. Two triggers the Stall Protocol.
 

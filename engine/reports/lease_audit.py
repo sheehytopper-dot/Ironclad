@@ -8,9 +8,9 @@ row decomposes one tenant-month into the rental-revenue section's lines
 [AE p. 538]: base rent (potential — in-place rent, downtime market rent,
 and pre-absorption vacant space at market), absorption & turnover
 vacancy, free rent, the Scheduled Base Rent identity (base + A&T + free),
-CPI, percentage rent (zero until Phase 2 Step 8), and expense
-recoveries, with a phase label from the resolved chain (contract /
-speculative / downtime / vacant).
+CPI, percentage rent (Step 8; externally unvalidated pending golden #3 —
+CLAUDE.md standing gap), and expense recoveries, with a phase label from
+the resolved chain (contract / speculative / downtime / vacant).
 
 Built from the detail ``RunResult`` retains on every run (spec §1.3 "no
 silent numbers") and **reconciling exactly to the ledger's revenue
@@ -29,6 +29,7 @@ from engine.calc.ledger import (
     CPI_ADJUSTMENT_REVENUE,
     EXPENSE_RECOVERY_REVENUE,
     FREE_RENT,
+    PERCENTAGE_RENT,
 )
 
 #: Report columns, one row per (tenant, month) with activity.
@@ -44,6 +45,7 @@ _RECONCILED_LINES = {
     "absorption_vacancy": ABSORPTION_TURNOVER_VACANCY,
     "free_rent": FREE_RENT,
     "cpi": CPI_ADJUSTMENT_REVENUE,
+    "percentage_rent": PERCENTAGE_RENT,
     "recoveries": EXPENSE_RECOVERY_REVENUE,
 }
 
@@ -77,14 +79,16 @@ def lease_audit(result) -> pd.DataFrame:
     for tenant, rents in result.lease_rents.items():
         vacancy = result.absorption_vacancy[tenant]
         recoveries = result.recoveries[tenant]
+        pct_rent = result.percentage_rent[tenant]
         segments = result.segments[tenant]
         for period in result.months:
             base = float(rents.base_rent[period])
             at = float(vacancy[period])
             free = float(rents.free_rent[period])
             cpi = float(rents.cpi_adjustment[period])
+            pct = float(pct_rent[period])
             recovery = float(recoveries[period])
-            if not any((base, at, free, cpi, recovery)):
+            if not any((base, at, free, cpi, pct, recovery)):
                 continue
             scheduled = base + at + free
             rows.append({
@@ -96,9 +100,9 @@ def lease_audit(result) -> pd.DataFrame:
                 "free_rent": free,
                 "scheduled": scheduled,
                 "cpi": cpi,
-                "percentage_rent": 0.0,  # Phase 2 Step 8
+                "percentage_rent": pct,
                 "recoveries": recovery,
-                "total_tenant_revenue": scheduled + cpi + recovery,
+                "total_tenant_revenue": scheduled + cpi + pct + recovery,
             })
     return pd.DataFrame(rows, columns=COLUMNS)
 

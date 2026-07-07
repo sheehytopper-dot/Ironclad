@@ -125,7 +125,7 @@ misses reported for owner per-cell adjudication with a discrepancy log.
 Expect Freeport (#2) to exercise base-year/stop recoveries, Cedar Alt and
 Inland (#4/#5) gross-ups, caps, or absorption per the triage.
 
-## Step 8 — Percentage rent, last (session 9)
+## Step 8 — Percentage rent, last (session 9) — **DONE 2026-07-06**
 
 Spec §3.13 [AE pp. 249-250, 376]: sales volume growth, natural / fixed /
 zero breakpoints, up to 6 layers, offset/recapture. Manual worked-example
@@ -133,6 +133,14 @@ unit tests with page cites (Iron Rule 3). **Externally unvalidated pending
 golden #3** (standing intake): the module ships, but any retail
 underwriting before the golden #3 back-test treats the Percentage Rent
 line as unverified (CLAUDE.md, Known validation gaps).
+
+*Shipped:* `engine/calc/percentage_rent.py` ([AE pp. 249-251, 376-377,
+590] read); per-segment projection (lease's spec on the contract term,
+MLP's on speculative terms) over occupied months; natural = (base + step
++ CPI) / layer pct, fixed annual $, zero; % rent in PGR/EGR, both vacancy
+bases, and the Lease Audit column (reconciliation extended). The
+[AE p. 413] recovery offset is schema-absent → deferred, with all other
+narrowings, in DEVIATIONS.md §11. The external-validation gap stands.
 
 ## Step 9 — Gate 2 review (owner)
 
@@ -142,5 +150,7 @@ logs written. Then — and only then — Phase 3 (Iron Rule 2).
 
 ---
 
-**Status:** created 2026-07-05 on Gate 1 pass. Step 0 is owner-scheduled;
-Step 1 is the next engine session.
+**Status:** created 2026-07-05 on Gate 1 pass. Steps 1-6 and 8 complete
+(2026-07-06). Remaining: owner review of the two audit reports, Step 0
+fixture staging (owner-gated), Step 7 golden comparisons as fixtures
+land, then the Step 9 gate review.

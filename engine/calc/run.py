@@ -8,7 +8,6 @@ expense resolution → recoveries → ledger assembly, and asserts the §9.3
 pre-valuation invariants on every run (CLAUDE.md Conventions). Inputs
 whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
-non-net recovery structures (Step 5), percentage rent (Step 8),
 ``reabsorb`` expirations (DEVIATIONS.md §8), TI/LC posting, security
 deposits, and debt (Phase 3). Space absorption (Step 3) generates
 synthetic leases per spec §3.15 that join the rent roll for every
@@ -23,7 +22,10 @@ market rent to Base Rental Revenue and its negative to Absorption &
 Turnover Vacancy — PGR stays a full-occupancy figure; occupied area drops
 by (1 − renewal weight) × area over downtime; speculative segments recover
 per their MLP's assignment over occupied months only; TI/LC stay recorded
-on segments, unposted (Phase 3).
+on segments, unposted (Phase 3). Percentage rent (Step 8, spec §4.1
+step 7) projects per segment over occupied months — the lease's spec on
+the contract term, the MLP's on speculative terms [AE p. 376] — and is
+**externally unvalidated pending golden #3** (CLAUDE.md standing gap).
 
 The %-of-EGR fixed point (spec §4.1 step 9; DEVIATIONS.md §6). A
 recoverable %-of-EGR expense — the Clorox-shape management fee — feeds
@@ -64,6 +66,7 @@ from engine.calc.ledger import (
     occupied_area_from_chains,
     rentable_area_series,
 )
+from engine.calc.percentage_rent import project_segment_percentage_rent
 from engine.calc.recoveries import (
     PoolAudit,
     RecoveryContext,
@@ -106,6 +109,7 @@ class RunResult:
     segments: dict[str, list[LeaseSegment]]         # by tenant_name
     lease_rents: dict[str, LeaseRentCashflows]      # by tenant_name (chain totals)
     absorption_vacancy: dict[str, pd.Series]        # by tenant_name (negative)
+    percentage_rent: dict[str, pd.Series]           # by tenant_name
     recoveries: dict[str, pd.Series]                # by tenant_name
     recovery_audit: list[PoolAudit]                 # per tenant per pool
     general_vacancy: pd.Series                      # negative
@@ -129,8 +133,6 @@ def _phase_guards(model: PropertyModel) -> None:
     refuse(bool(model.loans), "debt", "Phase 3")
     for lease in model.rent_roll:
         where = f"lease {lease.tenant_name!r}: "
-        refuse(lease.percentage_rent is not None,
-               where + "percentage rent", "Phase 2 Step 8")
         refuse(bool(lease.miscellaneous_items),
                where + "miscellaneous tenant items", "Phase 2")
         refuse(lease.leasing_costs is not None,
@@ -142,8 +144,6 @@ def _phase_guards(model: PropertyModel) -> None:
                "re-pooling semantics are defined (DEVIATIONS.md §8)")
     for profile in model.market_leasing_profiles:
         where = f"market leasing profile {profile.name!r}: "
-        refuse(profile.percentage_rent is not None,
-               where + "speculative percentage rent", "Phase 2 Step 8")
         refuse(bool(profile.miscellaneous_items),
                where + "rollover miscellaneous items", "Phase 2")
         refuse(profile.security_deposit is not None,
@@ -252,6 +252,27 @@ def run_property(model: PropertyModel) -> RunResult:
                      pd.Series(0.0, index=months))
     absorption_total = sum(absorption.values(), pd.Series(0.0, index=months))
 
+    # Pass 4b: percentage rent per lease (spec §4.1 step 7; [AE pp. 249-251,
+    # 590]). It depends on sales volume and base + steps + CPI only — never
+    # on EGR — so it computes once here and enters the fixed point below as
+    # a constant (the contraction bound is untouched). Chain series carry
+    # exactly the segment's potential rent within its occupied months, and
+    # a speculative segment's CPI series is zero there (DEVIATIONS.md §7).
+    percentage_rent = {
+        tenant: sum(
+            (project_segment_percentage_rent(
+                segment, months,
+                base_rent=lease_rents[tenant].base_rent,
+                cpi_adjustment=lease_rents[tenant].cpi_adjustment,
+                analysis_begin=begin, inflation=model.inflation,
+            ) for segment in segments),
+            pd.Series(0.0, index=months),
+        )
+        for tenant, segments in chains.items()
+    }
+    pct_rent_total = sum(percentage_rent.values(),
+                         pd.Series(0.0, index=months))
+
     # Pass 5: expenses that don't reference revenue.
     area = model.area_measures.property_size
 
@@ -334,6 +355,7 @@ def run_property(model: PropertyModel) -> RunResult:
                 cpi=lease_rents[tenant].cpi_adjustment,
                 recoveries=recoveries[tenant],
                 absorption_vacancy=absorption[tenant],
+                percentage_rent=percentage_rent[tenant],
             )
             for tenant in chains
         }
@@ -344,7 +366,7 @@ def run_property(model: PropertyModel) -> RunResult:
         recovery_total = sum(recoveries.values(),
                              pd.Series(0.0, index=months))
         pgr = (base_total + absorption_total + free_total + cpi_total
-               + recovery_total)
+               + pct_rent_total + recovery_total)
         egr = pgr + gv + cl
         return recoveries, gv, cl, pgr, egr
 
@@ -384,6 +406,7 @@ def run_property(model: PropertyModel) -> RunResult:
         recoveries=recoveries.values(),
         expenses=expense_series,
         absorption_vacancy=absorption_total,
+        percentage_rent=pct_rent_total,
         general_vacancy=gv,
         credit_loss=cl,
     )
@@ -396,6 +419,7 @@ def run_property(model: PropertyModel) -> RunResult:
         ledger=ledger, months=months, occupied_area=occupied,
         rentable_area=rentable, occupancy=occupancy, segments=chains,
         lease_rents=lease_rents, absorption_vacancy=absorption,
+        percentage_rent=percentage_rent,
         recoveries=recoveries, recovery_audit=recovery_audit,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,

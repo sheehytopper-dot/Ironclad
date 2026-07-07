@@ -224,7 +224,13 @@ class TestRunIntegration:
         assert frame.loc[occupied, "Scheduled Base Rental Revenue"] == pytest.approx(100_000)
         assert frame.loc[occupied, "Expense Recovery Revenue"] == pytest.approx(10_000)
 
-    def test_mlp_percentage_rent_guarded(self):
+    def test_mlp_percentage_rent_flows_on_speculative_terms(self):
+        """Step 8: the MLP's percentage rent spec rides its speculative
+        segments [AE p. 376 "Market" sales basis] — natural breakpoint on
+        the blended market rent [AE pp. 251, 590], occupied months only
+        (nothing in downtime, nothing on the no-spec contract term).
+        Blended rent 100,000/mo → natural break 1.2M / 6% = 20M; sales
+        400 $/SF × 100,000 SF = 40M → (40M − 20M) × 6% / 12 = 100,000/mo."""
         from engine.calc.run import run_property
 
         profile = make_profile(percentage_rent={
@@ -232,5 +238,15 @@ class TestRunIntegration:
                              "unit": "dollars_per_area_per_year"},
             "breakpoint_layers": [{"pct": 6.0}],
         })
-        with pytest.raises(NotImplementedError, match="percentage rent"):
-            run_property(self.make_model(market_leasing_profiles=[profile]))
+        frame = run_property(
+            self.make_model(market_leasing_profiles=[profile])
+        ).ledger.frame
+        line = frame["Percentage Rent"]
+        assert line[pd.Period("2026-06", freq="M")] == 0.0   # contract term
+        assert line[pd.Period("2027-02", freq="M")] == 0.0   # downtime
+        occupied = pd.Period("2027-07", freq="M")
+        assert line[occupied] == pytest.approx(100_000.0)
+        # joins Total PGR alongside the other revenue lines [spec §2.3]
+        assert frame.loc[occupied, "Total Potential Gross Revenue"] == (
+            pytest.approx(100_000 + 100_000 + 10_000)
+        )  # base + % rent + recoveries

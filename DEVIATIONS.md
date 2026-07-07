@@ -221,3 +221,56 @@ are fixed, not listed.
 - **Revisit when:** goldens #2/#4/#5 — Freeport (#2) is the base-year/
   stop coverage deal and will exercise most of this section within
   tolerance or drive corrections.
+
+## 11. Percentage rent: v1 narrowings and fixed policies (Phase 2 Step 8)
+
+**Standing gap first (CLAUDE.md):** the whole module is **externally
+unvalidated pending golden #3** — the manual supplies definitions
+[AE pp. 249-251, 376-377, 590] and one worked number (% of Sales:
+200,000 × 8% = 16,000 [AE p. 392]) but no published Argus cash flow yet
+confirms it. Any retail underwriting before the golden #3 back-test
+treats the Percentage Rent line as unverified.
+
+- **Recovery offset deferred (schema-absent):** the manual's Offset % —
+  a percentage of recoveries deducted from percentage rent, entered per
+  recovery method on the recovery structure [AE p. 413] — has no field
+  in spec §3.13 (percent rent) or §3.14 (recovery structures) and cannot
+  be requested. The first golden or deal needing it drives the schema
+  addition; until then the Percentage Rent line is gross of any offset.
+- **Monthly accrual convention:** ARGUS computes % rent due annually
+  ("the amount ... in a given year" [AE p. 590]) with a Modeling
+  Policies monthly/annual toggle [AE p. 413]. v1 prices each month's
+  annualized run rate (that month's sales volume and rent × 12) through
+  the annual formula and posts 1/12 — the same straight monthly accrual
+  policy as recoveries (spec §3.14). Identical to the annual figure
+  whenever sales, rent, and breakpoints are constant within the year; a
+  mid-year rent step shifts timing within the year, not the level.
+- **Occupied months only:** percentage rent posts over a segment's
+  occupied months — nothing during rollover downtime (the Step 2
+  recovery convention; the downtime gross-to-market [AE p. 538] covers
+  base rent + A&T only). The renewal-weighted "p × renewing tenant's
+  sales" a probability purist might post in downtime is not modeled.
+- **Speculative natural breakpoints use blended rent:** an MLP's spec
+  rides its speculative segments [AE p. 376 "Market" sales basis]; the
+  natural breakpoint reads the §4.2 blended market rent (and no CPI —
+  §7). ARGUS would compute each branch (new vs renew) separately before
+  weighting; with both branches on the same MLP economics the difference
+  is zero, and it is second-order otherwise.
+- **Single sales category, single flat spec:** the manual's
+  Detailed/Multiple tenant sales categories [AE p. 249], Continue Prior
+  sales basis [AE p. 376], varying-over-time sales/percent/breakpoint
+  detail windows [AE pp. 250, 377], per-layer caps [AE p. 250], and the
+  $/SF breakpoint unit ("Amount/Area" [AE p. 250]) are not modeled:
+  spec §3.13 carries one spec per lease — annual $ or $/SF sales volume
+  growing on an inflation index, one breakpoint method, up to 6
+  (breakpoint, pct) layers with fixed annual $ breakpoints.
+- **No property-type gate:** ARGUS enables percentage rent only for
+  Retail / Mixed Use property types [AE p. 249]; the engine computes it
+  for any lease carrying a spec (the schema is the gate — user intent
+  governs, matching the recovery-pool membership stance in §10).
+- **Free rent does not reduce the natural breakpoint:** the manual
+  defines natural = base + step + CPI [AE pp. 250-251, 377] — potential
+  rent components only — so abatements leave the breakpoint unchanged.
+- **Revisit when:** golden #3 arrives (standing opportunistic intake) —
+  its back-test either confirms these policies within tolerance or
+  drives corrections; any offset/multi-category need surfaces there.
