@@ -1,0 +1,1718 @@
+{
+  "schema_version": "1.0",
+  "property": {
+    "name": "8505 Freeport Parkway",
+    "property_type": "office",
+    "address": {
+      "city": "Irving",
+      "state": "TX"
+    },
+    "analysis_begin": "2026-07-01",
+    "analysis_term_years": 11,
+    "fiscal_year_end_month": 6
+  },
+  "area_measures": {
+    "property_size": 123099,
+    "rentable_area_mode": "fixed",
+    "rentable_area_fixed": 123099
+  },
+  "inflation": {
+    "general_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "market_rent_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "expense_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "cpi_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "inflation_month": 1,
+    "timing_basis": "calendar_year"
+  },
+  "market_leasing_profiles": [
+    {
+      "name": "Office MLA (JLL MLAS)",
+      "term_months": 65,
+      "renewal_probability": 75.0,
+      "months_vacant": 9.0,
+      "market_base_rent_new": {
+        "amount": 24.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "market_base_rent_renew": {
+        "pct_of_new": 100.0
+      },
+      "rent_increases": [
+        {
+          "month_offset": 12,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 24,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 36,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 48,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 60,
+          "pct_increase": 3.0
+        }
+      ],
+      "free_rent_months_new": 5.0,
+      "free_rent_months_renew": 5.0,
+      "free_rent_profile": "Base Rent Only",
+      "recoveries": {
+        "method": "base_year"
+      },
+      "ti_new": {
+        "amount": 20.0,
+        "unit": "dollars_per_area"
+      },
+      "ti_renew": {
+        "amount": 10.0,
+        "unit": "dollars_per_area"
+      },
+      "lc_new": {
+        "pct": 6.75
+      },
+      "lc_renew": {
+        "pct": 6.75
+      },
+      "upon_expiration": "market",
+      "term_growth": true
+    },
+    {
+      "name": "Office MLA (Hard Vacate)",
+      "term_months": 65,
+      "renewal_probability": 0.0,
+      "months_vacant": 9.0,
+      "market_base_rent_new": {
+        "amount": 24.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "market_base_rent_renew": {
+        "pct_of_new": 100.0
+      },
+      "rent_increases": [
+        {
+          "month_offset": 12,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 24,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 36,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 48,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 60,
+          "pct_increase": 3.0
+        }
+      ],
+      "free_rent_months_new": 5.0,
+      "free_rent_months_renew": 5.0,
+      "free_rent_profile": "Base Rent Only",
+      "recoveries": {
+        "method": "base_year"
+      },
+      "ti_new": {
+        "amount": 20.0,
+        "unit": "dollars_per_area"
+      },
+      "ti_renew": {
+        "amount": 10.0,
+        "unit": "dollars_per_area"
+      },
+      "lc_new": {
+        "pct": 6.75
+      },
+      "lc_renew": {
+        "pct": 6.75
+      },
+      "upon_expiration": "option",
+      "chained_profile": "Office MLA (JLL MLAS)",
+      "term_growth": true
+    },
+    {
+      "name": "Antenna / Roof MLA",
+      "term_months": 60,
+      "renewal_probability": 75.0,
+      "months_vacant": 9.0,
+      "market_base_rent_new": {
+        "amount": 3000.0,
+        "unit": "dollars_per_month"
+      },
+      "market_base_rent_renew": {
+        "pct_of_new": 100.0
+      },
+      "rent_increases": [
+        {
+          "month_offset": 12,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 24,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 36,
+          "pct_increase": 3.0
+        },
+        {
+          "month_offset": 48,
+          "pct_increase": 3.0
+        }
+      ],
+      "free_rent_months_new": 0.0,
+      "free_rent_months_renew": 0.0,
+      "recoveries": {
+        "method": "none"
+      },
+      "upon_expiration": "market",
+      "term_growth": true
+    }
+  ],
+  "free_rent_profiles": [
+    {
+      "name": "Base Rent Only",
+      "abate_base_rent": true,
+      "abate_recoveries": false,
+      "abate_miscellaneous": false
+    }
+  ],
+  "recovery_structures": [
+    {
+      "name": "BY 2017 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2017,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2019 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2019,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2020 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2020,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2021 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2021,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2022 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2022,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2023 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2023,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2024 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2024,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2025 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2025,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2026 + E",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2026,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2017 + E + J",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2017,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Janitorial"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2024 + E + J",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2024,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Janitorial"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
+    {
+      "name": "BY 2026 + E + J",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "year": 2026,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Janitorial"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    }
+  ],
+  "parking_revenues": [
+    {
+      "name": "Parking Income",
+      "amount": 27600.0,
+      "unit": "dollars_per_year",
+      "inflation": "general"
+    }
+  ],
+  "miscellaneous_revenues": [
+    {
+      "name": "Other Income",
+      "amount": 1500.49,
+      "unit": "dollars_per_year",
+      "inflation": "general"
+    },
+    {
+      "name": "Pylon / Facia Sign Rental",
+      "amount": 3600.0,
+      "unit": "dollars_per_year",
+      "inflation": "general"
+    }
+  ],
+  "general_vacancy": {
+    "method": "percent_of_pgr",
+    "rate": [
+      {
+        "year": 2026,
+        "rate": 5.0
+      }
+    ],
+    "reduce_by_absorption_turnover": true
+  },
+  "expenses": [
+    {
+      "name": "Electricity",
+      "category": "operating",
+      "amount": 249097.94,
+      "unit": "dollars_per_year",
+      "inflation": "expense",
+      "pct_fixed": 30.0
+    },
+    {
+      "name": "Utilities",
+      "category": "operating",
+      "amount": 45283.18,
+      "unit": "dollars_per_year",
+      "inflation": "expense",
+      "pct_fixed": 30.0
+    },
+    {
+      "name": "Personnel Expenses",
+      "category": "operating",
+      "amount": 156269.95,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Janitorial",
+      "category": "operating",
+      "amount": 173725.1,
+      "unit": "dollars_per_year",
+      "inflation": "expense",
+      "pct_fixed": 30.0
+    },
+    {
+      "name": "Trash Removal",
+      "category": "operating",
+      "amount": 26400.0,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Management Fees",
+      "category": "operating",
+      "amount": 3.0,
+      "unit": "pct_of_egr"
+    },
+    {
+      "name": "Supplies/R&M/Contract Services",
+      "category": "operating",
+      "amount": 427495.57,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Administrative Expenses",
+      "category": "operating",
+      "amount": 27506.4,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Insurance",
+      "category": "operating",
+      "amount": 59238.42,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Margin Tax",
+      "category": "operating",
+      "amount": 0.331,
+      "unit": "pct_of_egr"
+    },
+    {
+      "name": "Real Estate Tax",
+      "category": "operating",
+      "amount": 287772.41,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Capital Reserves",
+      "category": "capital",
+      "amount": 0.2,
+      "unit": "dollars_per_area_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Capital Expenditures",
+      "category": "capital",
+      "amount": 140000.0,
+      "unit": "dollars_per_month",
+      "timing": {
+        "method": "date_range",
+        "start": "2029-01-01",
+        "end": "2029-01-31"
+      },
+      "inflation": [
+        {
+          "year": 2026,
+          "rate": 0.0
+        }
+      ],
+      "recoverable": false
+    },
+    {
+      "name": "Capital Expenditures - Elevator Mod",
+      "category": "capital",
+      "account": "Capital Expenditures",
+      "amount": 1250000.0,
+      "unit": "dollars_per_month",
+      "timing": {
+        "method": "date_range",
+        "start": "2029-03-01",
+        "end": "2029-03-31"
+      },
+      "inflation": [
+        {
+          "year": 2026,
+          "rate": 0.0
+        }
+      ],
+      "recoverable": false
+    }
+  ],
+  "rent_roll": [
+    {
+      "tenant_name": "OKI Data Americas Inc.",
+      "suite": "100",
+      "area": 2584,
+      "lease_type": "office",
+      "start_date": "2016-08-01",
+      "end_date": "2027-01-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 26.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2017 + E + J"
+      },
+      "market_leasing_profile": null,
+      "upon_expiration": "vacate",
+      "notes": "Current term to the negotiated renewal's start; the 5-year renewal out for signature is the next record [OM pp. 52, 54]. Janitorial and Electricity NNN; OpEx BY 2017. 6.0% cumulative controllable cap NOT modeled (draft; see ASSUMPTIONS)."
+    },
+    {
+      "tenant_name": "OKI Data Americas Inc. (Renewal)",
+      "suite": "100",
+      "area": 2584,
+      "lease_type": "office",
+      "start_date": "2027-02-01",
+      "end_date": "2032-06-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 22.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2026 + E + J"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2028-07-01",
+          "amount": 22.66,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-07-01",
+          "amount": 23.34,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2030-07-01",
+          "amount": 24.04,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2031-07-01",
+          "amount": 24.76,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "free_rent": {
+        "months": 5,
+        "profile": "Base Rent Only"
+      },
+      "notes": "Negotiated renewal per LOI [OM pp. 52, 54]: 100% abatement 2/1/27-6/30/27; BY resets to 2026; janitorial + electricity NNN; no controllable cap contemplated in LOI. One 5-yr FMV option not separately modeled (rolls at MLAS 75%)."
+    },
+    {
+      "tenant_name": "Aqore LLC",
+      "suite": "150",
+      "area": 1996,
+      "lease_type": "office",
+      "start_date": "2026-04-01",
+      "end_date": "2029-07-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 20.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-08-01",
+          "amount": 21.12,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-08-01",
+          "amount": 21.75,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "free_rent": {
+        "months": 4,
+        "profile": "Base Rent Only"
+      },
+      "notes": "3-year extension out for signature, commencing 4/1/26 [OM pp. 52, 54]. 100% abatement 4/1/26-7/31/26 - only Jul 2026 falls inside the analysis; free_rent months run from lease start."
+    },
+    {
+      "tenant_name": "Traction First, LLC",
+      "suite": "160",
+      "area": 1394,
+      "lease_type": "office",
+      "start_date": "2016-03-01",
+      "end_date": "2028-07-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 24.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2019 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-08-01",
+          "amount": 24.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Mid-America Overseas, Inc.",
+      "suite": "170",
+      "area": 1556,
+      "lease_type": "office",
+      "start_date": "2025-06-01",
+      "end_date": "2028-06-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 22.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2021 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-07-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "OM schedule steps to $22.00 on 7/1/26 = analysis begin, so $22.00 is the in-force rate at begin; $21.50 'Current' precedes the window [OM p. 54]. 6.0% cumulative controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Burnco Texas, LLC.",
+      "suite": "190",
+      "area": 9438,
+      "lease_type": "office",
+      "start_date": "2018-01-01",
+      "end_date": "2030-01-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 22.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2017 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-02-01",
+          "amount": 23.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-02-01",
+          "amount": 23.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-02-01",
+          "amount": 24.0,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "7.0% cumulative controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Jetvia (LIN)",
+      "suite": "200",
+      "area": 4340,
+      "lease_type": "office",
+      "start_date": "2026-06-01",
+      "end_date": "2031-08-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 22.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2026 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-09-01",
+          "amount": 23.18,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-09-01",
+          "amount": 23.87,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-09-01",
+          "amount": 24.59,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2030-09-01",
+          "amount": 25.32,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "free_rent": {
+        "months": 3,
+        "profile": "Base Rent Only"
+      },
+      "notes": "Speculative 5-year lease in negotiation, est. LCD 6/1/26; 100% abatement 6/1/26-8/31/26 (Jul+Aug 2026 inside the window) [OM pp. 52, 54]. 6.0% YoY controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Volt Information Sciences, Inc.",
+      "suite": "205",
+      "area": 3009,
+      "lease_type": "office",
+      "start_date": "2019-05-01",
+      "end_date": "2027-07-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 24.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (Hard Vacate)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-08-01",
+          "amount": 24.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "Hard vacate - space subleased / on sublease market [OM p. 52]; rolls at MLA new-tenant terms with 0% renewal, then normal 75% MLAS. 4.0%-of-EGR mgmt-fee recovery cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "MasVida Health Care Solutions, LLC",
+      "suite": "210",
+      "area": 3720,
+      "lease_type": "office",
+      "start_date": "2025-12-01",
+      "end_date": "2028-02-29",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2026 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-03-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "6.0% YoY controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Peritus Portfolio Services II, LLC",
+      "suite": "250",
+      "area": 4904,
+      "lease_type": "office",
+      "start_date": "2025-03-01",
+      "end_date": "2032-06-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2025 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-07-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-07-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-07-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2030-07-01",
+          "amount": 23.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2031-07-01",
+          "amount": 23.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "OM schedule steps to $21.00 on 7/1/26 = analysis begin -> in-force rate at begin; $20.50 'Current' precedes the window [OM p. 56]. 6.0% cumulative controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Samaritan's Purse",
+      "suite": "260",
+      "area": 5253,
+      "lease_type": "office",
+      "start_date": "2026-02-01",
+      "end_date": "2028-01-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 22.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2026 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-02-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Centrada Solutions, LLC",
+      "suite": "350",
+      "area": 2951,
+      "lease_type": "office",
+      "start_date": "2023-09-01",
+      "end_date": "2026-12-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2023 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market"
+    },
+    {
+      "tenant_name": "AT&T - Antenna (MTM)",
+      "suite": "355",
+      "area": 323,
+      "lease_type": "office",
+      "start_date": "2019-04-01",
+      "end_date": "2027-06-30",
+      "status": "mtm",
+      "base_rent": {
+        "amount": 64.2,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "none"
+      },
+      "market_leasing_profile": "Antenna / Roof MLA",
+      "upon_expiration": "market",
+      "notes": "Month-to-month; OM models in place through 6/30/27 then rolls to the antenna market profile [OM pp. 52, 56]. No reimbursements."
+    },
+    {
+      "tenant_name": "Clean Energy",
+      "suite": "370",
+      "area": 2863,
+      "lease_type": "office",
+      "start_date": "2019-11-01",
+      "end_date": "2030-02-28",
+      "status": "contract",
+      "base_rent": {
+        "amount": 23.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2020 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-03-01",
+          "amount": 24.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-03-01",
+          "amount": 24.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-03-01",
+          "amount": 25.0,
+          "unit": "dollars_per_area_per_year"
+        }
+      ]
+    },
+    {
+      "tenant_name": "The Persimmon Group, Inc.",
+      "suite": "375",
+      "area": 3581,
+      "lease_type": "office",
+      "start_date": "2024-08-01",
+      "end_date": "2029-10-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-11-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2027-11-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-11-01",
+          "amount": 23.0,
+          "unit": "dollars_per_area_per_year"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Trellis Technology Solutions, LC",
+      "suite": "380",
+      "area": 1409,
+      "lease_type": "office",
+      "start_date": "2022-05-16",
+      "end_date": "2028-11-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 20.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2025 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-12-01",
+          "amount": 21.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2027-12-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Perk Systems, Inc.",
+      "suite": "385",
+      "area": 1287,
+      "lease_type": "office",
+      "start_date": "2021-04-01",
+      "end_date": "2028-09-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2023 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-10-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "6.0% cumulative controllable cap NOT modeled (draft). PRS printed on 122,960 RSF (fixture uses the 123,099 rentable denominator)."
+    },
+    {
+      "tenant_name": "Texian Operating Company, LLC",
+      "suite": "390",
+      "area": 2888,
+      "lease_type": "office",
+      "start_date": "2025-01-01",
+      "end_date": "2029-12-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-05-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-01-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-01-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "Termination option effective 12/31/27 NOT modeled - the OM analysis keeps the tenant through LXD [OM p. 58]."
+    },
+    {
+      "tenant_name": "Texian Operating Company, LLC (Expansion)",
+      "suite": "390E",
+      "area": 3369,
+      "lease_type": "office",
+      "start_date": "2027-05-01",
+      "end_date": "2029-12-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2028-01-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-01-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "Signed early direct expansion into the 3,369 SF subleased from RSDS, commencing 5/1/27 [OM pp. 52, 58]; combined-suite step schedule applies."
+    },
+    {
+      "tenant_name": "RSDS, LLC",
+      "suite": "395",
+      "area": 5679,
+      "lease_type": "office",
+      "start_date": "2021-12-01",
+      "end_date": "2027-04-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2022 + E"
+      },
+      "market_leasing_profile": null,
+      "upon_expiration": "vacate",
+      "notes": "Step to $21.50 on 5/1/26 precedes the window -> in-force at begin [OM p. 58]. Upon 4/30/27 LXD: 3,369 SF goes to the Texian expansion record; the 2,310 SF remainder leases up 11/1/27 via the absorption item. Chain ends here (vacate)."
+    },
+    {
+      "tenant_name": "Five Point Dental Specialists, Inc.",
+      "suite": "400",
+      "area": 12440,
+      "lease_type": "office",
+      "start_date": "2024-11-25",
+      "end_date": "2035-06-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 20.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (Hard Vacate)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-07-01",
+          "amount": 21.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-07-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-07-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2030-07-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2031-07-01",
+          "amount": 23.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2032-07-01",
+          "amount": 23.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2033-07-01",
+          "amount": 24.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2034-07-01",
+          "amount": 24.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "OM schedule steps to $20.50 on 7/1/26 = analysis begin -> in-force at begin [OM p. 60]. Hard vacate at LXD (subleased / on sublease market) [OM p. 52]."
+    },
+    {
+      "tenant_name": "RDO Equipment Co.",
+      "suite": "425",
+      "area": 5756,
+      "lease_type": "office",
+      "start_date": "2024-12-01",
+      "end_date": "2030-02-28",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-03-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-03-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-03-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "9.0% cumulative controllable cap and 5.0%-of-base-rent mgmt-fee recovery cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "National Employee Benefit Co.",
+      "suite": "500",
+      "area": 6640,
+      "lease_type": "office",
+      "start_date": "2021-10-01",
+      "end_date": "2028-02-29",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2024 + E + J"
+      },
+      "market_leasing_profile": "Office MLA (Hard Vacate)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-03-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "Hard vacate [OM p. 52]. Janitorial + Electricity NNN; OpEx BY 2024 [OM p. 60]. 6.0% cumulative controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "RXO Freight Forwarding, Inc.",
+      "suite": "505",
+      "area": 3858,
+      "lease_type": "office",
+      "start_date": "2023-10-01",
+      "end_date": "2028-09-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 20.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2023 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-10-01",
+          "amount": 21.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2027-10-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "5.0%-of-base-rent mgmt-fee recovery cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "AFS Logistics. LLC",
+      "suite": "510",
+      "area": 5653,
+      "lease_type": "office",
+      "start_date": "2019-02-01",
+      "end_date": "2029-09-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 21.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2019 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-10-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2027-10-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-10-01",
+          "amount": 22.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "6.0% cumulative controllable cap NOT modeled (draft). OM's monthly columns for this tenant are misprinted; annual PSF schedule used [OM p. 60]."
+    },
+    {
+      "tenant_name": "KONE, Inc.",
+      "suite": "520",
+      "area": 2396,
+      "lease_type": "office",
+      "start_date": "2022-06-01",
+      "end_date": "2027-05-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 23.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2021 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2027-02-01",
+          "amount": 23.5,
+          "unit": "dollars_per_area_per_year"
+        }
+      ]
+    },
+    {
+      "tenant_name": "Wright Consulting Engineers of Texas, LLC",
+      "suite": "525",
+      "area": 2679,
+      "lease_type": "office",
+      "start_date": "2023-05-01",
+      "end_date": "2026-07-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 20.5,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2023 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "notes": "Expires one month into the analysis; two 1-yr FMV options not modeled (rolls at MLAS 75%) [OM p. 62]. 7.0% cumulative controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Rodeo Dental Management, PLLC",
+      "suite": "600",
+      "area": 21226,
+      "lease_type": "office",
+      "start_date": "2025-03-01",
+      "end_date": "2030-07-31",
+      "status": "contract",
+      "base_rent": {
+        "amount": 20.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "recoveries": {
+        "method": "structure",
+        "structure_ref": "BY 2025 + E"
+      },
+      "market_leasing_profile": "Office MLA (JLL MLAS)",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-08-01",
+          "amount": 20.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2027-08-01",
+          "amount": 21.0,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2028-08-01",
+          "amount": 21.5,
+          "unit": "dollars_per_area_per_year"
+        },
+        {
+          "date": "2029-08-01",
+          "amount": 22.0,
+          "unit": "dollars_per_area_per_year"
+        }
+      ],
+      "notes": "Two 5-yr FMV options not modeled (rolls at MLAS 75%). 7.0% cumulative controllable cap NOT modeled (draft)."
+    },
+    {
+      "tenant_name": "Verizon - Roof",
+      "suite": "ROOF",
+      "area": 1,
+      "lease_type": "office",
+      "start_date": "2018-09-01",
+      "end_date": "2028-09-30",
+      "status": "contract",
+      "base_rent": {
+        "amount": 34957,
+        "unit": "dollars_per_year"
+      },
+      "recoveries": {
+        "method": "none"
+      },
+      "market_leasing_profile": "Antenna / Roof MLA",
+      "upon_expiration": "market",
+      "rent_steps": [
+        {
+          "date": "2026-10-01",
+          "amount": 35657,
+          "unit": "dollars_per_year"
+        },
+        {
+          "date": "2027-10-01",
+          "amount": 36370,
+          "unit": "dollars_per_year"
+        }
+      ],
+      "notes": "0 SF antenna lease encoded at a nominal 1 SF (schema requires area > 0); rent in absolute dollars so area only touches occupancy by 1/123,099. No reimbursements [OM p. 62]."
+    }
+  ],
+  "absorption": [
+    {
+      "name": "Suite 395 remainder lease-up",
+      "total_area": 2310,
+      "number_of_leases": 1,
+      "start_date": "2027-11-01",
+      "lease_type": "office",
+      "market_leasing_profile": "Office MLA (JLL MLAS)"
+    }
+  ]
+}
