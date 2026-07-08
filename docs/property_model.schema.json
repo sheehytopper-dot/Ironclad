@@ -239,7 +239,7 @@
     },
     "BaseYearSpec": {
       "additionalProperties": false,
-      "description": "Base-year pool basis: expenses of a named calendar/fiscal year, value\nfrozen, optionally grossed up.",
+      "description": "Base-year pool basis: expenses of a named calendar/fiscal year, value\nfrozen, optionally grossed up.\n\n``known_amount`` is the known frozen base-year pool as a TOTAL annual\ndollar figure (the pool's reimbursable expenses summed over the base year,\nbefore pro-rata division \u2014 the same quantity the computed base-year path\nproduces). When set, it is used directly and ``year`` becomes pure\ndocumentation of which calendar year the figure represents; the computed\nwindow and the pre-analysis fallback are bypassed (spec \u00a73.14).",
       "properties": {
         "year": {
           "anyOf": [
@@ -269,6 +269,18 @@
           ],
           "default": null,
           "title": "Gross Up Pct"
+        },
+        "known_amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Amount"
         }
       },
       "title": "BaseYearSpec",
@@ -1381,6 +1393,7 @@
             "stop_amount_per_area": null,
             "base_year": null,
             "base_year_gross_up_pct": null,
+            "base_year_amount": null,
             "fixed_amount": null,
             "fixed_amount_per_area": null,
             "fixed_inflation": null,
@@ -1874,6 +1887,7 @@
             "stop_amount_per_area": null,
             "base_year": null,
             "base_year_gross_up_pct": null,
+            "base_year_amount": null,
             "fixed_amount": null,
             "fixed_amount_per_area": null,
             "fixed_inflation": null,
@@ -2479,6 +2493,18 @@
           ],
           "default": null,
           "title": "Base Year Gross Up Pct"
+        },
+        "base_year_amount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Year Amount"
         },
         "fixed_amount": {
           "anyOf": [

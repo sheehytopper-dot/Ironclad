@@ -30,10 +30,20 @@ class RecoveryAssignment(StrictModel):
     stop_amount_per_area: Optional[float] = None      # base_stop: $/SF stop
     base_year: Optional[int] = None                   # base_year methods: calendar year (None = year 1)
     base_year_gross_up_pct: Optional[float] = None    # optionally gross up the frozen base year
+    base_year_amount: Optional[float] = None          # known frozen base-year pool TOTAL $/yr (see below)
     fixed_amount: Optional[float] = None              # fixed: $ or
     fixed_amount_per_area: Optional[float] = None     # fixed: $/SF
     fixed_inflation: InflationRef = None
     structure_ref: Optional[Ref] = None               # method == structure
+
+    # ``base_year_amount`` is the known frozen base-year pool as a TOTAL annual
+    # dollar figure (not $/SF), consistent with how the base_year methods
+    # compute their stop — the reimbursable-expense pool summed over the base
+    # year, before the tenant's pro-rata share is applied. Only ``base_stop``
+    # is a $/SF quantity (``stop_amount_per_area``). When set, this value is
+    # used directly as the frozen base-year pool and ``base_year`` stays purely
+    # documentation of which calendar year the figure represents; the computed
+    # window / pre-analysis fallback is bypassed entirely (spec §3.14).
 
     @model_validator(mode="after")
     def _method_inputs(self) -> "RecoveryAssignment":
@@ -45,6 +55,13 @@ class RecoveryAssignment(StrictModel):
             raise ValueError("fixed requires fixed_amount or fixed_amount_per_area")
         if self.method == RecoverySystemMethod.structure and self.structure_ref is None:
             raise ValueError("structure method requires structure_ref")
+        if self.base_year_amount is not None and self.method not in (
+            RecoverySystemMethod.base_year, RecoverySystemMethod.base_year_plus_1
+        ):
+            raise ValueError(
+                "base_year_amount applies only to the base_year / "
+                "base_year_plus_1 methods"
+            )
         return self
 
 
@@ -72,11 +89,20 @@ class Denominator(str, Enum):
 
 class BaseYearSpec(StrictModel):
     """Base-year pool basis: expenses of a named calendar/fiscal year, value
-    frozen, optionally grossed up."""
+    frozen, optionally grossed up.
+
+    ``known_amount`` is the known frozen base-year pool as a TOTAL annual
+    dollar figure (the pool's reimbursable expenses summed over the base year,
+    before pro-rata division — the same quantity the computed base-year path
+    produces). When set, it is used directly and ``year`` becomes pure
+    documentation of which calendar year the figure represents; the computed
+    window and the pre-analysis fallback are bypassed (spec §3.14).
+    """
 
     year: Optional[int] = None  # None = analysis year 1
     fiscal: bool = False
     gross_up_pct: Optional[float] = None
+    known_amount: Optional[float] = None  # known frozen base-year pool TOTAL $/yr
 
 
 class CapsFloors(StrictModel):

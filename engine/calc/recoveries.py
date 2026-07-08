@@ -8,6 +8,22 @@ starts use analysis year 1), ``fixed`` (tenant amount, opt-in inflation).
 All recoveries floor at 0 — a tenant never pays the landlord's stop — and
 post as straight monthly accrual (spec §3.14 v1 policy).
 
+**Base-year window resolution** (``_resolve_base_year_window``, shared by
+the system methods and user pools). The pre-analysis fallback [AE pp. 377,
+408] triggers off **either** an explicit stated base year whose whole
+12-month window ends before the analysis start (the OM's true base year,
+e.g. 2017, has no ledger data → analysis year 1, while the stated year is
+kept as the documented input) **or** — when no year is stated — a lease
+start before the analysis. A partially-in-window year is kept and
+annualized from its available months; a future-dated window still raises.
+**Known base-year override:** ``RecoveryAssignment.base_year_amount`` and
+``BaseYearSpec.known_amount`` supply the frozen base-year pool as a TOTAL
+annual dollar figure (matching what the computed path produces before
+pro-rata division — *not* a $/SF quantity like ``base_stop``); when set the
+window and fallback are bypassed and the year field is pure documentation.
+Both are frozen historical constants w.r.t. the fee, so the %-of-EGR fixed
+point's contraction bound is untouched (DEVIATIONS.md §10; §6).
+
 User structures (spec §3.14 [AE pp. 407-413]): named pools over expense
 refs and expense groups (group members resolved; an expense appearing
 twice in one structure is an error — "take care to avoid double counting"
@@ -226,24 +242,43 @@ def _grossed_series(item: ExpenseItem, series: pd.Series,
 # caps/floors                                                          #
 # ------------------------------------------------------------------ #
 
-def _base_year_window(assignment: RecoveryAssignment,
-                      method: RecoverySystemMethod, start: pd.Period,
-                      analysis_begin: Optional[dt.date],
-                      where: str) -> tuple[pd.Period, pd.Period]:
-    """The frozen base-year window [AE pp. 405-406, 408-409]: the explicit
-    ``base_year`` (shifted +1 for the +1 method), else the lease-start
-    calendar year (+1); leases starting before the analysis use analysis
-    year 1 for both variants."""
-    plus = 12 if method == RecoverySystemMethod.base_year_plus_1 else 0
-    if assignment.base_year is not None:
-        first = pd.Period(f"{assignment.base_year}-01", freq="M") + plus
+def _resolve_base_year_window(year: Optional[int], plus: int,
+                              analysis_begin: Optional[dt.date], where: str,
+                              *, lease_start: Optional[pd.Period] = None,
+                              ) -> tuple[pd.Period, pd.Period]:
+    """The frozen base-year window [AE pp. 405-406, 408-409, 377], shared by
+    the system methods and user pools.
+
+    "Analysis year 1" is the 12 months from the analysis begin month. The
+    pre-analysis fallback ("leases that begin before the analysis start ...
+    pay their pro-rata share of any increases over the ... first year of the
+    analysis" [AE pp. 377, 408]) triggers off **either** signal:
+
+    - an explicit stated ``year`` whose whole 12-month window ends before the
+      analysis start — the OM's true base year (e.g. 2017) has no ledger data,
+      so it falls back to analysis year 1 while the stated year is preserved as
+      the documented input; OR
+    - no explicit ``year`` and a ``lease_start`` before the analysis start.
+
+    Otherwise the window is the stated year (or the lease-start calendar year),
+    shifted by ``plus`` months for the +1 method. A partially-in-window year
+    (e.g. a 2026 base year on a mid-2026 analysis) is kept and annualized from
+    its available months by :func:`_frozen_stop_annual` — only a window ending
+    entirely before the analysis start falls back. A future-dated window is
+    left to raise in ``_frozen_stop_annual`` (an input error, not missing
+    history)."""
+    begin = (pd.Period(snap_to_month_start(analysis_begin), freq="M")
+             if analysis_begin is not None else None)
+    if year is not None:
+        first = pd.Period(f"{year}-01", freq="M") + plus
+        if begin is not None and (first + 11) < begin:
+            return begin, begin + 11  # analysis year 1 [AE pp. 377, 408]
         return first, first + 11
-    if analysis_begin is None:
+    if begin is None:
         raise ValueError(f"{where}: base-year recoveries need analysis_begin")
-    begin = pd.Period(snap_to_month_start(analysis_begin), freq="M")
-    if start < begin:
+    if lease_start is None or lease_start < begin:
         return begin, begin + 11  # analysis year 1 [AE pp. 408-409]
-    first = pd.Period(f"{start.year}-01", freq="M") + plus
+    first = pd.Period(f"{lease_start.year}-01", freq="M") + plus
     return first, first + 11
 
 
@@ -451,23 +486,24 @@ def _pool_recovery(pool: RecoveryPool, label: str, tenant: str,
                 f"{where}: fiscal base-year windows are not modeled "
                 "(DEVIATIONS.md §10)"
             )
-        if spec is not None and spec.year is not None:
-            first = pd.Period(f"{spec.year}-01", freq="M")
+        if spec is not None and spec.known_amount is not None:
+            # Known frozen base-year pool total ($/yr), used directly — the
+            # computed window, gross-up, admin fee, and pre-analysis fallback
+            # are all bypassed (spec §3.14); the figure is taken as given.
+            annual = spec.known_amount
         else:
-            if analysis_begin is None:
-                raise ValueError(f"{where}: base-year pools need "
-                                 "analysis_begin")
-            first = pd.Period(snap_to_month_start(analysis_begin), freq="M")
-        window = (first, first + 11)
-        window_gross = spec.gross_up_pct if spec is not None else None
-        window_basis = _weighted_basis(weights, by_name, months, window_gross,
-                                       context.occupancy, where)
-        if before:
-            window_basis = window_basis * (1.0 + fee_rate)
-        stop_monthly = pd.Series(
-            _frozen_stop_annual(window_basis, window, where) / 12.0,
-            index=months,
-        )
+            window = _resolve_base_year_window(
+                spec.year if spec is not None else None, 0,
+                analysis_begin, where,
+            )
+            window_gross = spec.gross_up_pct if spec is not None else None
+            window_basis = _weighted_basis(weights, by_name, months,
+                                           window_gross, context.occupancy,
+                                           where)
+            if before:
+                window_basis = window_basis * (1.0 + fee_rate)
+            annual = _frozen_stop_annual(window_basis, window, where)
+        stop_monthly = pd.Series(annual / 12.0, index=months)
 
     share = pd.Series(0.0, index=months)
     pre_cap = pd.Series(0.0, index=months)
@@ -628,28 +664,38 @@ def _window_recoveries(assignment: RecoveryAssignment, area: float,
                 index=months,
             )
         else:  # base_year / base_year_plus_1
-            window = _base_year_window(assignment, method, start,
-                                       analysis_begin, where)
-            if assignment.base_year_gross_up_pct is not None:
-                if context is None:
-                    raise ValueError(
-                        f"{where}: base-year gross-up needs a "
-                        "RecoveryContext carrying the occupancy series"
-                    )
-                window_basis = pd.Series(0.0, index=months)
-                for item, item_series in expenses:
-                    if item.is_recoverable:
-                        window_basis += _grossed_series(
-                            item, item_series.reindex(months, fill_value=0.0),
-                            context.occupancy,
-                            assignment.base_year_gross_up_pct, where,
-                        )
+            if assignment.base_year_amount is not None:
+                # Known frozen base-year pool total ($/yr), used directly —
+                # the computed window and pre-analysis fallback are bypassed
+                # (spec §3.14); base_year_gross_up_pct does not apply to an
+                # already-known figure.
+                annual = assignment.base_year_amount
             else:
-                window_basis = pool
-            stop_monthly = pd.Series(
-                _frozen_stop_annual(window_basis, window, where) / 12.0,
-                index=months,
-            )
+                plus = (12 if method == RecoverySystemMethod.base_year_plus_1
+                        else 0)
+                window = _resolve_base_year_window(
+                    assignment.base_year, plus, analysis_begin, where,
+                    lease_start=start,
+                )
+                if assignment.base_year_gross_up_pct is not None:
+                    if context is None:
+                        raise ValueError(
+                            f"{where}: base-year gross-up needs a "
+                            "RecoveryContext carrying the occupancy series"
+                        )
+                    window_basis = pd.Series(0.0, index=months)
+                    for item, item_series in expenses:
+                        if item.is_recoverable:
+                            window_basis += _grossed_series(
+                                item,
+                                item_series.reindex(months, fill_value=0.0),
+                                context.occupancy,
+                                assignment.base_year_gross_up_pct, where,
+                            )
+                else:
+                    window_basis = pool
+                annual = _frozen_stop_annual(window_basis, window, where)
+            stop_monthly = pd.Series(annual / 12.0, index=months)
         share = pd.Series(0.0, index=months)
         for period in months:
             if start <= period <= end:

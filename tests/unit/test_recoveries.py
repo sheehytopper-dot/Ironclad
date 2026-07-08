@@ -273,6 +273,75 @@ class TestBaseYear:
         assert series.iloc[:24].abs().sum() == 0.0
         assert series.iloc[24] == pytest.approx(11_000)
 
+    def test_explicit_pre_analysis_base_year_falls_back_to_year_one(self):
+        """A stated base year whose whole window ends before the analysis
+        start has no ledger data, so it falls back to analysis year 1 —
+        exactly as a pre-analysis lease start does [AE pp. 377, 408]. The
+        input year stays the OM's true value; only the computed window
+        shifts. Here BY 2017 on a 2026 analysis behaves identically to the
+        pre-analysis-start case (year-1 stop; year 2 recovers 10k)."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year,
+                           base_year=2017)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        assert lease.recoveries.base_year == 2017  # input preserved (point 1)
+        assert series.iloc[:12].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[12] == pytest.approx(10_000)
+        assert series.iloc[24] == pytest.approx(21_000)
+
+    def test_pre_analysis_plus_one_also_falls_back(self):
+        """base_year_plus_1 with a pre-analysis stated year falls back to
+        analysis year 1 too — the +1 shift is dropped when there is no
+        historical window (matches the pre-analysis-start rule)."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year_plus_1,
+                           base_year=2018)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        assert series.iloc[:12].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[12] == pytest.approx(10_000)  # year-1 stop, not +1
+
+    def test_known_base_year_amount_used_directly(self):
+        """``base_year_amount`` supplies the frozen base-year pool as a total
+        annual dollar figure, bypassing the window entirely (spec §3.14). A
+        stop of 1,320,000/yr = 110,000/mo means year 1 (100k/mo) recovers
+        nothing and year 2 (110k/mo) recovers exactly zero (110k − 110k),
+        year 3 (121k/mo) recovers 11,000 — independent of the stated year."""
+        lease = make_lease(area=540_000,
+                           method=RecoverySystemMethod.base_year,
+                           base_year=1999,  # documentation only
+                           base_year_amount=1_320_000.0)
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        assert series.iloc[:24].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[24] == pytest.approx(11_000)  # 121k − 110k
+
+    def test_known_amount_is_total_dollars_not_per_sf(self):
+        """The override is a TOTAL pool figure, not $/SF: at 25% share the
+        recovery is (pool − amount) × 0.25, so the amount must be on the same
+        (whole-pool) scale as the frozen base-year computation."""
+        lease = make_lease(area=135_000,  # 25% of 540,000
+                           method=RecoverySystemMethod.base_year,
+                           base_year_amount=1_200_000.0)  # = year-1 pool total
+        series = project_recoveries(lease, MONTHS, self.rising_pool(),
+                                    rentable_area=540_000,
+                                    analysis_begin=BEGIN)
+        # year 2 pool 1,320,000; excess over the 1,200,000 stop = 120,000;
+        # tenant share 25% -> 30,000
+        assert series.iloc[:12].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[12:24].sum() == pytest.approx(120_000 * 0.25)
+
+    def test_base_year_amount_rejected_on_non_base_year_method(self):
+        """The validator refuses base_year_amount on a method that has no
+        base year (it would be silently ignored otherwise)."""
+        with pytest.raises(ValueError, match="base_year_amount"):
+            make_lease(area=540_000, method=RecoverySystemMethod.net,
+                       base_year_amount=1_000_000.0)
+
     def test_base_year_gross_up_needs_occupancy_context(self):
         """base_year_gross_up_pct (unlocked in Step 5 session 2) grosses
         the frozen base-year value [AE p. 407 formula]; it needs the

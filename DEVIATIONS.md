@@ -218,6 +218,36 @@ are fixed, not listed.
   the straight monthly accrual policy (spec §3.14).
 - **Fiscal base-year windows:** ``BaseYearSpec.fiscal`` raises
   (calendar windows only until a golden needs fiscal).
+- **Pre-analysis base years fall back to analysis year 1, computed —
+  not the stated year's actuals.** The engine's timeline begins at the
+  analysis start, so a stated base year that ends before it (Freeport's
+  2017–2025 OpEx stops on a 7/1/26 analysis) has no ledger data. Per the
+  manual [AE pp. 377, 408] such a lease "pay[s] their pro-rata share of
+  any increases over the ... first year of the analysis", so the frozen
+  stop is computed from analysis year 1. **The stated year is always kept
+  as the input** (never overwritten with a placeholder): the fallback
+  lives in ``_resolve_base_year_window``, shared by the system methods
+  and user pools, and triggers off the stated year's window ending before
+  the analysis start (previously it triggered only off a pre-analysis
+  lease *start*, and an explicit pre-analysis year raised on an empty
+  window — that gap is now closed). A partially-in-window year (a 2026
+  stop on a mid-2026 analysis) is kept and annualized from its available
+  months; a future-dated window still raises (input error, not missing
+  history).
+- **Known base-year override** (``RecoveryAssignment.base_year_amount``;
+  ``BaseYearSpec.known_amount``): when the real frozen base-year figure is
+  known (operating statements, the seller's Argus file), it is supplied as
+  a **total annual dollar** figure and used directly, bypassing the
+  computed window and the fallback; the year field then documents which
+  calendar year it represents. Chosen as a total (not a $/SF quantity like
+  ``base_stop``'s ``stop_amount_per_area``) because base-year math freezes
+  the whole reimbursable pool and divides by pro-rata share afterward — a
+  $/SF override would force a spurious re-multiplication by the
+  denominator. Both overrides are frozen constants w.r.t. the management
+  fee, so the %-of-EGR contraction bound is untouched (§6; recoveries.py
+  docstring). Freeport uses the year-only path (no real historical dollars
+  exist past 2020); the override is a capability for future deals where the
+  figure is actually known.
 - **Revisit when:** goldens #2/#4/#5 — Freeport (#2) is the base-year/
   stop coverage deal and will exercise most of this section within
   tolerance or drive corrections.

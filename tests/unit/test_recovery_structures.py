@@ -344,6 +344,52 @@ class TestPoolBaseYearAndFixed:
         with pytest.raises(NotImplementedError, match="fiscal"):
             run(structure, [self.rising_cam()])
 
+    def test_pool_explicit_pre_analysis_year_falls_back(self):
+        """A pool's stated base year whose window ends before the analysis
+        start falls back to analysis year 1 [AE pp. 377, 408] instead of
+        raising on an empty window — the same rule as the system methods,
+        with the stated year preserved as documentation (point 1/2)."""
+        structure = structure_of(RecoveryPool(
+            expenses=["CAM"], method="base_year", base_year={"year": 2017},
+        ))
+        series = run(structure, [self.rising_cam()])
+        assert series.iloc[:12].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[12] == pytest.approx(1_000)  # 11,000 − 10,000
+
+    def test_pool_known_amount_used_directly(self):
+        """BaseYearSpec.known_amount supplies the frozen base-year pool as a
+        total annual dollar figure, bypassing the window and any gross-up
+        (spec §3.14). A 132,000/yr stop = 11,000/mo means year 2 (11,000/mo)
+        recovers nothing; year 3 would recover the increase."""
+        cam = project(expense("CAM", 120_000,
+                              inflation=[YearRate(year=1, rate=10.0)]))
+        structure = structure_of(RecoveryPool(
+            expenses=["CAM"], method="base_year",
+            base_year={"year": 1999, "known_amount": 132_000.0},
+        ))
+        series = run(structure, [cam])
+        # year 1 (10,000/mo) and year 2 (11,000/mo) are both <= the 11,000/mo
+        # stop -> nothing across the first two years; the timeline's resale
+        # look-forward year 3 (12,100/mo) recovers 1,100/mo over the stop
+        assert series.iloc[:24].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[24] == pytest.approx(1_100)  # 12,100 − 11,000
+
+    def test_pool_known_amount_is_total_not_per_sf(self):
+        """The pool override is a TOTAL figure: at 40% share the recovery is
+        (pool − known_amount) × 0.40, confirming the amount is whole-pool
+        scale (consistent with base-year pool math), not $/SF."""
+        cam = project(expense("CAM", 120_000,
+                              inflation=[YearRate(year=1, rate=10.0)]))
+        lease = make_lease(area=40_000)  # 40% of 100,000 rentable
+        structure = structure_of(RecoveryPool(
+            expenses=["CAM"], method="base_year",
+            base_year={"known_amount": 120_000.0},  # = year-1 pool total
+        ))
+        series = run(structure, [cam], lease=lease)
+        # year-2 pool 132,000; excess over 120,000 = 12,000; share 40%
+        assert series.iloc[:12].abs().sum() == pytest.approx(0.0, abs=1e-6)
+        assert series.iloc[12:24].sum() == pytest.approx(12_000 * 0.40)
+
     def test_pool_fixed_amount_with_index(self):
         structure = structure_of(RecoveryPool(
             expenses=["CAM"], method="fixed", fixed_amount=24_000,

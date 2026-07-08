@@ -321,9 +321,10 @@ One record per lease/suite.
 | Field | Type / values | Default | Notes |
 |---|---|---|---|
 | `method` | `none` \| `net` \| `base_stop` \| `base_year` \| `base_year_plus_1` \| `fixed` \| `structure` | `net` | net = 100% pro-rata of recoverable expenses |
-| `stop_amount_per_area` | float | null | required for `base_stop` ($/SF stop) |
-| `base_year` | int | null → analysis year 1 | calendar year for the `base_year` methods |
+| `stop_amount_per_area` | float | null | required for `base_stop` (a **$/SF** stop) |
+| `base_year` | int | null → analysis year 1 | calendar year for the `base_year` methods; a stated year whose whole 12-month window ends before the analysis start falls back to analysis year 1 (no ledger data), while the stated year is preserved as documentation |
 | `base_year_gross_up_pct` | float | null | gross up the frozen base year |
+| `base_year_amount` | float | null | known frozen base-year pool as a **total annual dollar** figure (not $/SF); when set it is used directly and `base_year` becomes documentation only. `base_year`/`base_year_plus_1` methods only |
 | `fixed_amount` / `fixed_amount_per_area` | float | null | one required for `fixed` |
 | `fixed_inflation` | inflation override | null | |
 | `structure_ref` | ref | null | required for `structure` |
@@ -342,7 +343,7 @@ beside an uncapped tax pool in one structure.
 | `method` | `net` \| `stop` \| `base_year` \| `fixed` | `net` | |
 | `gross_up_pct` | float (0, 100] | null | gross variable expenses up to a stipulated occupancy; never gross down |
 | `base_amount_per_area` | float | null | required for `stop` |
-| `base_year` | `{year, fiscal, gross_up_pct}` | null | `year` null = analysis year 1 |
+| `base_year` | `{year, fiscal, gross_up_pct, known_amount}` | null | `year` null = analysis year 1; a stated `year` ending before the analysis start falls back to analysis year 1. `known_amount` = the known frozen base-year pool as a **total annual dollar** figure (used directly, bypassing the window; `year` then documents which year it represents) |
 | `fixed_amount` | float | null | required for `fixed` |
 | `fixed_inflation` | inflation override | null | |
 | `admin_fee_pct` | float | `0.0` | |
