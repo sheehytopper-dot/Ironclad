@@ -57,8 +57,15 @@ rests on three independent sources:
    [AE pp. 391-394], repeating payments [AE pp. 361-362], recovery gross-up [AE p. 407],
    resale methods [AE pp. 464-471], with page cites in test docstrings.
 
-**Fixture-lock rule (standing policy): transcribed inputs are human-verified against the
-source pages and committed before any engine comparison runs.** Every future deal validates
+**Fixture-lock rule (standing policy, revised 2026-07-07):** transcribed inputs are
+verified before commit and before any engine comparison runs. Verification means either
+(a) the owner reads the source pages himself, or (b) the owner reviews a written
+verification pass — e.g. an independent cross-check of the transcription against the
+source document, covering the highest-leverage inputs (the ones that move the most
+dollars in the fixture) — and explicitly confirms or challenges it. A verification pass
+that only re-derives the transcription using the same method and the same source excerpts
+as the original transcription does not satisfy this rule on its own; it must be reviewed
+and signed off by the owner before commit. Every future deal validates
 against its source OM's published Argus output via the Benchmark Comparison report
 (spec §7 report 24) before assumptions are toggled.
 
