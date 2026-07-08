@@ -1,0 +1,340 @@
+{
+  "schema_version": "1.0",
+  "property": {
+    "name": "Cedar Alt Distribution Center",
+    "property_type": "industrial",
+    "address": {
+      "city": "Dallas",
+      "state": "TX"
+    },
+    "analysis_begin": "2026-06-01",
+    "analysis_term_years": 10,
+    "fiscal_year_end_month": 5
+  },
+  "area_measures": {
+    "property_size": 1350220,
+    "rentable_area_mode": "fixed",
+    "rentable_area_fixed": 1350220
+  },
+  "inflation": {
+    "general_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "market_rent_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "expense_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "cpi_rate": [
+      {
+        "year": 2027,
+        "rate": 3.0
+      }
+    ],
+    "inflation_month": 1,
+    "timing_basis": "calendar_year"
+  },
+  "market_leasing_profiles": [
+    {
+      "name": "Bldg 1 Market NNN",
+      "term_months": 60,
+      "renewal_probability": 75.0,
+      "months_vacant": 10.0,
+      "market_base_rent_new": {
+        "amount": 5.7,
+        "unit": "dollars_per_area_per_year"
+      },
+      "market_base_rent_renew": {
+        "pct_of_new": 100.0
+      },
+      "rent_increases": [
+        {
+          "month_offset": 12,
+          "pct_increase": 3.5
+        },
+        {
+          "month_offset": 24,
+          "pct_increase": 3.5
+        },
+        {
+          "month_offset": 36,
+          "pct_increase": 3.5
+        },
+        {
+          "month_offset": 48,
+          "pct_increase": 3.5
+        }
+      ],
+      "free_rent_months_new": 3.0,
+      "free_rent_months_renew": 1.0,
+      "free_rent_profile": "Base Rent Only",
+      "recoveries": {
+        "method": "net"
+      },
+      "ti_new": {
+        "amount": 3.0,
+        "unit": "dollars_per_area"
+      },
+      "ti_renew": {
+        "amount": 1.5,
+        "unit": "dollars_per_area"
+      },
+      "lc_new": {
+        "pct": 6.75
+      },
+      "lc_renew": {
+        "pct": 6.75
+      },
+      "upon_expiration": "market",
+      "term_growth": true
+    },
+    {
+      "name": "Bldg 3 Market NNN",
+      "term_months": 60,
+      "renewal_probability": 75.0,
+      "months_vacant": 10.0,
+      "market_base_rent_new": {
+        "amount": 7.0,
+        "unit": "dollars_per_area_per_year"
+      },
+      "market_base_rent_renew": {
+        "pct_of_new": 100.0
+      },
+      "rent_increases": [
+        {
+          "month_offset": 12,
+          "pct_increase": 3.5
+        },
+        {
+          "month_offset": 24,
+          "pct_increase": 3.5
+        },
+        {
+          "month_offset": 36,
+          "pct_increase": 3.5
+        },
+        {
+          "month_offset": 48,
+          "pct_increase": 3.5
+        }
+      ],
+      "free_rent_months_new": 3.0,
+      "free_rent_months_renew": 1.0,
+      "free_rent_profile": "Base Rent Only",
+      "recoveries": {
+        "method": "net"
+      },
+      "ti_new": {
+        "amount": 4.0,
+        "unit": "dollars_per_area"
+      },
+      "ti_renew": {
+        "amount": 2.0,
+        "unit": "dollars_per_area"
+      },
+      "lc_new": {
+        "pct": 6.75
+      },
+      "lc_renew": {
+        "pct": 6.75
+      },
+      "upon_expiration": "market",
+      "term_growth": true
+    }
+  ],
+  "free_rent_profiles": [
+    {
+      "name": "Base Rent Only",
+      "abate_base_rent": true,
+      "abate_recoveries": false,
+      "abate_miscellaneous": false
+    }
+  ],
+  "expenses": [
+    {
+      "name": "Common Area Maintenance",
+      "category": "operating",
+      "amount": 546655.8,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Utilities",
+      "category": "operating",
+      "amount": 114256.79,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Management Fee",
+      "category": "operating",
+      "amount": 2.5,
+      "unit": "pct_of_egr"
+    },
+    {
+      "name": "Insurance",
+      "category": "operating",
+      "amount": 194773.33,
+      "unit": "dollars_per_year",
+      "inflation": "expense"
+    },
+    {
+      "name": "Real Estate Taxes",
+      "category": "operating",
+      "amount": 1453403.9,
+      "unit": "dollars_per_year",
+      "inflation": "expense",
+      "annual_overrides": [
+        {
+          "year": 2027,
+          "amount": 1213076
+        },
+        {
+          "year": 2028,
+          "amount": 1244117
+        },
+        {
+          "year": 2029,
+          "amount": 1275522
+        },
+        {
+          "year": 2030,
+          "amount": 1298724
+        },
+        {
+          "year": 2031,
+          "amount": 1327915
+        },
+        {
+          "year": 2032,
+          "amount": 1357384
+        },
+        {
+          "year": 2033,
+          "amount": 1387112
+        },
+        {
+          "year": 2034,
+          "amount": 1417058
+        },
+        {
+          "year": 2035,
+          "amount": 1447193
+        },
+        {
+          "year": 2036,
+          "amount": 1630558
+        }
+      ]
+    },
+    {
+      "name": "Capital Reserves",
+      "category": "capital",
+      "amount": 0.1,
+      "unit": "dollars_per_area_per_year",
+      "inflation": "expense"
+    }
+  ],
+  "rent_roll": [
+    {
+      "tenant_name": "Bldg 1 Tenant (Confidential)",
+      "suite": "01_100",
+      "area": 1084462,
+      "lease_type": "industrial",
+      "start_date": "2026-01-16",
+      "end_date": "2033-05-31",
+      "base_rent": {
+        "amount": 515119.45,
+        "unit": "dollars_per_month"
+      },
+      "rent_steps": [
+        {
+          "date": "2027-06-01",
+          "amount": 533148.63,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2028-06-01",
+          "amount": 551808.83,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2029-06-01",
+          "amount": 571122.14,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2030-06-01",
+          "amount": 591111.41,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2031-06-01",
+          "amount": 611800.31,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2032-06-01",
+          "amount": 633213.32,
+          "unit": "dollars_per_month"
+        }
+      ],
+      "recoveries": {
+        "method": "net"
+      },
+      "market_leasing_profile": "Bldg 1 Market NNN",
+      "upon_expiration": "market",
+      "notes": "Asset #01, Bldg 1 (3486 Cedardale). Base rent from lease abstract [OM p.30], exact cents; the rent-roll summary's Jun-2032 $633,123 is a transposition of the abstract's $633,213.32. NNN. Two 5-yr FMV renewal options -> market rollover at 75%. 64-month termination option NOT modeled (OM analysis keeps the tenant). 8% cumulative-compounding OpEx cap (excl. WAGES/SNOW/UTIL/MGT/INS/RET) NOT modeled: 3% growth never approaches 8% (non-binding). MGT fee cap 2.5% of gross revenues = the modeled fee (non-binding)."
+    },
+    {
+      "tenant_name": "Crane Worldwide Logistics LLC",
+      "suite": "02_100",
+      "area": 265758,
+      "lease_type": "industrial",
+      "start_date": "2025-03-15",
+      "end_date": "2030-05-31",
+      "base_rent": {
+        "amount": 153585.98,
+        "unit": "dollars_per_month"
+      },
+      "rent_steps": [
+        {
+          "date": "2027-04-01",
+          "amount": 158967.58,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2028-04-01",
+          "amount": 164526.35,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2029-04-01",
+          "amount": 170284.44,
+          "unit": "dollars_per_month"
+        },
+        {
+          "date": "2030-04-01",
+          "amount": 176241.85,
+          "unit": "dollars_per_month"
+        }
+      ],
+      "recoveries": {
+        "method": "net"
+      },
+      "market_leasing_profile": "Bldg 3 Market NNN",
+      "upon_expiration": "market",
+      "notes": "Asset #02, Bldg 3 (9016 Van Horn). Base rent from lease abstract [OM p.36], exact cents; in force at analysis begin = the 4/1/2026-3/31/2027 rate $153,585.98. NNN. Two 5-yr FMV renewal options -> market rollover at 75%. Caps: N/A; MGT Fee Cap: N/A [OM p.37]."
+    }
+  ]
+}

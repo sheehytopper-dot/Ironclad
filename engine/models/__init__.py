@@ -18,7 +18,13 @@ from .common import (
     YearRate,
 )
 from .cpi import CPIMethod, CPISpec
-from .expenses import ExpenseCategory, ExpenseGroup, ExpenseItem, ExpenseUnit
+from .expenses import (
+    AnnualOverride,
+    ExpenseCategory,
+    ExpenseGroup,
+    ExpenseItem,
+    ExpenseUnit,
+)
 from .inflation import CustomIndex, Inflation, TimingBasis
 from .investment import (
     AdditionalPrincipal,
@@ -125,7 +131,7 @@ __all__ = [
     "SecurityDepositUnit", "TICategory", "TIPaymentTiming",
     # revenues / expenses
     "PropertyRevenue", "RevenueUnit",
-    "ExpenseCategory", "ExpenseGroup", "ExpenseItem", "ExpenseUnit",
+    "AnnualOverride", "ExpenseCategory", "ExpenseGroup", "ExpenseItem", "ExpenseUnit",
     # leases / absorption
     "AbsorptionSpec", "FreeRent", "FreeRentTiming", "Lease", "LeaseStatus",
     "LeaseType", "LeasingCosts",

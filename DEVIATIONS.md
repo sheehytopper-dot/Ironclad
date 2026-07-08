@@ -304,3 +304,39 @@ treats the Percentage Rent line as unverified.
 - **Revisit when:** golden #3 arrives (standing opportunistic intake) —
   its back-test either confirms these policies within tolerance or
   drives corrections; any offset/multi-category need surfaces there.
+
+## 12. Expense per-year known-amount override (`annual_overrides`)
+
+- **What it is:** an optional `ExpenseItem.annual_overrides` — a list of
+  `{year, amount}` entries — that, for a given fiscal year, uses a known
+  actual dollar figure directly in place of the computed base × inflation
+  index. The override wins completely for that year (posted as
+  ``amount / 12`` per active month, applied after and unaffected by the
+  ``limits`` clamp); years without an override compute exactly as before.
+  ``year`` is the fiscal-year label (the calendar year the fiscal year ends
+  in, matching the ledger's ``fiscal_year_of`` aggregation — identical to the
+  calendar year for the default December fiscal-year-end).
+- **Why it exists (not spec-derived):** this is a pragmatic escape hatch,
+  the same philosophy as the recovery `base_year_amount` / `known_amount`
+  override (§10, commit 558fdf2). Real deals carry known actual figures the
+  formula cannot reproduce cleanly — **real-estate-tax abatements,
+  reassessments, or any line where the analyst has the real number and
+  should not have to reverse-engineer a `base × index` formula to hit it.**
+  The motivating case is **Cedar Alt (golden #4): its Bldg-1 city-tax
+  abatement runs through Feb 2036 on 90% of the improvement value over a
+  2016 base, but the OM never states the improvement value and the implied
+  abatement is inconsistent with 3% growth — so the RET line cannot be
+  computed from the stated inputs.** With this feature the fixture uses the
+  OM's own published RET figures [Cedar Alt OM p. 28] for FY2027–FY2036
+  directly and lets FY2037 (unabated) fall through to the gross stated-basis
+  formula (already exact). It has engineered unit tests (a synthetic expense
+  overridden in one year, surrounding years growing off the base) but no
+  manual worked-example citation, by nature.
+- **Precedence:** override → nothing else. It is not blended with the
+  formula and not re-clamped by `limits`; a per-year duplicate is a
+  validation error. A `pct_of_*` expense that carries an override posts the
+  fixed override amount in that year — a constant, so it does not perturb the
+  %-of-EGR fixed-point contraction (§6).
+- **Revisit when:** never expected to be removed; if a future need is to
+  override at monthly rather than annual granularity, extend rather than
+  replace.

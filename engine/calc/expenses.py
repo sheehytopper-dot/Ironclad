@@ -33,7 +33,7 @@ from typing import Optional, Union
 import pandas as pd
 
 from engine.calc.inflation import index_schedule, inflation_factors
-from engine.calc.timeline import snap_to_month_start
+from engine.calc.timeline import fiscal_year_of, snap_to_month_start
 from engine.models import (
     ExpenseItem,
     ExpenseUnit,
@@ -166,7 +166,8 @@ def project_expense(item: ExpenseItem, months: pd.PeriodIndex,
                     occupancy: Union[pd.Series, float] = 1.0,
                     occupied_area: Optional[pd.Series] = None,
                     available_area: Optional[pd.Series] = None,
-                    reference: Optional[pd.Series] = None) -> pd.Series:
+                    reference: Optional[pd.Series] = None,
+                    fiscal_year_end_month: int = 12) -> pd.Series:
     """Project one expense item onto the monthly timeline (spec §4.1 step 5).
 
     ``area`` is the SF denominator for the per-area units; ``occupancy`` the
@@ -175,6 +176,14 @@ def project_expense(item: ExpenseItem, months: pd.PeriodIndex,
     Continuous and date-range items post their monthly equivalent every
     active month; repeating items post per the manual's repeating-payment
     examples [AE pp. 361-362]; limits clamp per month [AE p. 279].
+
+    ``annual_overrides`` (DEVIATIONS.md §12) then win completely for their
+    fiscal years: any active month whose fiscal year (per
+    ``fiscal_year_end_month``, matching the ledger's fiscal aggregation)
+    carries a known-amount override posts ``amount / 12`` in place of the
+    computed value, after — and unaffected by — the limits clamp. A
+    full-year-active expense therefore totals exactly the override amount for
+    that year; other years compute as usual.
     """
     factors = _factor_series(item, months, analysis_begin, inflation)
     series = pd.Series(0.0, index=months, name=item.name)
@@ -205,4 +214,15 @@ def project_expense(item: ExpenseItem, months: pd.PeriodIndex,
             if item.limits.max is not None:
                 value = min(value, item.limits.max)
             series[period] = value
+
+    # Known-amount overrides win completely for their fiscal years (applied
+    # last, so neither the formula nor the limits clamp affect them).
+    if item.annual_overrides:
+        override_by_year = {o.year: o.amount for o in item.annual_overrides}
+        for period in active:
+            amount = override_by_year.get(
+                fiscal_year_of(period, fiscal_year_end_month)
+            )
+            if amount is not None:
+                series[period] = amount / 12.0
     return series

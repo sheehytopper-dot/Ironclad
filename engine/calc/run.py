@@ -282,6 +282,7 @@ def run_property(model: PropertyModel) -> RunResult:
             item, months, begin, model.inflation, area=area,
             occupancy=occupancy, occupied_area=occupied,
             available_area=available, reference=reference,
+            fiscal_year_end_month=model.property.fiscal_year_end_month,
         )
 
     fixed_items = [i for i in model.expenses if i.unit not in PCT_UNITS]

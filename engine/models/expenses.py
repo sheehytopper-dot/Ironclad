@@ -39,6 +39,25 @@ class ExpenseGroup(StrictModel):
     members: list[Ref] = []  # expense names
 
 
+class AnnualOverride(StrictModel):
+    """A known actual dollar amount for one fiscal year, used directly in
+    place of the computed base × inflation for that year — a pragmatic escape
+    hatch, not spec-derived ARGUS behavior (DEVIATIONS.md §12; same philosophy
+    as ``RecoveryAssignment.base_year_amount``).
+
+    ``year`` is the **fiscal-year label** (the calendar year the fiscal year
+    ends in — identical to the calendar year for a December fiscal-year-end,
+    the common case). ``amount`` is the full-year dollar figure; the override
+    posts ``amount / 12`` per active month of that fiscal year, so a
+    full-year-active expense yields exactly ``amount``. The override wins
+    completely for its year — no blending with the formula, and it is not
+    re-clamped by ``limits``.
+    """
+
+    year: int
+    amount: float
+
+
 class ExpenseItem(StrictModel):
     """One expense line (spec §3.11) [AE pp. 313-345].
 
@@ -61,6 +80,7 @@ class ExpenseItem(StrictModel):
     inflation: InflationRef = None
     pct_fixed: float = Field(default=100.0, ge=0, le=100)
     limits: Optional[Limits] = None
+    annual_overrides: list[AnnualOverride] = []  # known per-year actuals (DEVIATIONS.md §12)
     recoverable: Optional[bool] = None  # None = category default (operating: True)
     expense_group: Optional[Ref] = None
     # capital only:
@@ -76,6 +96,11 @@ class ExpenseItem(StrictModel):
         ):
             raise ValueError(
                 "amortization_years/refundable apply to capital expenses only"
+            )
+        years = [o.year for o in self.annual_overrides]
+        if len(years) != len(set(years)):
+            raise ValueError(
+                "annual_overrides has more than one amount for the same year"
             )
         return self
 

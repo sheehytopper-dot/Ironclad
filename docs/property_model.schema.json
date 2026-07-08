@@ -155,6 +155,26 @@
       "title": "AdminFeeApplies",
       "type": "string"
     },
+    "AnnualOverride": {
+      "additionalProperties": false,
+      "description": "A known actual dollar amount for one fiscal year, used directly in\nplace of the computed base \u00d7 inflation for that year \u2014 a pragmatic escape\nhatch, not spec-derived ARGUS behavior (DEVIATIONS.md \u00a712; same philosophy\nas ``RecoveryAssignment.base_year_amount``).\n\n``year`` is the **fiscal-year label** (the calendar year the fiscal year\nends in \u2014 identical to the calendar year for a December fiscal-year-end,\nthe common case). ``amount`` is the full-year dollar figure; the override\nposts ``amount / 12`` per active month of that fiscal year, so a\nfull-year-active expense yields exactly ``amount``. The override wins\ncompletely for its year \u2014 no blending with the formula, and it is not\nre-clamped by ``limits``.",
+      "properties": {
+        "year": {
+          "title": "Year",
+          "type": "integer"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        }
+      },
+      "required": [
+        "year",
+        "amount"
+      ],
+      "title": "AnnualOverride",
+      "type": "object"
+    },
     "AreaMeasures": {
       "additionalProperties": false,
       "description": "Building and rentable area measures (spec \u00a73.2) [AE pp. 188-196].\n\nOccupied Area is always computed by the engine, never input. Pro-rata\ndenominators for recoveries reference Property Size, Rentable Area, or an\nalternate measure per recovery structure (spec \u00a73.14).",
@@ -766,6 +786,14 @@
             }
           ],
           "default": null
+        },
+        "annual_overrides": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/AnnualOverride"
+          },
+          "title": "Annual Overrides",
+          "type": "array"
         },
         "recoverable": {
           "anyOf": [

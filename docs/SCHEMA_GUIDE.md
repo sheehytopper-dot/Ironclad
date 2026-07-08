@@ -264,6 +264,7 @@ Expense items use the same shape as property revenues, plus:
 |---|---|---|---|
 | `category` | `operating` \| `non_operating` \| `capital` | `operating` | operating is above NOI; capital after NOI; non-operating below the line |
 | `recoverable` | bool | null → category default | operating default `true`; capital/non-op `false` |
+| `annual_overrides` | list of `{year, amount}` | `[]` | known per-year actuals: for a fiscal year with an override, `amount` is used directly (posted `amount/12` per active month) in place of the computed base × inflation — the override wins completely and is **not** re-clamped by `limits`; other years compute as usual. `year` is the fiscal-year label (= the calendar year for a December fiscal-year-end). Escape hatch for tax abatements / reassessments / any known figure (DEVIATIONS.md §12) |
 | `expense_group` | ref | null | reporting rollup / recovery pool membership |
 | `amortization_years` | int ≥ 1 | null | **capital only**: recover over N years |
 | `refundable` | bool | `false` | **capital only** |

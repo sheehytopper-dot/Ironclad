@@ -18,6 +18,7 @@ import pytest
 from engine.calc.expenses import project_expense
 from engine.calc.timeline import build_month_index
 from engine.models import (
+    AnnualOverride,
     ExpenseItem,
     ExpenseUnit,
     Inflation,
@@ -245,3 +246,80 @@ class TestTimingInflationLimits:
         series = project_expense(item, MONTHS, BEGIN, FLAT)
         assert series.iloc[0] == pytest.approx(5_000)
         assert series.iloc[1] == 0.0
+
+
+class TestAnnualOverrides:
+    """Known per-year actuals win completely for their fiscal year while
+    surrounding years compute normally (DEVIATIONS.md §12; engineered escape
+    hatch, no manual worked example). ``MONTHS`` is calendar-aligned (Jan
+    begin), so the default December fiscal-year-end makes fiscal year =
+    calendar year here."""
+
+    def test_override_year_used_directly_surrounding_years_grow_off_base(self):
+        """A $1,200/yr expense inflating 10%/yr: 2026 base $1,200, 2027 would
+        be $1,320. Override 2027 to a known $5,000 → 2027 posts $5,000/12 per
+        month ($5,000 total); 2026 and 2028 still compute off the base
+        ($1,200 and $1,452 = 1,200×1.21) — the override does not re-base the
+        formula."""
+        item = make_item(
+            1_200, ExpenseUnit.dollars_per_year,
+            annual_overrides=[AnnualOverride(year=2027, amount=5_000.0)],
+        )
+        series = project_expense(item, MONTHS, BEGIN, TEN_PCT)
+        assert series.iloc[0] == pytest.approx(100.0)           # 2026 base
+        assert series.iloc[:12].sum() == pytest.approx(1_200)   # 2026 total
+        assert series.iloc[12] == pytest.approx(5_000 / 12)     # 2027 override
+        assert series.iloc[12:24].sum() == pytest.approx(5_000)  # 2027 total
+        assert series.iloc[24] == pytest.approx(121.0)          # 2028: 1,200×1.21/12
+        assert series.iloc[24:36].sum() == pytest.approx(1_452)  # off base, not 5,000
+
+    def test_multiple_year_overrides(self):
+        """Overrides for two years both apply; unlisted years compute."""
+        item = make_item(
+            1_200, ExpenseUnit.dollars_per_year,
+            annual_overrides=[AnnualOverride(year=2027, amount=5_000.0),
+                              AnnualOverride(year=2028, amount=9_000.0)],
+        )
+        series = project_expense(item, MONTHS, BEGIN, TEN_PCT)
+        assert series.iloc[:12].sum() == pytest.approx(1_200)   # 2026 computed
+        assert series.iloc[12:24].sum() == pytest.approx(5_000)  # 2027 override
+        assert series.iloc[24:36].sum() == pytest.approx(9_000)  # 2028 override
+        assert series.iloc[36:48].sum() == pytest.approx(1_200 * 1.1 ** 3)  # 2029 computed
+
+    def test_override_wins_over_limits(self):
+        """The override is applied after — and is not re-clamped by — the
+        limits clamp (override wins completely). A max of $80/mo clamps the
+        computed months; the overridden year posts $5,000/12 = $416.67/mo,
+        well above the cap, untouched."""
+        item = make_item(
+            1_200, ExpenseUnit.dollars_per_year, limits=Limits(max=80.0),
+            annual_overrides=[AnnualOverride(year=2027, amount=5_000.0)],
+        )
+        series = project_expense(item, MONTHS, BEGIN, FLAT)
+        assert series.iloc[0] == pytest.approx(80.0)            # 2026 clamped
+        assert series.iloc[12] == pytest.approx(5_000 / 12)     # 2027 override, not 80
+
+    def test_fiscal_year_matching_off_calendar(self):
+        """With a May (5) fiscal-year-end — the Cedar Alt shape — an override
+        for fiscal year 2027 covers Jun-2026 through May-2027, and nothing
+        outside it. A flat $2,400/yr expense ($200/mo) with FY2027 overridden
+        to $1,200 ($100/mo): the FY2027 window posts $100, the FY2026 tail
+        (Jan-May 2026) and the FY2028 start (Jun-2027) keep the computed
+        $200."""
+        item = make_item(
+            2_400, ExpenseUnit.dollars_per_year,
+            annual_overrides=[AnnualOverride(year=2027, amount=1_200.0)],
+        )
+        series = project_expense(item, MONTHS, BEGIN, FLAT,
+                                 fiscal_year_end_month=5)
+        assert series[pd.Period("2026-05", freq="M")] == pytest.approx(200)  # FY2026
+        assert series[pd.Period("2026-06", freq="M")] == pytest.approx(100)  # FY2027
+        assert series[pd.Period("2027-05", freq="M")] == pytest.approx(100)  # FY2027
+        assert series[pd.Period("2027-06", freq="M")] == pytest.approx(200)  # FY2028
+
+    def test_duplicate_override_year_rejected(self):
+        """Two amounts for the same year is a contradiction — rejected."""
+        with pytest.raises(ValueError, match="same year"):
+            make_item(1_200, ExpenseUnit.dollars_per_year,
+                      annual_overrides=[AnnualOverride(year=2027, amount=1.0),
+                                        AnnualOverride(year=2027, amount=2.0)])
