@@ -7,9 +7,11 @@ market machinery (spec §10) — to **Gate 2**. Companion to the closed
 
 **Gate 2 criteria (spec §10, §9.1; CLAUDE.md):**
 
-1. Goldens **#2 (8505 Freeport Parkway)**, **#4 (Cedar Alt Bldgs 1 & 3)**,
-   **#5 (Inland Logistics)** — annual fiscal-year cash flows within
-   $500/line of each OM's published Argus output.
+1. Goldens **#2 (8505 Freeport Parkway)** and **#4 (Cedar Alt Bldgs 1 & 3)**
+   — annual fiscal-year cash flows within $500/line of each OM's published
+   Argus output. *(Scope reduced from three goldens 2026-07-09: #5 Inland
+   Logistics permanently disqualified — no ARGUS attribution anywhere in its
+   OM — and no replacement pursued. DEVIATIONS.md §14.)*
 2. Golden #1's **FY2029-FY2031 revenue/vacancy lines activate** (the
    owner-approved 2026-07-03 phasing deferred them to Gate 2; TI/LC/capital
    lines wait for Gate 3).
@@ -30,10 +32,10 @@ golden #3 arrives, so nothing downstream should wait on it.
 
 ---
 
-## Step 0 — Golden fixtures #2/#4/#5 (owner; runs in parallel)
+## Step 0 — Golden fixtures #2/#4 (owner; runs in parallel)
 
 **Owner: Topper (human). Not a Claude task — future sessions must not act
-on this.** For each of Freeport (#2), Cedar Alt (#4), Inland (#5), from the
+on this.** For each of Freeport (#2) and Cedar Alt (#4), from the
 2026-07-03 `OM/` triage: stage source pages under
 `tests/golden/<deal>/source/`, transcribe inputs to `.icprop.json` +
 `expected_annual_cash_flow.csv` + `ASSUMPTIONS.md` with OM page cites, and
@@ -49,10 +51,16 @@ Two verification checks during staging (owner-approved 2026-07-05):
   multi-tenant with base-year or expense-stop recoveries — golden #2's
   slot requires exactly that coverage. **If it is not, escalate to the
   owner immediately** (a replacement deal must be triaged before Step 7
-  plans around it).
-- **Inland (#5):** confirm the cash flow's Argus provenance **from the
-  page image** — no Argus attribution exists in the document's text
-  layer, so text search cannot settle it.
+  plans around it). *(Passed 2026-07-07 at staging.)*
+- **Inland (#5) — check FAILED; deal disqualified 2026-07-09.** The
+  required provenance check (confirm Argus attribution from the page
+  image, since none exists in the text layer) found **no ARGUS
+  attribution anywhere** — full-text search plus visual inspection of
+  the cover, cash flow, and assumptions pages — and no outside evidence
+  exists that its cash flow is Argus-based. Golden #5 is **permanently
+  disqualified**; no replacement is being pursued (owner resource
+  constraint), and Gate 2 is formally reduced to goldens #2/#4. Full
+  record: DEVIATIONS.md §14.
 
 ## Step 1 — Lease chain resolution & market rent machinery (session 1)
 
@@ -117,13 +125,14 @@ rent build-up: base, steps, CPI, free, recoveries, % rent as built so
 far), reconciling exactly to the ledger. **Owner review of both audit
 reports — this one and Step 5's Recovery Audit — is a Gate 2 criterion.**
 
-## Step 7 — Golden comparisons #2, #4, #5 (sessions 8+; needs Step 0)
+## Step 7 — Golden comparisons #2, #4 (sessions 8+; needs Step 0)
 
 One comparison test per fixture as each lands (fixture-lock verified
 first), same shape as the Clorox Gate 1 test: fiscal-year, $500/line,
 misses reported for owner per-cell adjudication with a discrepancy log.
-Expect Freeport (#2) to exercise base-year/stop recoveries, Cedar Alt and
-Inland (#4/#5) gross-ups, caps, or absorption per the triage.
+Expect Freeport (#2) to exercise base-year/stop recoveries, Cedar Alt (#4)
+gross-ups, caps, or absorption per the triage. *(Golden #5 was dropped
+from this step 2026-07-09 — disqualified at Step 0; DEVIATIONS.md §14.)*
 
 ## Step 8 — Percentage rent, last (session 9) — **DONE 2026-07-06**
 
@@ -144,13 +153,15 @@ narrowings, in DEVIATIONS.md §11. The external-validation gap stands.
 
 ## Step 9 — Gate 2 review (owner)
 
-All three golden comparisons green in the same pytest run alongside golden
-#1 (FY2027-FY2031 revenue scope), audit reports owner-reviewed, discrepancy
-logs written. Then — and only then — Phase 3 (Iron Rule 2).
+Both golden comparisons (#2, #4) green in the same pytest run alongside
+golden #1 (FY2027-FY2031 revenue scope), audit reports owner-reviewed,
+discrepancy logs written. Then — and only then — Phase 3 (Iron Rule 2).
 
 ---
 
 **Status:** created 2026-07-05 on Gate 1 pass. Steps 1-6 and 8 complete
-(2026-07-06). Remaining: owner review of the two audit reports, Step 0
-fixture staging (owner-gated), Step 7 golden comparisons as fixtures
-land, then the Step 9 gate review.
+(2026-07-06). 2026-07-09: golden #5 (Inland) disqualified at its Step 0
+provenance check — Gate 2 formally reduced to goldens #2/#4 (DEVIATIONS.md
+§14). Remaining: owner review of the two audit reports, Step 7 golden
+comparisons (#2 written 2026-07-08, misses in owner adjudication; #4
+pending), then the Step 9 gate review.

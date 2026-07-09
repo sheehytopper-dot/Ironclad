@@ -2,7 +2,7 @@
 
 Companion to ARGUS_REBUILD_SPEC.md. This schedule assumes 10 hours per week: three weeknight sessions of 1.5 to 2 hours plus one 4-hour weekend block. If your real capacity is 6 hours, multiply every duration by 1.6 and stop pretending otherwise. The schedule is gated, not dated: you advance when the gate passes, not when the week ends.
 
-> **Current status (2026-07-05): GATE 1 PASSED — owner declaration 2026-07-05** after review of the Gate 1 evidence (`tests/golden/clorox_northlake/DISCREPANCY_LOG.md`, 126-test green suite, independent verification). Phase 1 complete: leases, expenses, net recoveries, ledger, run.py (spec §4.1 passes 1-6 incl. the %-of-EGR fixed point, DEVIATIONS.md §6); Clorox FY2027-FY2028 every line within $1 of the OM (tolerance $500/line). **Phase 2 begins** — session sequence in [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md); goldens #2/#4/#5 fixture transcription (Freeport, Cedar Alt, Inland) is owner-gated staging work that gates the phase's completion, not its start.
+> **Current status (2026-07-05): GATE 1 PASSED — owner declaration 2026-07-05** after review of the Gate 1 evidence (`tests/golden/clorox_northlake/DISCREPANCY_LOG.md`, 126-test green suite, independent verification). Phase 1 complete: leases, expenses, net recoveries, ledger, run.py (spec §4.1 passes 1-6 incl. the %-of-EGR fixed point, DEVIATIONS.md §6); Clorox FY2027-FY2028 every line within $1 of the OM (tolerance $500/line). **Phase 2 begins** — session sequence in [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md); goldens #2/#4 fixture transcription (Freeport, Cedar Alt) is owner-gated staging work that gates the phase's completion, not its start. **Scope reduction (owner decision 2026-07-09): golden #5 (Inland Logistics) is permanently disqualified — no ARGUS attribution anywhere in its OM — and no replacement is being pursued; Gate 2 requires two goldens (#2, #4), not three (DEVIATIONS.md §14).**
 >
 > **Post-original sourcing note (2026-07-03, revised 2026-07-04):** the plan below predates the loss of ARGUS access. Wherever it says to export goldens from ARGUS or to reconcile against "the ARGUS export" (Week 1 jobs, Gates 0-3), read the **Golden-File Strategy in [CLAUDE.md](CLAUDE.md)** instead: **five OM-based goldens** spanning complexity, each validated annually at fiscal-year level within $500/line; **dispute-triggered owner per-cell adjudication** (the owner recomputes the specific disputed cells in Excel from the source documents alone, without reading the engine's output or code first); and the manual's worked examples. Everything else — week structure, job splits, gates as checklists, protocols — is authoritative as written. (This file was merged 2026-07-03 from BUILD_SCHEDULE_ORIGINAL.md.)
 
@@ -65,7 +65,7 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 
 **Week 4 scope:** Market leasing profiles, rollover blending algorithm (spec 4.2), lease chaining, absorption. 
 **Week 5 scope:** Full recovery structures: pools, gross-up, base year/stop, caps, admin fees, denominators. Recovery Audit report built early because you need it to debug.
-**Week 6 scope:** General vacancy with absorption/turnover offset, credit loss, tenant overrides, percentage rent with layered breakpoints. Goldens 2, 4, and 5 reconciliation.
+**Week 6 scope:** General vacancy with absorption/turnover offset, credit loss, tenant overrides, percentage rent with layered breakpoints. Goldens 2 and 4 reconciliation (golden 5 disqualified 2026-07-09, DEVIATIONS.md §14).
 
 **Your jobs:**
 - Week 4: sanity-check blended rollover economics by hand on one lease (you can do this math on a napkin: weighted rent, weighted downtime, weighted TI/LC). If the napkin disagrees with the engine, the engine is wrong until proven otherwise.
@@ -73,7 +73,7 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 - Week 6: full Golden 2 and Golden 3 diffs, cell-level review.
 
 **GATE 2 (end of week 6):**
-- [ ] Goldens #2, #4, #5 cash flows match the OM within tolerance; Lease Audit and Recovery Audit reports built, reconciling exactly to the ledger, and owner-reviewed
+- [ ] Goldens #2, #4 cash flows match the OM within tolerance (scope reduced from three goldens 2026-07-09 — #5 Inland disqualified, DEVIATIONS.md §14); Lease Audit and Recovery Audit reports built, reconciling exactly to the ledger, and owner-reviewed
 - [x] Percentage-rent module built with the manual's worked-example unit tests (Iron Rule 3) (2026-07-06); **externally unvalidated pending golden #3** (standing opportunistic intake — CLAUDE.md, Known validation gaps)
 - [ ] Turnover vacancy does not double-count against general vacancy (verify total vacancy % equals stated rate in a test)
 - Slip risk is highest here. One week of slip is normal. Two triggers the Stall Protocol.

@@ -266,9 +266,9 @@ are fixed, not listed.
   method uses — architectural parity, no new manual-derived logic. Freeport's
   MLPs now use a two-pool user structure (OpEx lease-start-relative +
   Electricity net). See the before/after in that fixture's DISCREPANCY_LOG.
-- **Revisit when:** goldens #2/#4/#5 — Freeport (#2) is the base-year/
-  stop coverage deal and will exercise most of this section within
-  tolerance or drive corrections.
+- **Revisit when:** goldens #2/#4 (#5 disqualified 2026-07-09, §14) —
+  Freeport (#2) is the base-year/stop coverage deal and will exercise
+  most of this section within tolerance or drive corrections.
 
 ## 11. Percentage rent: v1 narrowings and fixed policies (Phase 2 Step 8)
 
@@ -400,3 +400,48 @@ shares the expense projection machinery. Three choices worth recording:
   absolute-dollar path against published figures; a future retail/mixed deal
   with a %-of-EGR misc line or a `spaces_times_rate` parking line validates
   the remaining choices.
+
+## 14. Golden #5 (Inland Logistics Center) disqualified; Gate 2 reduced to two goldens (owner decision 2026-07-09)
+
+**This is the permanent record of a deliberate, documented scope
+reduction — not a silent drop.**
+
+- **What happened:** golden #5 was to be the Inland Logistics Center
+  (NMRK OM, staged untracked at `tests/golden/inland/source/` from the
+  2026-07-03 deal triage). The Golden-File Strategy requires each golden
+  to carry a **published Argus-based cash flow** — that provenance is what
+  makes a golden a valid external reference for the engine. Inland's own
+  Step 0 verification check (NEXT_STEPS_TO_GATE2.md, owner-approved
+  2026-07-05) anticipated the risk: no Argus attribution exists in the
+  document's text layer, so the check required confirming provenance from
+  the page images. **The check failed (2026-07-09): full-text search plus
+  visual inspection of the cover, cash flow, and assumptions pages found
+  zero ARGUS attribution anywhere, and no outside evidence exists that
+  the OM's cash flow is Argus-based.** (Contrast: Freeport's and Cedar
+  Alt's OMs both carry explicit Argus footnotes — Cedar Alt's names
+  "Argus Enterprise Version 14.0.2" on its cash flow page.)
+- **Decision:** golden #5 is **permanently disqualified**. **No
+  replacement deal is being pursued right now** (owner resource
+  constraint). **Gate 2 is formally reduced from three required goldens
+  (#2, #4, #5) to two (#2 Freeport, #4 Cedar Alt).**
+- **Coverage consequence:** #4/#5 were the triage slots for gross-ups,
+  caps, and absorption coverage. That coverage now rests on #2 (Freeport:
+  base-year stops, 95% gross-ups, absorption, general/static vacancy) and
+  #4 (Cedar Alt: two-building NNN rollover, non-binding caps) alone; the
+  overall validation basis is four goldens (#1, #2, #3 standing intake,
+  #4) rather than five. If a qualifying deal with confirmed Argus
+  provenance surfaces later, re-opening a fifth slot is an owner
+  decision, not a standing intake.
+- **Artifacts:** the Inland OM stays at `tests/golden/inland/source/`
+  (untracked, never committed) with a README marking it
+  staged-then-disqualified so it is not mistaken for active work. No
+  fixture, transcription, or comparison test was ever built for it.
+- **Documents updated with this decision (2026-07-09):** CLAUDE.md
+  (Golden-File Strategy list + Phase 2 gate row), BUILD_SCHEDULE.md
+  (status note, Week 6 scope, GATE 2 checklist), NEXT_STEPS_TO_GATE2.md
+  (criteria, Steps 0/7/9, status), ARGUS_REBUILD_SPEC.md (§9.1 golden
+  list, §10 Phase 2 gate), this section. NEXT_STEPS_TO_GATE1.md's Inland
+  references are a closed historical record and stand as written.
+- **Revisit when:** never expected — the disqualification is evidence-
+  based and permanent for this OM. A future fifth golden requires a new
+  deal with confirmed Argus provenance and a fresh owner decision.

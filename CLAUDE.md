@@ -39,14 +39,16 @@ JSON (`.icprop.json`, spec §5.1).
 **We do not have ARGUS access — no ARGUS output exports are coming.** Validation instead
 rests on three independent sources:
 
-1. **Five OM-based goldens spanning complexity** — each an Offering Memorandum with a
-   published Argus-based cash flow, each validated **annually at fiscal-year level, within
-   $500 per line**:
+1. **Four OM-based goldens spanning complexity** (reduced from five 2026-07-09 —
+   DEVIATIONS.md §14) — each an Offering Memorandum with a published Argus-based cash
+   flow, each validated **annually at fiscal-year level, within $500 per line**:
    - **#1** single-tenant NNN — `tests/golden/clorox_northlake/` (CBRE OM; owner-verified)
    - **#2** multi-tenant with base-year or expense-stop recoveries
    - **#3** retail with percentage rent — **standing opportunistic intake** (owner decision
      2026-07-05; no deadline — see Known validation gaps below)
-   - **#4, #5** chosen from deal triage for coverage of gross-ups, caps, or absorption
+   - **#4** chosen from deal triage for coverage of gross-ups, caps, or absorption
+   - *(#5, Inland Logistics, was staged and **permanently disqualified 2026-07-09** — its
+     OM has no ARGUS attribution anywhere; no replacement pursued. DEVIATIONS.md §14.)*
 2. **Owner per-cell adjudication (standing):** when the engine and a golden's published
    figures disagree beyond tolerance, or a month-level timing question arises that annual
    data cannot discriminate, the owner recomputes the specific disputed cells in Excel
@@ -83,7 +85,7 @@ against its source OM's published Argus output via the Benchmark Comparison repo
 **Gate 1 passed (owner declaration 2026-07-05)** — its path,
 [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md), is closed. The step-by-step path
 through Phase 2 to Gate 2 is [NEXT_STEPS_TO_GATE2.md](NEXT_STEPS_TO_GATE2.md); golden
-#2/#4/#5 fixture transcription there (Step 0) is owner-gated and gates the phase's
+#2/#4 fixture transcription there (Step 0) is owner-gated and gates the phase's
 completion, not its start.
 
 ## Intake Surfaces (standing policy)
@@ -138,7 +140,7 @@ human against the source document before it is used for calculation.**
 |---|---|---|
 | 0 — Scaffold | Repo, §3 pydantic models, JSON round-trip, timeline + inflation modules + tests | Tests pass |
 | 1 — Core ledger | Base rent (all unit types, steps, CPI, free rent), expenses, simple net recoveries, occupancy, NOI | **Golden #1** (Clorox Northlake): OM annual fiscal-year within $500/line (FY2027-FY2028 per gate phasing; disputes resolved by owner per-cell adjudication) |
-| 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Goldens #2, #4, #5** (Freeport, Cedar Alt, Inland) cash flows match the OM within tolerance; Lease Audit + Recovery Audit reports built, reconciling exactly to the ledger, and owner-reviewed; % rent module built with manual worked-example tests (Iron Rule 3) but **externally unvalidated pending golden #3** |
+| 2 — Market machinery | MLPs, rollover blending, absorption, general vacancy/credit loss offsets, full recovery structures, % rent | **Goldens #2, #4** (Freeport, Cedar Alt) cash flows match the OM within tolerance (reduced from three 2026-07-09 — #5 Inland disqualified, no ARGUS attribution; DEVIATIONS.md §14); Lease Audit + Recovery Audit reports built, reconciling exactly to the ledger, and owner-reviewed; % rent module built with manual worked-example tests (Iron Rule 3) but **externally unvalidated pending golden #3** |
 | 3 — Capital & valuation | TIs/LCs, capex, purchase, debt, resale, PV/IRR, sensitivity | IRR/PV/Resale match goldens; §9.3 invariants pass |
 | 4 — Reports & export | Full §7 catalog, PSF toggles, Excel package | Side-by-side export review vs ARGUS prints |
 | 5 — UI | Streamlit per §6 | Full property built from scratch through UI only, calc, export |
@@ -239,7 +241,8 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   audit reports + a reconciliation sheet to .xlsx (`*.audits.xlsx` gitignored); run on
   Clorox: reconciliation exactly 0. Suite 226 green. **BOTH audit reports are ready
   for the Gate 2 owner review** (a Gate 2 criterion). Gate 2 remaining: owner review
-  of the audits, Step 7 (goldens #2/#4/#5 — owner-gated fixtures), Step 8 (% rent).
+  of the audits, Step 7 (goldens #2/#4 — owner-gated fixtures; #5 disqualified
+  2026-07-09, DEVIATIONS.md §14), Step 8 (% rent).
   **Gate 2 audit-review follow-up complete 2026-07-06:** recoverable %-of-EGR fee
   with `limits.min` (owner request: a management fee must hold a dollar floor —
   e.g. $5,000/mo — through full vacancy) verified end-to-end: the existing
@@ -280,7 +283,7 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   complete; suite 245 green. Gate 2 now blocks entirely on owner-gated items.
   Check with the owner: (a) has the audit-report review happened (dump with
   scripts/dump_audits.py on any fixture — reviewing both reports is a Gate 2
-  criterion), and (b) have any golden #2/#4/#5 fixtures been staged
+  criterion), and (b) have any golden #2/#4 fixtures been staged
   (NEXT_STEPS_TO_GATE2.md Step 0)? If a fixture has landed owner-verified:
   Step 7 — write its comparison test (same shape as the Clorox Gate 1 test:
   fiscal-year, $500/line, misses to a DISCREPANCY_LOG and owner per-cell
