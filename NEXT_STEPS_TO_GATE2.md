@@ -162,6 +162,12 @@ discrepancy logs written. Then — and only then — Phase 3 (Iron Rule 2).
 **Status:** created 2026-07-05 on Gate 1 pass. Steps 1-6 and 8 complete
 (2026-07-06). 2026-07-09: golden #5 (Inland) disqualified at its Step 0
 provenance check — Gate 2 formally reduced to goldens #2/#4 (DEVIATIONS.md
-§14). Remaining: owner review of the two audit reports, Step 7 golden
-comparisons (#2 written 2026-07-08, misses in owner adjudication; #4
-pending), then the Step 9 gate review.
+§14). Step 7: **both comparison tests written** — #2 Freeport (2026-07-08,
+137 misses / 242 cells) and #4 Cedar Alt (2026-07-09, 47 misses / 165
+cells, 118 within tolerance; both pre-flagged README questions confirmed —
+day-count residual FY2027-30, rollover recovery timing FY2031/34/36 — plus
+one new finding: the OM posts MLA free rent only on Crane's first rollover,
+the engine on every rollover, −$950K FY2034 / −$303K FY2036). Both
+comparisons currently FAIL and their DISCREPANCY_LOGs await owner per-cell
+adjudication. Remaining: owner review of the two audit reports, the
+adjudications, then the Step 9 gate review.
