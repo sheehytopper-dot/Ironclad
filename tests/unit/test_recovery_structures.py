@@ -15,9 +15,11 @@ import pandas as pd
 import pytest
 
 from engine.calc.expenses import project_expense
+from engine.calc.leases import resolve_lease_chain
 from engine.calc.recoveries import (
     RecoveryContext,
     project_recoveries,
+    project_segment_recoveries,
 )
 from engine.calc.run import run_property
 from engine.calc.timeline import build_month_index
@@ -30,8 +32,10 @@ from engine.models import (
     FreeRentProfile,
     Inflation,
     Lease,
+    MarketLeasingProfile,
     MoneyRate,
     MoneyUnit,
+    PctOfNew,
     PropertyInfo,
     PropertyModel,
     RecoveryAssignment,
@@ -39,12 +43,14 @@ from engine.models import (
     RecoveryStructure,
     RecoverySystemMethod,
     RentableAreaMode,
+    UponExpiration,
     YearRate,
 )
 
 BEGIN = dt.date(2026, 1, 1)
 MONTHS = build_month_index(BEGIN, 2)
 FLAT = Inflation(general_rate=[YearRate(year=1, rate=0.0)])
+PSF_YR = MoneyUnit.dollars_per_area_per_year
 
 
 def make_lease(area=100_000, structure="S", **kwargs):
@@ -398,6 +404,84 @@ class TestPoolBaseYearAndFixed:
         series = run(structure, [project(expense("CAM", 120_000))])
         assert series.iloc[0] == pytest.approx(2_000)
         assert series.iloc[12] == pytest.approx(2_060)
+
+
+class TestLeaseStartRelativeBaseYear:
+    """A user-pool base year marked ``lease_start_relative`` freezes its stop
+    at each recovering segment's own start year — the same per-segment
+    resolution the base_year system method already applies [AE pp. 405-406,
+    408-409] — beside a sibling net pool that recovers from dollar one. This
+    is the "BY + Util" structure on speculative/MLP segments (DEVIATIONS.md
+    §10 closing §7)."""
+
+    # BEGIN = 2026-01, MONTHS through 2028-12 (module scope). A 12-month
+    # contract lease expiring 2026-12 rolls (0% renewal, 3-mo downtime) to one
+    # speculative segment starting 2027-04.
+    def _spec_segment(self):
+        profile = MarketLeasingProfile(
+            name="MLA", term_months=24, renewal_probability=0.0,
+            months_vacant=3.0,
+            market_base_rent_new=MoneyRate(amount=12.0, unit=PSF_YR),
+            market_base_rent_renew=PctOfNew(pct_of_new=100.0),
+            free_rent_months_new=0.0, free_rent_months_renew=0.0,
+            recoveries=RecoveryAssignment(
+                method=RecoverySystemMethod.structure, structure_ref="MLA BY+E"),
+            upon_expiration=UponExpiration.vacate, term_growth=False,
+        )
+        lease = Lease(
+            tenant_name="Roller", area=100_000, lease_type="industrial",
+            start_date=BEGIN, term_months=12,
+            base_rent=MoneyRate(amount=10.0, unit=PSF_YR),
+            market_leasing_profile="MLA", upon_expiration=UponExpiration.market,
+        )
+        chain = resolve_lease_chain(lease, MONTHS, BEGIN, FLAT,
+                                    {"MLA": profile})
+        spec = chain[1]
+        assert spec.speculative and spec.start == pd.Period("2027-04", freq="M")
+        return spec
+
+    def test_opex_freezes_at_segment_start_electricity_net_from_dollar_one(self):
+        """OpEx (CAM) rises 10%/yr: 10,000/mo in 2026, 11,000 in 2027, 12,100
+        in 2028. Electricity is flat 10,000/mo. The speculative segment starts
+        2027-04, share 100%. The lease-start-relative OpEx pool freezes its
+        stop at the segment's own start year (2027 = 11,000/mo), so it recovers
+        **nothing** in 2027 and only the increase (1,100/mo) in 2028 — proving
+        it froze at 2027, not analysis year 1 (2026), which would have left a
+        1,000/mo excess in 2027. The sibling net Electricity pool recovers the
+        full 10,000/mo from the segment's first occupied month."""
+        cam = project(expense("CAM", 120_000,
+                              inflation=[YearRate(year=1, rate=10.0)]))
+        electricity = project(expense("Electricity", 120_000))
+        structure = RecoveryStructure(name="MLA BY+E", pools=[
+            RecoveryPool(expenses=["CAM"], method="base_year",
+                         base_year={"lease_start_relative": True}),
+            RecoveryPool(expenses=["Electricity"], method="net"),
+        ])
+        context = make_context(structure)
+        audit: list = []
+        series = project_segment_recoveries(
+            self._spec_segment(), MONTHS, [cam, electricity],
+            rentable_area=100_000, analysis_begin=BEGIN, inflation=FLAT,
+            context=context, audit=audit,
+        )
+        opex = next(a for a in audit if a.pool.startswith("pool 1"))
+        elec = next(a for a in audit if a.pool.startswith("pool 2"))
+        jun27, jun28 = pd.Period("2027-06", freq="M"), pd.Period("2028-06", freq="M")
+
+        # OpEx frozen at the 2027 segment start → nothing in 2027, increase in 2028
+        assert opex.recovery[jun27] == pytest.approx(0.0, abs=1e-6)
+        assert opex.recovery[jun28] == pytest.approx(1_100)  # 12,100 − 11,000
+        # Electricity net → full pro-rata from the first occupied month
+        assert elec.recovery[jun27] == pytest.approx(10_000)
+        assert elec.recovery[jun28] == pytest.approx(10_000)
+        # nothing posts before the segment starts (downtime/pre-start months)
+        assert series[pd.Period("2027-01", freq="M")] == pytest.approx(0.0)
+
+    def test_lease_start_relative_rejects_fixed_year(self):
+        """The flag is mutually exclusive with a fixed calendar year."""
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            RecoveryPool(expenses=["CAM"], method="base_year",
+                         base_year={"lease_start_relative": True, "year": 2027})
 
 
 class TestSystemBaseYearGrossUpUnlocked:

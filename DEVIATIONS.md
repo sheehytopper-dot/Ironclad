@@ -119,7 +119,9 @@ are fixed, not listed.
   year stops not reset) is not modeled: the MLP's `RecoveryAssignment` is
   explicit, and a base-year assignment on a speculative segment uses the
   segment's own start year as its base year (each rollover is a new
-  lease).
+  lease) — whether that assignment is the system `base_year` method or a
+  user structure with a `lease_start_relative` pool (§10, added 2026-07-08),
+  which resolve through the same shared window logic.
 - **Revisit when:** a golden's published cash flow demonstrably uses
   speculative-term CPI or rental-value-driven renewal rents and cannot be
   matched within tolerance without them (then the §3.6 schema grows the
@@ -248,6 +250,22 @@ are fixed, not listed.
   docstring). Freeport uses the year-only path (no real historical dollars
   exist past 2020); the override is a capability for future deals where the
   figure is actually known.
+- **Lease-start-relative user pools — GAP CLOSED (2026-07-08).** Previously
+  a user structure's pool base year could only be a fixed calendar
+  ``BaseYearSpec.year`` (or None → analysis year 1), while the *system*
+  ``base_year`` method already resolved each speculative segment's base year
+  to its own start year (§7 [AE pp. 405-406, 408-409]). So a two-pool
+  "BY + Util" structure (OpEx on a base year, Electricity net from dollar
+  one) could not be expressed on speculative/MLP segments, and Freeport's MLP
+  recoveries fell back to the system ``base_year`` method over *all* expenses
+  — recovering electricity only above its start-year level, not from dollar
+  one (named in Freeport ASSUMPTIONS §5 and README). ``BaseYearSpec`` now
+  carries ``lease_start_relative: bool`` (mutually exclusive with a fixed
+  ``year``); when set, ``_pool_recovery`` resolves the window through the same
+  shared ``_resolve_base_year_window(lease_start=segment_start)`` the system
+  method uses — architectural parity, no new manual-derived logic. Freeport's
+  MLPs now use a two-pool user structure (OpEx lease-start-relative +
+  Electricity net). See the before/after in that fixture's DISCREPANCY_LOG.
 - **Revisit when:** goldens #2/#4/#5 — Freeport (#2) is the base-year/
   stop coverage deal and will exercise most of this section within
   tolerance or drive corrections.
@@ -340,3 +358,45 @@ treats the Percentage Rent line as unverified.
 - **Revisit when:** never expected to be removed; if a future need is to
   override at monthly rather than annual granularity, extend rather than
   replace.
+
+## 13. Property revenues: v1 narrowings (spec §4.1 step 9)
+
+The misc / parking / storage property-revenue pass (`engine/calc/revenues.py`)
+shares the expense projection machinery. Three choices worth recording:
+
+- **%-of-EGR / %-of-PGR resolves self-consistently in the fixed point, not
+  as a single excluding-itself pass.** Spec §4.1 step 9 describes a
+  %-of-EGR revenue line as referencing "EGR excluding themselves … a single
+  second pass suffices," and §6 repeats that the single pass holds for
+  revenue items. A property-revenue line *is* part of PGR/EGR, so it is
+  genuinely self-referential; rather than build a second, subtly different
+  resolution path, it joins run.py's existing %-of-revenue fixed point (the
+  management-fee loop). The converged value is therefore rev = pct × *final*
+  EGR (i.e. pct/(1−pct) × EGR-excluding-the-line), the self-consistent
+  figure — not pct × EGR-excluding-the-line. The two differ only for a
+  %-of-EGR/PGR property-revenue line, of which **no golden fixture has one**
+  (Freeport's parking/other/pylon are all absolute-dollar lines), so the
+  choice is **externally unvalidated** until a deal uses it; the fixed-point
+  form is the established engine pattern and the contraction bound already
+  covers it (its pct adds to the Σ share×pct factor of §6).
+- **`pct_of_account` property revenue is deferred.** It references another
+  ledger account, the same dependency the expense `pct_of_account` unit
+  defers; run.py refuses it loudly and the module raises as a backstop. No
+  fixture needs it. First deal that does drives the account-reference
+  threading.
+- **`spaces_times_rate` (parking) treats the rate as an annual amount per
+  space** — monthly = number_of_spaces × amount / 12, occupancy-scaled by
+  `pct_fixed` like the other absolute units. The manual gives no numeric
+  example and no golden uses this unit (Freeport's parking is a
+  `dollars_per_year` line), so the annual-per-space convention is a
+  documented assumption to confirm against the first deal that uses it.
+- **General vacancy / credit loss apply to property revenue in the
+  percent-of-PGR base** (the vacancy module's existing contract — property
+  revenue is added to the PGR base unless `include_in_pgr_accounts` narrows
+  it). Whether a given OM subjects parking/misc income to general vacancy is
+  a golden-comparison (Step 7) question; the engine follows the spec's
+  PGR-inclusive definition by default.
+- **Revisit when:** the Freeport golden #2 comparison (Step 7) exercises the
+  absolute-dollar path against published figures; a future retail/mixed deal
+  with a %-of-EGR misc line or a `spaces_times_rate` parking line validates
+  the remaining choices.

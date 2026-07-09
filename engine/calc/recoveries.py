@@ -492,10 +492,18 @@ def _pool_recovery(pool: RecoveryPool, label: str, tenant: str,
             # are all bypassed (spec §3.14); the figure is taken as given.
             annual = spec.known_amount
         else:
-            window = _resolve_base_year_window(
-                spec.year if spec is not None else None, 0,
-                analysis_begin, where,
-            )
+            if spec is not None and spec.lease_start_relative:
+                # Base year = this segment's own start year, resolved by the
+                # same shared window logic the base_year system method uses
+                # [AE pp. 405-406, 408-409] — parity, not new behavior.
+                window = _resolve_base_year_window(
+                    None, 0, analysis_begin, where, lease_start=segment_start,
+                )
+            else:
+                window = _resolve_base_year_window(
+                    spec.year if spec is not None else None, 0,
+                    analysis_begin, where,
+                )
             window_gross = spec.gross_up_pct if spec is not None else None
             window_basis = _weighted_basis(weights, by_name, months,
                                            window_gross, context.occupancy,

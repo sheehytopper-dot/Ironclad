@@ -259,7 +259,7 @@
     },
     "BaseYearSpec": {
       "additionalProperties": false,
-      "description": "Base-year pool basis: expenses of a named calendar/fiscal year, value\nfrozen, optionally grossed up.\n\n``known_amount`` is the known frozen base-year pool as a TOTAL annual\ndollar figure (the pool's reimbursable expenses summed over the base year,\nbefore pro-rata division \u2014 the same quantity the computed base-year path\nproduces). When set, it is used directly and ``year`` becomes pure\ndocumentation of which calendar year the figure represents; the computed\nwindow and the pre-analysis fallback are bypassed (spec \u00a73.14).",
+      "description": "Base-year pool basis: expenses of a named calendar/fiscal year, value\nfrozen, optionally grossed up.\n\n``known_amount`` is the known frozen base-year pool as a TOTAL annual\ndollar figure (the pool's reimbursable expenses summed over the base year,\nbefore pro-rata division \u2014 the same quantity the computed base-year path\nproduces). When set, it is used directly and ``year`` becomes pure\ndocumentation of which calendar year the figure represents; the computed\nwindow and the pre-analysis fallback are bypassed (spec \u00a73.14).\n\n``lease_start_relative`` makes the base year each recovering segment's own\nstart year instead of a fixed calendar ``year`` \u2014 the same per-segment\nresolution the ``base_year`` system method already applies\n[AE pp. 405-406, 408-409] (a speculative rollover segment's base year is\nits own start; pre-analysis starts fall back to analysis year 1). It is\nmutually exclusive with a fixed ``year``. This lets a user structure put\nOpEx on a lease-start-relative base year beside a net Electricity pool \u2014\nthe \"BY + Util\" structure \u2014 on speculative/MLP segments (DEVIATIONS.md \u00a710\nclosing \u00a77).",
       "properties": {
         "year": {
           "anyOf": [
@@ -272,6 +272,11 @@
           ],
           "default": null,
           "title": "Year"
+        },
+        "lease_start_relative": {
+          "default": false,
+          "title": "Lease Start Relative",
+          "type": "boolean"
         },
         "fiscal": {
           "default": false,

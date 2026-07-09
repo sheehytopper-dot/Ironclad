@@ -97,12 +97,32 @@ class BaseYearSpec(StrictModel):
     produces). When set, it is used directly and ``year`` becomes pure
     documentation of which calendar year the figure represents; the computed
     window and the pre-analysis fallback are bypassed (spec §3.14).
+
+    ``lease_start_relative`` makes the base year each recovering segment's own
+    start year instead of a fixed calendar ``year`` — the same per-segment
+    resolution the ``base_year`` system method already applies
+    [AE pp. 405-406, 408-409] (a speculative rollover segment's base year is
+    its own start; pre-analysis starts fall back to analysis year 1). It is
+    mutually exclusive with a fixed ``year``. This lets a user structure put
+    OpEx on a lease-start-relative base year beside a net Electricity pool —
+    the "BY + Util" structure — on speculative/MLP segments (DEVIATIONS.md §10
+    closing §7).
     """
 
-    year: Optional[int] = None  # None = analysis year 1
+    year: Optional[int] = None  # None = analysis year 1 (unless lease_start_relative)
+    lease_start_relative: bool = False
     fiscal: bool = False
     gross_up_pct: Optional[float] = None
     known_amount: Optional[float] = None  # known frozen base-year pool TOTAL $/yr
+
+    @model_validator(mode="after")
+    def _check(self) -> "BaseYearSpec":
+        if self.lease_start_relative and self.year is not None:
+            raise ValueError(
+                "base_year: lease_start_relative and a fixed 'year' are "
+                "mutually exclusive"
+            )
+        return self
 
 
 class CapsFloors(StrictModel):

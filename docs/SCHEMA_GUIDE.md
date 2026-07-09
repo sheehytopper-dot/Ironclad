@@ -344,7 +344,7 @@ beside an uncapped tax pool in one structure.
 | `method` | `net` \| `stop` \| `base_year` \| `fixed` | `net` | |
 | `gross_up_pct` | float (0, 100] | null | gross variable expenses up to a stipulated occupancy; never gross down |
 | `base_amount_per_area` | float | null | required for `stop` |
-| `base_year` | `{year, fiscal, gross_up_pct, known_amount}` | null | `year` null = analysis year 1; a stated `year` ending before the analysis start falls back to analysis year 1. `known_amount` = the known frozen base-year pool as a **total annual dollar** figure (used directly, bypassing the window; `year` then documents which year it represents) |
+| `base_year` | `{year, lease_start_relative, fiscal, gross_up_pct, known_amount}` | null | `year` null = analysis year 1; a stated `year` ending before the analysis start falls back to analysis year 1. `lease_start_relative: true` makes the base year each recovering segment's own start year (parity with the `base_year` system method; mutually exclusive with a fixed `year`) — e.g. OpEx lease-start-relative beside a net Electricity pool, the "BY + Util" structure on speculative segments. `known_amount` = the known frozen base-year pool as a **total annual dollar** figure (used directly, bypassing the window; `year` then documents which year it represents) |
 | `fixed_amount` | float | null | required for `fixed` |
 | `fixed_inflation` | inflation override | null | |
 | `admin_fee_pct` | float | `0.0` | |

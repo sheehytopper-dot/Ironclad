@@ -69,24 +69,26 @@ year one. Two consequences for Step 7:
 
 ## Open calculation / engine questions this transcription surfaced
 
-These are flagged now so Step 7 starts with eyes open; none is resolved in the
-draft (that is calc work, out of scope here).
+These are the Step-7 comparison questions. Two originally-flagged engine gaps
+are now **closed** (property-revenue pass; MLP base-year split); the rest are
+adjudication points for the owner.
 
-1. **Property-revenue pass is phase-guarded.** `run.py` currently refuses
-   `parking_revenues` / `miscellaneous_revenues` (Phase 2 guard). This deal
-   has Parking, Other Income, and Pylon/Sign lines, so the §4.1 property-
-   revenue pass (two-pass for %-of-EGR) must be built before the comparison
-   runs. This is real Phase 2 scope, not a fixture question.
+1. **Property-revenue pass — built** (was a Phase-2 phase guard). The §4.1
+   property-revenue pass (two-pass for %-of-EGR) now exists, so Parking, Other
+   Income, and Pylon/Sign run through the engine; the three property-revenue
+   lines reconcile to the OM within tolerance in all 11 years.
 
-2. **MLP base-year + electricity-NNN split has no exact encoding**
-   (ASSUMPTIONS §5). A user structure's pool base year is a fixed calendar
-   year, not lease-start-relative, so speculative rollover leases can't get a
-   per-lease base-year stop *and* electricity-from-dollar-one in a user
-   structure. The draft uses the system `base_year` method (lease-start-
-   relative, correct per-segment) over all recoverable expenses — meaning
-   rollover tenants recover electricity only above its start-year level. A
-   small schema addition (lease-start-relative `BaseYearSpec` on a pool)
-   likely closes this; decide at Step 7.
+2. **MLP base-year + electricity-NNN split — CLOSED 2026-07-08**
+   (ASSUMPTIONS §5). The schema now carries `BaseYearSpec.lease_start_relative`
+   (DEVIATIONS.md §10), and both office MLPs use a two-pool user structure —
+   OpEx on a lease-start-relative base year + Electricity net from dollar one —
+   matching the OM's "BY + Util". This closed the rollover-year recovery gap
+   (FY2031–FY2037 Expense Reimbursement now within ~$7K–$25K, was $200K+). **A
+   separate residual remains** (not this gap): contract tenants' pre-analysis
+   base years (2017–2025) still resolve to analysis year 1, understating
+   FY2027–FY2029 recoveries — resolvable only with the seller's actual
+   historical stops (DEVIATIONS.md §10), an owner-data question, not an
+   encoding one.
 
 3. **General-vacancy basis is unconfirmed** (ASSUMPTIONS §8). The OM states
    the 5% rate and the near-zero FY2028 value implies the A&T offset, but the

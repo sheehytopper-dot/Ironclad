@@ -83,7 +83,8 @@
       "free_rent_months_renew": 5.0,
       "free_rent_profile": "Base Rent Only",
       "recoveries": {
-        "method": "base_year"
+        "method": "structure",
+        "structure_ref": "MLA BY + Util"
       },
       "ti_new": {
         "amount": 20.0,
@@ -140,7 +141,8 @@
       "free_rent_months_renew": 5.0,
       "free_rent_profile": "Base Rent Only",
       "recoveries": {
-        "method": "base_year"
+        "method": "structure",
+        "structure_ref": "MLA BY + Util"
       },
       "ti_new": {
         "amount": 20.0,
@@ -208,6 +210,38 @@
     }
   ],
   "recovery_structures": [
+    {
+      "name": "MLA BY + Util",
+      "pools": [
+        {
+          "expenses": [
+            "Utilities",
+            "Personnel Expenses",
+            "Janitorial",
+            "Trash Removal",
+            "Management Fees",
+            "Supplies/R&M/Contract Services",
+            "Administrative Expenses",
+            "Insurance",
+            "Margin Tax",
+            "Real Estate Tax"
+          ],
+          "method": "base_year",
+          "base_year": {
+            "lease_start_relative": true,
+            "gross_up_pct": 95.0
+          },
+          "gross_up_pct": 95.0
+        },
+        {
+          "expenses": [
+            "Electricity"
+          ],
+          "method": "net",
+          "gross_up_pct": 95.0
+        }
+      ]
+    },
     {
       "name": "BY 2017 + E",
       "pools": [

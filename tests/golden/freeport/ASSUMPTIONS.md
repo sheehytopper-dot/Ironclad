@@ -109,7 +109,7 @@ Renewal options at FMV throughout the rent roll are not separately modeled:
 | Abatements (new/renewal) | 5 / 5 months (the p. 53 table prints "5 / 5" every year) — base-rent-only assumed (§10 flag 3) | 0 / 0 |
 | TI (new/renewal) | $20 / $10 PSF (blended $12.50 = 25%×20 + 75%×10 ✓) | $0 |
 | LC | 6.75% / 6.75% | 0% |
-| Reimbursement | "BY + Util (95% GU)" → system `{method: base_year}`, lease-start-relative (see §5) | None |
+| Reimbursement | "BY + Util (95% GU)" → user structure "MLA BY + Util": OpEx lease-start-relative base year + Electricity net (see §5) | None |
 | Renewal market rent | One market rent printed → renewal = 100% of new | same |
 
 **Office MLA (Hard Vacate)** is the same profile with `renewal_probability: 0`
@@ -165,17 +165,23 @@ Whether ARGUS itself used analysis-year-1 stops for these pre-analysis
 leases (it should, per [AE p. 377]) is confirmed at Step 7 against the
 published **Expense Reimbursement** line, which adjudicates per the ladder.
 
-**MLP "BY + Util" gap (open engine question, unchanged):** speculative
-rollover leases should get a base-year stop frozen at each lease's own start
-year **plus** electricity NNN from dollar one. A user structure's pool-level
-base year is a fixed calendar year (with the new fallback for pre-analysis
-years), not lease-start-relative, so the fixture encodes the MLP's recoveries
-as the **system** `{method: base_year}` — lease-start-relative, correct
-per speculative segment — over *all* recoverable expenses in one pool. The
-difference vs the OM: rollover tenants recover electricity only above its
-start-year level instead of from dollar one (understatement growing with
-rollover). Flagged for Step 7 — likely a small schema addition
-(lease-start-relative pool base year) before comparison.
+**MLP "BY + Util" gap — CLOSED 2026-07-08.** Speculative rollover leases get a
+base-year stop frozen at each segment's own start year **plus** electricity NNN
+from dollar one. This previously had no user-pool encoding (a pool base year was
+a fixed calendar year only), so the fixture fell back to the **system**
+`{method: base_year}` over *all* recoverable expenses, recovering electricity
+only above its start-year level instead of from dollar one. The schema now
+carries `BaseYearSpec.lease_start_relative` (DEVIATIONS.md §10), and both office
+MLPs use a two-pool user structure **"MLA BY + Util"** — OpEx pool on a
+lease-start-relative base year (95% GU) beside an Electricity net pool (95% GU),
+matching the OM's stated structure. This closed the rollover-year recovery gap
+(FY2031–FY2037 Expense Reimbursement now within ~$7K–$25K of the OM, was
+$200K+); see DISCREPANCY_LOG.md. **A separate residual remains and is NOT this
+gap:** the *contract* tenants' stated pre-analysis base years (2017–2025) still
+resolve to analysis year 1 (no pre-analysis ledger data; §5 above,
+DEVIATIONS.md §10), so FY2027–FY2029 recoveries stay understated — resolvable
+only with the seller's actual historical stops (the `known_amount` override,
+unpopulated), not with this fix.
 
 **Cross-check impact of this recovery change on §2 and §6:**
 - **§2 (inflation)** — unaffected. The market-rent and antenna ladders verify
@@ -286,8 +292,10 @@ months after expiration at JLL MLA terms" [OM p. 52] → one `AbsorptionSpec`:
    [AE pp. 377, 408] resolves the pre-analysis ones to analysis year 1. No
    fabricated stop; the known-amount override is left unpopulated (no real
    historical figure exists).
-2. **MLP "BY + Util" split** encoded as the system base-year method (§5) —
-   known electricity-NNN understatement on rollover; Step 7 decision.
+2. **MLP "BY + Util" split** — closed 2026-07-08: encoded as the user
+   structure "MLA BY + Util" (OpEx lease-start-relative base year + Electricity
+   net), via the new `BaseYearSpec.lease_start_relative` field (§5;
+   DEVIATIONS.md §10). Rollover-year electricity now recovers from dollar one.
 3. **MLA abatements "5 / 5"** [OM p. 53] read as 5 months new / 5 months
    renewal; base-rent-only abatement assumed (the OM does not specify which
    charges abate). Contract abatements (OKI/Aqore/Jetvia) are stated as

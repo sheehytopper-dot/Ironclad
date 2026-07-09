@@ -27,11 +27,18 @@ step 7) projects per segment over occupied months — the lease's spec on
 the contract term, the MLP's on speculative terms [AE p. 376] — and is
 **externally unvalidated pending golden #3** (CLAUDE.md standing gap).
 
+Property revenues (misc / parking / storage, spec §4.1 step 9): absolute-
+amount lines project once and join PGR; %-of-EGR / %-of-PGR lines re-enter
+EGR through PGR, so they resolve inside the same %-of-revenue fixed point
+as the management fee (self-consistent, DEVIATIONS.md §13). ``pct_of_account``
+property revenue is deferred (refused loudly).
+
 The %-of-EGR fixed point (spec §4.1 step 9; DEVIATIONS.md §6). A
 recoverable %-of-EGR expense — the Clorox-shape management fee — feeds
 back into EGR through the net recovery pool, so this module iterates
 fee → recoveries → EGR → fee to convergence (a contraction whose factor
 is share × pct). Golden #1 confirms: Management Fee = 3% of *final* EGR.
+The %-of-EGR/PGR property-revenue lines join this same loop.
 
 Per-area expense units are denominated on Property Size (gross building
 area, spec §3.2/§3.11); occupied/available-area units and ``pct_fixed``
@@ -72,6 +79,10 @@ from engine.calc.recoveries import (
     RecoveryContext,
     project_segment_recoveries,
 )
+from engine.calc.revenues import (
+    PCT_UNITS as REVENUE_PCT_UNITS,
+    project_property_revenue,
+)
 from engine.calc.timeline import build_month_index
 from engine.calc.vacancy import (
     TenantRevenue,
@@ -83,6 +94,8 @@ from engine.models import (
     ExpenseUnit,
     FreeRentProfile,
     PropertyModel,
+    PropertyRevenue,
+    RevenueUnit,
     UponExpiration,
 )
 
@@ -115,6 +128,7 @@ class RunResult:
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
+    property_revenue: pd.Series                     # parking/storage/misc total
 
 
 def _phase_guards(model: PropertyModel) -> None:
@@ -128,8 +142,11 @@ def _phase_guards(model: PropertyModel) -> None:
                 "remove the input or wait for that phase"
             )
 
-    refuse(bool(model.miscellaneous_revenues or model.parking_revenues
-                or model.storage_revenues), "property revenues", "Phase 2")
+    for rev in (list(model.miscellaneous_revenues) + list(model.parking_revenues)
+                + list(model.storage_revenues)):
+        refuse(rev.unit == RevenueUnit.pct_of_account,
+               f"property revenue {rev.name!r}: unit 'pct_of_account'",
+               "a later phase (DEVIATIONS.md §13)")
     refuse(bool(model.loans), "debt", "Phase 3")
     for lease in model.rent_roll:
         where = f"lease {lease.tenant_name!r}: "
@@ -289,6 +306,30 @@ def run_property(model: PropertyModel) -> RunResult:
     pct_items = [i for i in model.expenses if i.unit in PCT_UNITS]
     fixed_series = [(item, project(item)) for item in fixed_items]
 
+    # Pass 9: property revenues (misc / parking / storage, spec §4.1 step 9).
+    # Absolute-amount lines are EGR-independent and project once; %-of-EGR/PGR
+    # lines re-enter EGR through PGR, so they join the fixed point below (the
+    # same shape as the recoverable management fee — DEVIATIONS.md §6, §13).
+    def project_revenue(item: PropertyRevenue,
+                        reference: Optional[pd.Series] = None) -> pd.Series:
+        return project_property_revenue(
+            item, months, begin, model.inflation, area=area,
+            occupancy=occupancy, occupied_area=occupied,
+            available_area=available, reference=reference,
+        )
+
+    all_revenues = (list(model.miscellaneous_revenues)
+                    + list(model.parking_revenues)
+                    + list(model.storage_revenues))
+    rev_pct_items = [r for r in all_revenues if r.unit in REVENUE_PCT_UNITS]
+    rev_abs_items = [r for r in all_revenues if r.unit not in REVENUE_PCT_UNITS]
+    property_revenue_fixed = sum(
+        (project_revenue(r) for r in rev_abs_items),
+        pd.Series(0.0, index=months),
+    )
+    rev_pct_series = {r.name: pd.Series(0.0, index=months)
+                      for r in rev_pct_items}
+
     # Pass 6 + passes 9-10 inside one fixed point (spec §4.1;
     # DEVIATIONS.md §6): recoveries feed EGR; general vacancy and credit
     # loss deduct from it (their bases include recoveries); a %-of-EGR fee
@@ -344,9 +385,11 @@ def run_property(model: PropertyModel) -> RunResult:
             for tenant, segments in chains.items()
         }
 
-    def property_flows(expense_series, audit: Optional[list] = None):
-        """Recoveries → vacancy/credit loss → Total PGR / EGR, exactly as
-        the ledger defines them (spec §4.1 steps 6, 10)."""
+    def property_flows(expense_series, property_revenue_total,
+                       audit: Optional[list] = None):
+        """Recoveries → property revenue → vacancy/credit loss → Total PGR /
+        EGR, exactly as the ledger defines them (spec §4.1 steps 6, 9, 10).
+        Property revenue joins PGR and the percent-of-PGR vacancy base."""
         recoveries = recoveries_from(expense_series, audit=audit)
         tenants = {
             tenant: TenantRevenue(
@@ -361,22 +404,31 @@ def run_property(model: PropertyModel) -> RunResult:
             for tenant in chains
         }
         gv = general_vacancy_series(model.general_vacancy, tenants, months,
-                                    begin, timing_basis)
+                                    begin, timing_basis,
+                                    property_revenue=property_revenue_total)
         cl = credit_loss_series(model.credit_loss, tenants, gv, months,
-                                begin, timing_basis)
+                                begin, timing_basis,
+                                property_revenue=property_revenue_total)
         recovery_total = sum(recoveries.values(),
                              pd.Series(0.0, index=months))
         pgr = (base_total + absorption_total + free_total + cpi_total
-               + pct_rent_total + recovery_total)
+               + pct_rent_total + recovery_total + property_revenue_total)
         egr = pgr + gv + cl
         return recoveries, gv, cl, pgr, egr
+
+    def property_revenue_from_state() -> pd.Series:
+        return property_revenue_fixed + sum(
+            rev_pct_series.values(), pd.Series(0.0, index=months)
+        )
 
     for _ in range(_MAX_FIXED_POINT_ROUNDS):
         expense_series = fixed_series + [
             (item, pct_series[item.name]) for item in pct_items
         ]
-        recoveries, gv, cl, pgr, egr = property_flows(expense_series)
-        if not pct_items:
+        property_revenue_total = property_revenue_from_state()
+        recoveries, gv, cl, pgr, egr = property_flows(expense_series,
+                                                      property_revenue_total)
+        if not pct_items and not rev_pct_items:
             break
         delta = 0.0
         for item in pct_items:
@@ -384,6 +436,12 @@ def run_property(model: PropertyModel) -> RunResult:
             updated = project(item, reference=reference)
             delta = max(delta, float((updated - pct_series[item.name]).abs().max()))
             pct_series[item.name] = updated
+        for rev in rev_pct_items:
+            reference = egr if rev.unit == RevenueUnit.pct_of_egr else pgr
+            updated = project_revenue(rev, reference=reference)
+            delta = max(delta,
+                        float((updated - rev_pct_series[rev.name]).abs().max()))
+            rev_pct_series[rev.name] = updated
         if delta < _FIXED_POINT_TOL:
             expense_series = fixed_series + [
                 (item, pct_series[item.name]) for item in pct_items
@@ -391,14 +449,16 @@ def run_property(model: PropertyModel) -> RunResult:
             break
     else:
         raise ValueError(
-            "%-of-revenue expenses did not converge — their combined "
+            "%-of-revenue lines did not converge — their combined "
             "percentages likely meet or exceed 100% of revenue"
         )
 
     # Final pass with the converged fee, collecting the per-tenant per-pool
     # audit detail the Recovery Audit report consumes (spec §7 report 18).
+    property_revenue_total = property_revenue_from_state()
     recovery_audit: list[PoolAudit] = []
     recoveries, gv, cl, pgr, egr = property_flows(expense_series,
+                                                  property_revenue_total,
                                                   audit=recovery_audit)
 
     ledger = assemble_ledger(
@@ -408,6 +468,7 @@ def run_property(model: PropertyModel) -> RunResult:
         expenses=expense_series,
         absorption_vacancy=absorption_total,
         percentage_rent=pct_rent_total,
+        property_revenue=property_revenue_total,
         general_vacancy=gv,
         credit_loss=cl,
     )
@@ -424,4 +485,5 @@ def run_property(model: PropertyModel) -> RunResult:
         recoveries=recoveries, recovery_audit=recovery_audit,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
+        property_revenue=property_revenue_total,
     )
