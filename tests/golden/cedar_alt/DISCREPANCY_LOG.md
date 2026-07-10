@@ -47,6 +47,17 @@ tolerance), and leaves a +$1,080 echo in FY2033 (speculative-term step timing
 around Bldg 1's May-31 expiry). An adjudication of timing convention, not an
 input to tune.
 
+### Owner adjudication (2026-07-10)
+
+The residual — five misses, all under $6,000, ~0.07% of GPR, concentrated in
+FY2027–FY2030 while Crane's April-1 step is in force, plus the $1,080 echo in
+FY2033 — is almost certainly ARGUS's day-count/proration convention around
+Crane's mid-fiscal-year rent step versus the engine's flat monthly posting.
+**The OM does not state its proration method anywhere in the document.**
+Given the immaterial dollar impact and the owner's resource constraints, this
+is **accepted as-is and not pursued further** — do not tune the engine or
+fixture to close it. **Root cause A is adjudicated — closed.**
+
 ### Base Rental Revenue — 5 misses
 | FY | engine | published | delta |
 |---|--:|--:|--:|
@@ -207,10 +218,17 @@ standing after the 2026-07-09 adjudication:
   their cascade into Scheduled Base, Total PGR, EGR, Management Fee, Total
   OpEx, and NOI) remain in the tables above as accepted deltas, not open
   questions.
-- **A (day-count residual, FY2027–FY2030) — OPEN**, awaiting owner per-cell
-  adjudication (confirmed to the dollar against ASSUMPTIONS §3's prediction).
+- **A (day-count residual, FY2027–FY2030 + FY2033 echo) — ADJUDICATED, CLOSED
+  (2026-07-10).** Owner determination: almost certainly ARGUS's
+  day-count/proration convention around Crane's mid-fiscal-year rent step vs
+  the engine's flat monthly posting; the OM does not state its proration
+  method; immaterial (all five misses under $6,000, ~0.07% of GPR) and not
+  pursued further given owner resource constraints. Its misses (and their
+  cascade) remain in the tables above as accepted deltas, not open questions.
 - **B (rollover-year recovery timing, FY2031/2034/2036) — OPEN**, awaiting
-  owner per-cell adjudication.
+  owner per-cell adjudication (manual investigation of the recovery-timing
+  convention reported to the owner 2026-07-10; see the [AE p. 520]
+  Calculation Frequency policy finding).
 
 Both pre-flagged README open questions clustered exactly where predicted, and
 no other divergence exists: the seven non-rollover years miss only by the
