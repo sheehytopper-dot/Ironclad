@@ -168,9 +168,13 @@ narrowings, in DEVIATIONS.md §11. The external-validation gap stands.
 
 ## Step 9 — Gate 2 review (owner)
 
-Both golden comparisons (#2, #4) green in the same pytest run alongside
-golden #1 (FY2027-FY2031 revenue scope), audit reports owner-reviewed,
-discrepancy logs written. Then — and only then — Phase 3 (Iron Rule 2).
+Goldens #2 and #4 have all root causes adjudicated closed except Freeport B
+(general-vacancy basis) and Cedar Alt B (rollover recovery timing), both
+explicitly deferred to beta-stage GUI testing (owner decision 2026-07-10) —
+the two golden tests remain **red by design, not green**, and that is the
+accepted Gate 2 state, not a blocker. Audit reports owner-reviewed
+(criterion 3, satisfied 2026-07-09); discrepancy logs written and fully
+adjudicated. Then — and only then — Phase 3 (Iron Rule 2).
 
 ---
 
