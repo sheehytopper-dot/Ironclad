@@ -64,6 +64,20 @@ publish those historical stops, so this cannot be closed without the seller's
 Argus file or per-tenant operating history (the `known_amount` override exists
 for exactly that, unpopulated here).
 
+### Owner adjudication (2026-07-10) — A1 closed
+
+This residual was already decided by the **standing 2026-07-07 owner directive
+recorded in ASSUMPTIONS.md §5**: every tenant carries its true stated base
+year, **no fabricated base-year stop** is permitted, and the `known_amount`
+override was **deliberately left unpopulated because no real historical figure
+exists past 2020**. The gap is therefore unclosable without the seller's
+actual Argus file (or per-tenant operating history), which is not available.
+The engine's analysis-year-1 fallback is the manual-cited behavior
+[AE pp. 377, 408] applied to inputs that honestly lack pre-analysis data. Its
+misses (Expense Recovery Revenue FY2027–FY2029 and the residual tail, plus
+their cascade) remain in the tables as accepted deltas. **Root cause A1 is
+adjudicated — accepted, closed.**
+
 ### Expense Recovery Revenue — 11 misses (rollover years near tolerance; early years residual A1)
 | FY | engine | published | delta |
 |---|--:|--:|--:|
@@ -109,6 +123,19 @@ that larger base. Basis still an owner adjudication.
 Unchanged by the recovery fix. The two lines miss by near-equal-and-opposite
 amounts and net to the small Scheduled Base Rental Revenue residual (within
 tolerance FY2027–FY2028; $1.2K–$5.7K FY2029–FY2037).
+
+### Owner adjudication (2026-07-10) — C closed
+
+The gross-up-to-market presentation is the **deliberate, manual-cited
+convention recorded in DEVIATIONS.md §8** [AE p. 538]: vacant/downtime space
+posts its market value to Base Rental Revenue with the offsetting Absorption
+& Turnover Vacancy entry, and the §8 correction was **confirmed by test that
+Scheduled/EGR/NOI are unaffected regardless of presentation** — the two big
+gross-line deltas are two views of the same figure, not an economic
+disagreement. The remaining Scheduled Base residual ($1.2K–$5.7K in
+FY2029–FY2037) is a month-by-month market-rent timing nuance that annual OM
+data cannot discriminate. Its misses remain in the tables as accepted deltas.
+**Root cause C is adjudicated — correct as designed, closed.**
 
 ### Base Rental Revenue — 11 misses
 | FY | engine | published | delta |
@@ -158,6 +185,25 @@ tolerance FY2027–FY2028; $1.2K–$5.7K FY2029–FY2037).
 ## Root cause D — Variable-expense occupancy scaling (ASSUMPTIONS §6)
 
 Unchanged by the recovery fix.
+
+### Owner adjudication (2026-07-10) — D closed
+
+**Engine verification first (2026-07-10):** the variable-expense projection is
+monthly-correct. `project_expense` evaluates each active month individually,
+scaling the variable portion by that month's actual occupancy —
+`scale = fixed + (1 − fixed) × occupancy[period]`
+(`engine/calc/expenses.py:116`; `_occupancy_at` reads the specific month's
+value at expenses.py:66-69), where run.py supplies the monthly
+`occupancy_series(occupied_area_from_chains(…), rentable)` (run.py:224-226,
+300). No annual-average or other non-monthly approximation exists in the path.
+The residual is therefore **purely the CY2026 input-derivation limitation
+recorded in ASSUMPTIONS.md §6**: JLL's real monthly budget is not published,
+so the CY2026 bases for the three 30%-fixed lines were necessarily back-solved
+from a single annual occupancy average (the published FY2027 96.3%), and
+ASSUMPTIONS §6 already anticipated the outcome — "Owner QA may substitute
+actual budget figures; otherwise the published lines adjudicate." Its misses
+(Electricity/Janitorial/Utilities, hundreds to ~$10.6K) remain in the tables
+as accepted deltas. **Root cause D is adjudicated — accepted, closed.**
 
 ### Electricity — 11 misses
 | FY | engine | published | delta |
@@ -300,11 +346,28 @@ Unchanged by the recovery fix.
 
 Golden #2 comparison **not reconciled** — `test_freeport.py`'s Gate 2 assertion
 fails with the 137 line-years above (down from 144); the two invariant tests
-(monthly = fiscal annual; fiscal-year coverage) pass. The MLP "BY + Util"
-structural gap (A2) is now closed; the remaining misses are the pre-existing
-documented open questions — contract pre-analysis base years (A1, DEVIATIONS
-§10), general-vacancy basis (B, ASSUMPTIONS §8), the offsetting Base/A&T
-gross-up (C, DEVIATIONS §8), and the variable-expense inputs (D, ASSUMPTIONS
-§6) — plus their cascade. No input was tuned to reduce them. Resolution of A1
-(actual historical stops) and B (basis decision) is owner adjudication, not
-undertaken here.
+(monthly = fiscal annual; fiscal-year coverage) pass. Root-cause standing
+after the 2026-07-10 adjudications:
+
+- **A2 (MLP "BY + Util" electricity split) — CLOSED (2026-07-08)** via the
+  lease-start-relative pool structure (DEVIATIONS.md §10).
+- **A1 (contract pre-analysis base years) — ADJUDICATED, CLOSED
+  (2026-07-10).** Already decided by the standing 2026-07-07 directive
+  (ASSUMPTIONS §5): true stated years, no fabricated stops, `known_amount`
+  deliberately unpopulated; unclosable without the seller's Argus file.
+  Accepted deltas.
+- **C (Base/A&T offsetting gross-up) — ADJUDICATED, CLOSED (2026-07-10).**
+  Deliberate manual-cited presentation (DEVIATIONS.md §8 [AE p. 538]),
+  test-confirmed EGR/NOI-neutral; the small Scheduled Base residual is
+  undiscriminable from annual data. Correct as designed.
+- **D (variable-expense inputs) — ADJUDICATED, CLOSED (2026-07-10).** Engine
+  scaling verified monthly-correct (expenses.py:116 against the monthly
+  occupancy series); the residual is the ASSUMPTIONS §6 CY2026 back-solve
+  limitation (JLL's monthly budget unpublished). Accepted deltas.
+- **B (general-vacancy basis, ASSUMPTIONS §8) — OPEN, parked** per the
+  owner's 2026-07-08 review: the 5% basis is undeterminable from annual OM
+  data; awaiting owner per-cell adjudication.
+
+All 137 misses now trace to closed/accepted causes plus open-B and their
+cascade. No input was tuned to reduce them; nothing in this log alters the
+fixture or the engine.
