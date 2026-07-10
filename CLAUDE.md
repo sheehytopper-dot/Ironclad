@@ -161,8 +161,8 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 1 PASSED
-  (owner declaration 2026-07-05); Phase 2 begins.** Phase 1 shipped 2026-07-05:
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 2 PASSED
+  (owner declaration 2026-07-10); Phase 3 begins.** Phase 1 shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -279,21 +279,32 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   module is externally unvalidated pending golden #3** — any retail
   underwriting before that back-test treats the Percentage Rent line as
   unverified.
-- **Next session's first prompt:** "Phase 2 engine work (Steps 1-6, 8) is
-  complete; suite 245 green. Gate 2 now blocks entirely on owner-gated items.
-  Check with the owner: (a) has the audit-report review happened (dump with
-  scripts/dump_audits.py on any fixture — reviewing both reports is a Gate 2
-  criterion), and (b) have any golden #2/#4 fixtures been staged
-  (NEXT_STEPS_TO_GATE2.md Step 0)? If a fixture has landed owner-verified:
-  Step 7 — write its comparison test (same shape as the Clorox Gate 1 test:
-  fiscal-year, $500/line, misses to a DISCREPANCY_LOG and owner per-cell
-  adjudication, never input tuning; verify Freeport is genuinely multi-tenant
-  with base-year/stop recoveries when staging it — escalate if not). While a
-  comparison runs, remember Freeport exercises the DEVIATIONS.md §10 recovery
-  policies and any percentage-rent line in an OM is golden #3 material (standing
-  opportunistic intake). If nothing is staged and the audits are unreviewed,
-  there is NO engine work to invent — do not start Phase 3 (Iron Rule 2) and do
-  not scaffold cancelled intake ('Phase 7'). Useful holding-pattern work only if
-  the owner asks: hand-verify audit dumps, tighten docs. REMEMBER the standing
-  gap (CLAUDE.md): percentage rent is externally unvalidated pending golden #3.
-  Commit, push, update the progress note and this prompt."
+  **GATE 2 PASSED (owner declaration 2026-07-10) — final path:** Cedar Alt's
+  Step 7 comparison test built 2026-07-09 (47/165 line-years beyond $500,
+  mirroring Freeport's 137/242). Freeport root causes A1/C/D and Cedar Alt
+  A/C adjudicated closed 2026-07-10 — each citing its existing owner
+  directive or manual-cited design decision (A1: the 2026-07-07 no-fabricated-
+  stops directive; C: the [AE p. 538] gross-up presentation, EGR/NOI-neutral
+  by test; D: monthly-correct scaling verified at expenses.py:116, residual =
+  the ASSUMPTIONS §6 back-solve limitation; Cedar A: day-count immaterial;
+  Cedar C: OM free-rent inconsistency), **not new engine work**. Freeport B
+  (general-vacancy basis) and Cedar Alt B (rollover recovery timing — the
+  [AE p. 520] Calculation Frequency candidate) explicitly deferred to
+  beta-stage GUI testing; the two golden gate assertions stay red by design.
+  Audit-report review satisfied 2026-07-09 (Freeport audits.xlsx,
+  reconciliation clean); turnover/general-vacancy double-count criterion
+  verified passing. Documentation synced across BUILD_SCHEDULE.md,
+  NEXT_STEPS_TO_GATE2.md (closed), and both DISCREPANCY_LOG.md files.
+- **Next session's first prompt:** "Gate 2 has passed (2026-07-10); Phase 3
+  (capital & valuation — spec §10, BUILD_SCHEDULE.md Week 7) begins. First
+  task: draft NEXT_STEPS_TO_GATE3.md, the same kind of session-by-session
+  breakdown NEXT_STEPS_TO_GATE2.md provided for Phase 2 — read spec §10's
+  Phase 3 scope and §4.1's remaining passes (TIs/LCs posting on rollover,
+  purchase/closing costs, the debt engine, resale methods, PV under all
+  discounting conventions, both IRRs, sensitivity matrices) plus
+  BUILD_SCHEDULE.md's existing Week 7 outline, and produce a step sequence
+  with an explicit Gate 3 checklist, flagging any owner-gated items (e.g.
+  loan terms, resale cap rate assumptions) the same way golden fixture
+  staging was flagged in Phase 2. Do not start writing Phase 3 engine code
+  before that plan exists and Topper has seen it (Iron Rule 2 applies to
+  session planning too — don't skip the map)."

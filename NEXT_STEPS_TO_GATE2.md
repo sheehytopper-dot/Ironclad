@@ -1,5 +1,7 @@
 # NEXT STEPS TO GATE 2
 
+**Closed 2026-07-10 — Gate 2 passed.**
+
 The concrete path from Gate 1 (**passed 2026-07-05**) through Phase 2 —
 market machinery (spec §10) — to **Gate 2**. Companion to the closed
 [NEXT_STEPS_TO_GATE1.md](NEXT_STEPS_TO_GATE1.md); same standing rules
