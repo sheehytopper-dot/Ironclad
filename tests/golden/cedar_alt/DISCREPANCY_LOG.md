@@ -97,6 +97,23 @@ adjudication** against the source OM; the fixture's MLA inputs are the OM's
 stated "Free Rent (5FY Duration; BR Only) 3.0 / 1.0 / WA 1.50" [OM p. 27] and
 were not tuned.
 
+### Owner adjudication (2026-07-09)
+
+The OM's published free rent is **zero** on the FY2034 and FY2036 rollovers
+despite the OM's own stated MLA terms (3.0 months new / 1.0 renewal, weighted
+1.5) calling for free rent on every rollover — which is what the engine
+correctly applies. **Owner determination:** this is most likely a broker-side
+override on the published pro forma (a common practice to present stronger NOI
+in the year a large tenant's lease rolls, which is precisely FY2034's dollar
+impact), or an unrecorded per-tenant renewal assumption not visible anywhere
+in the OM's text — and it is **unconfirmable without the source Argus file,
+which is not available**. **Do not tune the engine or the fixture to match
+the OM's zero.** The engine's figures (−950,298 FY2034; −303,410 FY2036) are
+treated as the mechanically correct output given the OM's own stated leasing
+assumptions, and this divergence is logged as an **accepted, unconfirmable OM
+inconsistency** rather than an open engine question. **Root cause C is
+adjudicated — closed.**
+
 ### Free Rent — 2 misses
 | FY | engine | published | delta |
 |---|--:|--:|--:|
@@ -177,15 +194,27 @@ resolves them.
 
 Golden #4 comparison **FAILS** — `test_cedar_alt.py`'s Gate 2 assertion fails
 with the 47 line-years above (118 of 165 within tolerance); the two invariant
-tests (monthly = fiscal annual; fiscal-year coverage) pass. Why it fails, in
-order of dollar impact: (C) the engine posts MLA free rent on the FY2034 and
-FY2036 rollovers where the OM's published line shows zero — a new finding for
-owner per-cell adjudication; (B) the pre-flagged rollover-year recovery timing
-in FY2031/2034/2036; (A) the pre-flagged ~0.07% day-count residual in
-FY2027–FY2030 (confirmed to the dollar against ASSUMPTIONS §3's prediction).
+tests (monthly = fiscal annual; fiscal-year coverage) pass. Root-cause
+standing after the 2026-07-09 adjudication:
+
+- **C (rollover free rent) — ADJUDICATED, CLOSED (2026-07-09).** Owner
+  determination: an accepted, unconfirmable OM inconsistency (likely a
+  broker-side pro-forma override or an unrecorded per-tenant renewal
+  assumption; unconfirmable without the source Argus file, which is not
+  available). The engine's figures stand as the mechanically correct output
+  of the OM's own stated MLA terms; neither the engine nor the fixture is to
+  be tuned to match the OM's zero. Its misses (Free Rent FY2034/FY2036 and
+  their cascade into Scheduled Base, Total PGR, EGR, Management Fee, Total
+  OpEx, and NOI) remain in the tables above as accepted deltas, not open
+  questions.
+- **A (day-count residual, FY2027–FY2030) — OPEN**, awaiting owner per-cell
+  adjudication (confirmed to the dollar against ASSUMPTIONS §3's prediction).
+- **B (rollover-year recovery timing, FY2031/2034/2036) — OPEN**, awaiting
+  owner per-cell adjudication.
+
 Both pre-flagged README open questions clustered exactly where predicted, and
 no other divergence exists: the seven non-rollover years miss only by the
 day-count residual, and A&T Vacancy, General Vacancy, CAM, Utilities,
 Insurance, and Real Estate Taxes (via `annual_overrides`) are clean in all
-eleven years. No input was tuned; resolution is owner adjudication
+eleven years. No input was tuned; resolution of A and B is owner adjudication
 (NEXT_STEPS_TO_GATE2.md; Clorox README ladder), not undertaken here.
