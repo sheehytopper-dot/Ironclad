@@ -16,7 +16,9 @@ market machinery (spec §10) — to **Gate 2**. Companion to the closed
    owner-approved 2026-07-03 phasing deferred them to Gate 2; TI/LC/capital
    lines wait for Gate 3).
 3. **Lease Audit and Recovery Audit reports** built, reconciling exactly to
-   the ledger, and **owner-reviewed**.
+   the ledger, and **owner-reviewed** — **SATISFIED (owner decision
+   2026-07-09): reviewed via tests/golden/freeport/freeport.audits.xlsx,
+   reconciliation confirmed clean.**
 4. **Percentage rent** built with the manual's worked-example unit tests
    (Iron Rule 3) but **externally unvalidated pending golden #3** (standing
    opportunistic intake, owner decision 2026-07-05).
@@ -123,7 +125,13 @@ that follows. It must reconcile exactly to the ledger.
 `engine/reports/`: Lease Audit (spec §7 report 16 — per-tenant monthly
 rent build-up: base, steps, CPI, free, recoveries, % rent as built so
 far), reconciling exactly to the ledger. **Owner review of both audit
-reports — this one and Step 5's Recovery Audit — is a Gate 2 criterion.**
+reports — this one and Step 5's Recovery Audit — happened 2026-07-09 via
+the Freeport audit dump (`tests/golden/freeport/freeport.audits.xlsx`,
+`scripts/dump_audits.py`): both sheets present, reconciliation clean
+(floating-point noise only), and the dump used to trace real findings
+(e.g. Five Point Dental Specialists as Freeport's largest single A&T
+Vacancy driver). Criterion 3 is closed; no fixture-by-fixture re-review
+required — the report format is what was being validated.**
 
 ## Step 7 — Golden comparisons #2, #4 (sessions 8+; needs Step 0)
 
