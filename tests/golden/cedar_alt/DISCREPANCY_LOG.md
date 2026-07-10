@@ -225,14 +225,22 @@ standing after the 2026-07-09 adjudication:
   method; immaterial (all five misses under $6,000, ~0.07% of GPR) and not
   pursued further given owner resource constraints. Its misses (and their
   cascade) remain in the tables above as accepted deltas, not open questions.
-- **B (rollover-year recovery timing, FY2031/2034/2036) — OPEN**, awaiting
-  owner per-cell adjudication (manual investigation of the recovery-timing
-  convention reported to the owner 2026-07-10; see the [AE p. 520]
-  Calculation Frequency policy finding).
+- **B (rollover-year recovery timing, FY2031/2034/2036) — DEFERRED to
+  beta-stage GUI testing (owner decision 2026-07-10).** B is a **genuine
+  timing/mechanics question**: the manual investigation (reported 2026-07-10)
+  identified the [AE p. 520] **Calculation Frequency** policy — Annually
+  (level recovery payments within each recovery year) vs Monthly — as the one
+  manual-documented candidate mechanism for the mixed-sign, rollover-year-only
+  pattern. Implementing and confirming an annual-leveling mode is well-suited
+  to visual, interactive stress-testing once the GUI exists; the owner defers
+  both the implementation and the confirmation to that stage. The comparison
+  test is deliberately unmodified and stays red, documenting the real open
+  item (owner instruction: no new engine/test-infrastructure work).
 
 Both pre-flagged README open questions clustered exactly where predicted, and
 no other divergence exists: the seven non-rollover years miss only by the
 day-count residual, and A&T Vacancy, General Vacancy, CAM, Utilities,
 Insurance, and Real Estate Taxes (via `annual_overrides`) are clean in all
-eleven years. No input was tuned; resolution of A and B is owner adjudication
-(NEXT_STEPS_TO_GATE2.md; Clorox README ladder), not undertaken here.
+eleven years. No input was tuned; A and C are adjudicated closed, and B's
+resolution is deferred as above (NEXT_STEPS_TO_GATE2.md; Clorox README
+ladder), not undertaken here.

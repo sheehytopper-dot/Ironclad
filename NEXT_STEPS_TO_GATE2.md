@@ -9,9 +9,16 @@ market machinery (spec §10) — to **Gate 2**. Companion to the closed
 
 1. Goldens **#2 (8505 Freeport Parkway)** and **#4 (Cedar Alt Bldgs 1 & 3)**
    — annual fiscal-year cash flows within $500/line of each OM's published
-   Argus output. *(Scope reduced from three goldens 2026-07-09: #5 Inland
-   Logistics permanently disqualified — no ARGUS attribution anywhere in its
-   OM — and no replacement pursued. DEVIATIONS.md §14.)*
+   Argus output — **match within tolerance for all root causes except
+   Freeport B (general-vacancy basis) and Cedar Alt B (rollover recovery
+   timing), both explicitly deferred to beta-stage GUI testing (owner
+   decision 2026-07-10)**; see the Status sections of
+   `tests/golden/freeport/DISCREPANCY_LOG.md` and
+   `tests/golden/cedar_alt/DISCREPANCY_LOG.md`. The comparison tests stay
+   red on the deferred items by design. *(Scope reduced from three goldens
+   2026-07-09: #5 Inland Logistics permanently disqualified — no ARGUS
+   attribution anywhere in its OM — and no replacement pursued.
+   DEVIATIONS.md §14.)*
 2. Golden #1's **FY2029-FY2031 revenue/vacancy lines activate** (the
    owner-approved 2026-07-03 phasing deferred them to Gate 2; TI/LC/capital
    lines wait for Gate 3).
@@ -176,6 +183,9 @@ cells, 118 within tolerance; both pre-flagged README questions confirmed —
 day-count residual FY2027-30, rollover recovery timing FY2031/34/36 — plus
 one new finding: the OM posts MLA free rent only on Crane's first rollover,
 the engine on every rollover, −$950K FY2034 / −$303K FY2036). Both
-comparisons currently FAIL and their DISCREPANCY_LOGs await owner per-cell
-adjudication. Remaining: owner review of the two audit reports, the
-adjudications, then the Step 9 gate review.
+comparisons' misses are fully adjudicated as of 2026-07-10: every root cause
+is closed/accepted except Freeport B and Cedar Alt B, both explicitly
+deferred to beta-stage GUI testing (owner decision 2026-07-10; the tests
+stay red on the deferred items by design — fresh counts Freeport 137/242,
+Cedar Alt 47/165). Audit-report review satisfied 2026-07-09 (criterion 3).
+Remaining: the Step 9 gate review.

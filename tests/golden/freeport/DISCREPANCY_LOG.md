@@ -364,10 +364,18 @@ after the 2026-07-10 adjudications:
   scaling verified monthly-correct (expenses.py:116 against the monthly
   occupancy series); the residual is the ASSUMPTIONS §6 CY2026 back-solve
   limitation (JLL's monthly budget unpublished). Accepted deltas.
-- **B (general-vacancy basis, ASSUMPTIONS §8) — OPEN, parked** per the
-  owner's 2026-07-08 review: the 5% basis is undeterminable from annual OM
-  data; awaiting owner per-cell adjudication.
+- **B (general-vacancy basis, ASSUMPTIONS §8) — DEFERRED to beta-stage GUI
+  testing (owner decision 2026-07-10).** B is a **basis ambiguity**, not a
+  timing question: the OM states neither the general-vacancy percentage basis
+  nor the A&T offset behavior (ASSUMPTIONS §8), and every `VacancyMethod`
+  variant plus the `reduce_by_absorption_turnover` toggle was tried this
+  session without a clean match to the published line. The owner defers it to
+  beta-stage testing once the GUI exists — faster interactive iteration across
+  assumption combinations than editing JSON and rerunning pytest by hand —
+  **not because a GUI resolves the ambiguity by itself**. The comparison test
+  is deliberately unmodified and stays red, documenting the real open item
+  (owner instruction: no new engine/test-infrastructure work).
 
-All 137 misses now trace to closed/accepted causes plus open-B and their
+All 137 misses now trace to closed/accepted causes plus deferred-B and their
 cascade. No input was tuned to reduce them; nothing in this log alters the
 fixture or the engine.

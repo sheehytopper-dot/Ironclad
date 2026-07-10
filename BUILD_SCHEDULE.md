@@ -73,7 +73,7 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 - Week 6: full Golden 2 and Golden 3 diffs, cell-level review.
 
 **GATE 2 (end of week 6):**
-- [ ] Goldens #2, #4 cash flows match the OM within tolerance (scope reduced from three goldens 2026-07-09 — #5 Inland disqualified, DEVIATIONS.md §14) — open: Freeport 137/242 misses, Cedar Alt 47/165 misses, both pending owner adjudication
+- [x] Goldens #2, #4 cash flows match the OM within tolerance (scope reduced from three goldens 2026-07-09 — #5 Inland disqualified, DEVIATIONS.md §14) — satisfied 2026-07-10 with two explicit deferrals: all root causes adjudicated closed except Freeport B (general-vacancy basis) and Cedar Alt B (rollover recovery timing), both deferred to beta-stage GUI testing (owner decision 2026-07-10; DISCREPANCY_LOG Status sections). Fresh comparison counts: Freeport 137/242 line-years beyond $500, Cedar Alt 47/165 — the tests stay red on the deferred items by design
 - [x] Lease Audit and Recovery Audit reports built, reconciling exactly to the ledger, and owner-reviewed (satisfied 2026-07-09 — reviewed via freeport.audits.xlsx, NEXT_STEPS_TO_GATE2.md criterion 3)
 - [x] Percentage-rent module built with the manual's worked-example unit tests (Iron Rule 3) (2026-07-06); **externally unvalidated pending golden #3** (standing opportunistic intake — CLAUDE.md, Known validation gaps)
 - [x] Turnover vacancy does not double-count against general vacancy (verify total vacancy % equals stated rate in a test) (verified passing — tests/unit/test_vacancy.py::TestGate2Criterion5, 2026-07-09)
