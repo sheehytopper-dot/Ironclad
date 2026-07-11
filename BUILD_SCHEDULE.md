@@ -87,6 +87,8 @@ This is the hard phase and the reason the estimate says 6-12 and not 6. Rollover
 
 **Scope:** TIs/LCs posting on rollover, purchase and closing costs, debt engine (fixed, floating, IO, amortizing, additional principal, loan costs), resale methods, PV with all discounting conventions, unleveraged and leveraged IRR, sensitivity matrices.
 
+**Superseded 2026-07-11 — see [NEXT_STEPS_TO_GATE3.md](NEXT_STEPS_TO_GATE3.md):** none of the three golden OMs publishes any valuation result, so the "Your jobs" reconciliation line and the GATE 3 checklist below (both predating this finding) are read through NEXT_STEPS_TO_GATE3.md's actual criteria instead: golden capital-line tolerance, §9.3 invariants, manual worked examples, and owner hand-checks — not an OM price/IRR/matrix match.
+
 **Your jobs:**
 - Verify the self-consistency test: set price equal to computed PV, confirm IRR equals discount rate to within 1bp.
 - Check one loan amortization schedule against any bank amort calculator.
