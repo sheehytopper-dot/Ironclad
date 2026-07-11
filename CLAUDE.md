@@ -295,16 +295,39 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   reconciliation clean); turnover/general-vacancy double-count criterion
   verified passing. Documentation synced across BUILD_SCHEDULE.md,
   NEXT_STEPS_TO_GATE2.md (closed), and both DISCREPANCY_LOG.md files.
-- **Next session's first prompt:** "Gate 2 has passed (2026-07-10); Phase 3
-  (capital & valuation — spec §10, BUILD_SCHEDULE.md Week 7) begins. First
-  task: draft NEXT_STEPS_TO_GATE3.md, the same kind of session-by-session
-  breakdown NEXT_STEPS_TO_GATE2.md provided for Phase 2 — read spec §10's
-  Phase 3 scope and §4.1's remaining passes (TIs/LCs posting on rollover,
-  purchase/closing costs, the debt engine, resale methods, PV under all
-  discounting conventions, both IRRs, sensitivity matrices) plus
-  BUILD_SCHEDULE.md's existing Week 7 outline, and produce a step sequence
-  with an explicit Gate 3 checklist, flagging any owner-gated items (e.g.
-  loan terms, resale cap rate assumptions) the same way golden fixture
-  staging was flagged in Phase 2. Do not start writing Phase 3 engine code
-  before that plan exists and Topper has seen it (Iron Rule 2 applies to
-  session planning too — don't skip the map)."
+  **Phase 3 planning session 2026-07-11:**
+  [NEXT_STEPS_TO_GATE3.md](NEXT_STEPS_TO_GATE3.md) drafted (no engine code
+  written — Iron Rule 2 applied to planning). Key planning finding, verified
+  by keyword scan of all three OMs: **none publishes any valuation result**
+  (Clorox/Cedar explicitly unpriced; Freeport none), so Gate 3's external
+  anchor is the goldens' already-transcribed capital lines (TI/LC/capex/
+  reserves/Total Capital/CFBDS, currently Gate-3-skipped in every comparison
+  test), backed by §9.3 invariants (debt roll, payoff-at-resale, PV/IRR
+  1bp self-consistency), manual worked examples ([AE pp. 464-471, 472-473,
+  435-449]), and owner hand-checks. Plan: Step 0 owner-gated decisions
+  (valuation assumption sets — exercise inputs with no external reference;
+  CFBDS-on-#1-only assertion scoping; placement of carried-forward guards:
+  tenant misc items [still refused with a stale "Phase 2" label], security
+  deposits, reabsorb, pct_of_account) → Steps 1-6 (TI/LC posting + golden
+  capital-line activation first, then purchase/closing/deposits, debt,
+  resale, PV/IRR, sensitivity) → Step 7 gate review. **DRAFT — awaiting
+  owner review before any Phase 3 engine work.**
+- **Next session's first prompt:** "NEXT_STEPS_TO_GATE3.md was drafted
+  2026-07-11 and is awaiting owner review — no Phase 3 engine code exists
+  yet, and none is written until Topper has reviewed the plan and resolved
+  its Step 0 decisions (valuation assumption sets for the goldens — no OM
+  publishes any valuation result, verified 2026-07-11; CFBDS-on-#1-only
+  capital-line assertion scoping; placement of the carried-forward guards:
+  tenant misc items, security deposits, reabsorb, pct_of_account). Check
+  with the owner: has the plan been reviewed / corrected, and are the Step 0
+  decisions made? If approved: begin Step 1 (TI/LC posting, spec §3.9 /
+  §4.1 pass 11 — the blended amounts already sit unposted on LeaseSegment
+  since Phase 2 Step 1) and activate the goldens' capital-line assertions
+  per the plan's criterion-1 scoping, misses to the DISCREPANCY_LOGs for
+  owner adjudication, never input tuning. If not reviewed, there is NO
+  engine work to invent — do not start Step 1 (Iron Rule 2), do not
+  scaffold cancelled intake ('Phase 7'). REMEMBER the standing gaps:
+  percentage rent externally unvalidated pending golden #3; Freeport B and
+  Cedar Alt B parked for beta-stage GUI testing — their Gate 2 assertions
+  stay red by design and are not Phase 3 work. Commit, push, update the
+  progress note and this prompt."
