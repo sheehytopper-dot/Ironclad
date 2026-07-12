@@ -61,6 +61,15 @@ validation therefore rests on:
    logged in the DISCREPANCY_LOG as the arithmetic pass-through of the
    already-adjudicated NOI gaps, citing the specific root cause — never
    treated as a new engine defect.
+   **Red-by-design note (owner decision 2026-07-12):** Freeport's
+   `test_gate3_capital_lines_within_tolerance` stays red by design — its
+   LC gap (DISCREPANCY_LOG root cause E) is **deferred to beta-stage GUI
+   testing** and is **not a Gate 3 blocker**, mirroring exactly how this
+   criterion's Gate 2 counterpart handles Freeport B / Cedar Alt B. Cedar
+   Alt's capital test is likewise red only through root cause D, closed
+   as C's sibling (its LC deltas = 6.75% × C's accepted free-rent deltas
+   to the dollar). Golden #1's capital rows are green within $0.50/cell
+   and carry this criterion's external validation.
 2. **§9.3 invariants extended and passing on every calc run:** debt balance
    roll, payoff-at-resale identity, PV/IRR self-consistency (±1bp).
 3. **Manual worked-example unit tests** with page cites for resale, PV
@@ -114,16 +123,21 @@ these.** Flagged the way golden fixture staging was flagged in Phase 2:
   proposed to stay guarded until a deal needs them. **Owner confirms (d)
   and the security-deposit placement.**
 
-## Step 1 — TI/LC posting + golden capital lines (sessions 1-2) — **BUILT 2026-07-11**
+## Step 1 — TI/LC posting + golden capital lines (sessions 1-2) — **CLOSED 2026-07-12**
 
-**Status: shipped 2026-07-11 (owner-directed).** `engine/calc/capital.py`
-posts TI/LC lump sums at each segment start (DEVIATIONS.md §16 for the
-narrowings); golden #1's FY2029-FY2031 capital lines are **green within
-$0.50**; goldens #2/#4's capital assertions are live as separate test
-functions and red as expected output — Freeport DISCREPANCY_LOG root
-cause E (open) and Cedar Alt root cause D (C's sibling), awaiting owner
-per-cell adjudication. The predicted Cedar FY2034/36 free-rent sibling
-question materialized exactly (LC deltas = 6.75% × C's deltas).
+**Status: fully closed.** Built 2026-07-11 (owner-directed):
+`engine/calc/capital.py` posts TI/LC lump sums at each segment start
+(DEVIATIONS.md §16 for the narrowings); golden #1's FY2029-FY2031
+capital lines are **green within $0.50/cell**; goldens #2/#4's
+capital-line assertions activated as separate test functions. Both
+resulting root causes are adjudicated (2026-07-12): **Cedar Alt D closed
+as C's sibling** (LC deltas = 6.75% × C's accepted free-rent deltas to
+the dollar; the predicted FY2034/36 sibling question materialized
+exactly) and **Freeport E deferred to beta-stage GUI testing** (owner
+decision 2026-07-12 — side-specific renewal commission structures are
+undetectable from OM text or annual totals; see the DISCREPANCY_LOG's
+adjudication subsection). Both capital tests stay red by design; no
+allowlist mechanism, no input tuning.
 
 Spec §3.9 / §4.1 pass 11 [AE pp. 245-248 read in Step 2 of Phase 2; re-read
 alongside the §7 report-4 Sources & Uses shape]: post TIs and LCs in the
@@ -193,16 +207,21 @@ single-point valuation at those inputs (engineered test).
 
 Criteria 1-5 evidenced in one pytest run: golden capital lines within
 tolerance (or misses adjudicated), invariants green, worked-example tests
-green, matrices self-consistent, hand-checks done. Freeport/Cedar Alt Gate 2
-assertions remain red by design on the deferred-B items — unchanged and not
-a Gate 3 blocker. Then — and only then — Phase 4 (Iron Rule 2).
+green, matrices self-consistent, hand-checks done. Red by design and **not
+Gate 3 blockers**: the Freeport/Cedar Alt Gate 2 assertions (deferred-B
+items) and **Freeport's Gate 3 capital-line assertion (root cause E,
+deferred to beta-stage GUI testing — owner decision 2026-07-12)**; Cedar
+Alt's capital assertion is red only through root cause D, closed as C's
+sibling with no independent engine question. Then — and only then —
+Phase 4 (Iron Rule 2).
 
 ---
 
-**Standing gaps carried into Phase 3 (unchanged):** percentage rent remains
+**Standing gaps carried into Phase 3:** percentage rent remains
 externally unvalidated pending golden #3 (standing opportunistic intake);
 Freeport B and Cedar Alt B stay parked for beta-stage GUI testing (owner
-decision 2026-07-10); no ARGUS access — the Benchmark Comparison report
+decision 2026-07-10), joined by **Freeport E** (owner decision
+2026-07-12); no ARGUS access — the Benchmark Comparison report
 (spec §7 report 24) remains the future-deal validation path.
 
 **Status:** drafted 2026-07-11 on Gate 2 pass, per the Phase 3 opening

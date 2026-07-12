@@ -348,33 +348,39 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   lines active as separate test functions per criterion 1, **CFBDS on all
   three** (the CFBDS-on-#1-only scoping was superseded by owner decision
   2026-07-11 — NEXT_STEPS_TO_GATE3.md criterion 1), red as expected
-  output: **Freeport root cause E OPEN** (LC understated by a stable
-  ~×1.205 base/rate difference, candidates logged; TI + capex/reserves
-  clean all 11 years) and **Cedar Alt root cause D** (LC misses =
-  6.75% × adjudicated root cause C's free-rent deltas to the dollar;
-  TI + reserves clean; CFBDS = NOI-cascade pass-through, verified
-  arithmetically). Suite: 313 passed + 4 golden reds (Gate 2 pair
-  unchanged at 137/47; new Gate 3 capital pair awaiting adjudication).
-- **Next session's first prompt:** "Phase 3 Step 1 (TI/LC posting +
-  golden capital-line activation) shipped 2026-07-11; golden #1's
-  FY2029-FY2031 capital lines are green within $0.50 and CFBDS asserts on
-  all three goldens (criterion 1 superseded per owner decision). Two new
-  red assertions are expected output awaiting owner per-cell
-  adjudication: Freeport DISCREPANCY_LOG root cause E (LC understated by
-  a stable ~×1.205; candidates logged — LC-category elements-to-include,
-  no-free-rent-deduction, tiered %; TI and capex clean everywhere) and
-  Cedar Alt root cause D (pure sibling of adjudicated C — LC deltas =
-  6.75% × C's free-rent deltas exactly; TI clean). Check with the owner:
-  (1) adjudicate Freeport E and confirm Cedar D closes as C's sibling;
-  (2) the remaining Step 0 decisions — valuation assumption sets for the
-  goldens (no OM publishes any valuation result, verified 2026-07-11),
-  security-deposit placement (plan proposes Step 2), pct_of_account
-  staying guarded. If Step 2 is approved: purchase price + closing costs
-  + security deposits (spec §3.16/§3.12, [AE pp. 435-437, 384, 431-433]
-  — read first), worked-example tests per Iron Rule 3. Do not tune
-  inputs on the red capital tests — they are the owner's adjudication
-  queue. REMEMBER the standing gaps: percentage rent + tenant misc items
-  externally unvalidated pending golden #3; Freeport B and Cedar Alt B
-  parked for beta-stage GUI testing — their Gate 2 assertions stay red by
-  design (137/47, unchanged this session). Commit, push, update the
-  progress note and this prompt."
+  output: Freeport root cause E (LC understated by a stable ~×1.205
+  base/rate difference, candidates logged; TI + capex/reserves clean all
+  11 years) and Cedar Alt root cause D (LC misses = 6.75% × adjudicated
+  root cause C's free-rent deltas to the dollar; TI + reserves clean;
+  CFBDS = NOI-cascade pass-through, verified arithmetically). Suite:
+  313 passed + 4 golden reds (Gate 2 pair unchanged at 137/47).
+  **Step 1 CLOSED 2026-07-12 (owner adjudications):** **Cedar Alt D
+  closed as C's sibling** (no independent engine question) and
+  **Freeport E DEFERRED to beta-stage GUI testing** — owner's reason:
+  brokers sometimes charge a reduced leasing commission on renewals
+  (e.g. 3-4% instead of the OM's stated blended rate), undetectable from
+  OM text or annual fiscal-year totals; vetting needs the GUI's
+  lease-by-lease/rollover inspection against the deal's real files. Same
+  evidentiary category as Freeport B — not an engine defect. Both Gate 3
+  capital tests stay red by design (no allowlist mechanism); not Gate 3
+  blockers (NEXT_STEPS_TO_GATE3.md criterion 1 + Step 7).
+- **Next session's first prompt:** "Phase 3 Step 1 is fully CLOSED
+  (built 2026-07-11, adjudicated 2026-07-12): TI/LC posting shipped
+  (`engine/calc/capital.py`, DEVIATIONS.md §16), golden #1's FY2029-FY2031
+  capital lines verified green within $0.50/cell, goldens #2/#4
+  capital-line assertions activated, Cedar Alt root cause D closed as C's
+  sibling (not independently open), and Freeport root cause E DEFERRED to
+  beta-stage GUI testing (owner decision 2026-07-12). Next is **Step 2 of
+  NEXT_STEPS_TO_GATE3.md: purchase price, closing costs, security
+  deposits** — spec §3.16/§3.12, [AE pp. 435-437, 384, 431-433] — read
+  the manual pages first, security-deposit guards lift there,
+  worked-example tests per Iron Rule 3. Check any remaining Step 0
+  decisions with the owner before relying on them (valuation assumption
+  sets for the goldens — no OM publishes any valuation result;
+  pct_of_account stays guarded). REMEMBER the standing gaps: percentage
+  rent + tenant misc items externally unvalidated pending golden #3;
+  Freeport B, Cedar Alt B, and now Freeport E all parked for beta-stage
+  GUI testing — their Gate 2/Gate 3 assertions stay red by design (4
+  golden reds: 137/47 Gate 2, 33/12 Gate 3 capital) and are the owner's
+  queue, never tuning targets; Cedar Alt D is closed, not open. Commit,
+  push, update the progress note and this prompt."

@@ -383,6 +383,24 @@ Argus file (owner per-cell adjudication):
 No input was tuned; the fixture's 6.75% new/renew is the OM's stated
 assumption.
 
+### Owner adjudication (2026-07-12) — E deferred to beta-stage GUI testing
+
+**Owner decision 2026-07-12: root cause E is DEFERRED to beta-stage GUI
+testing**, the same disposition as root cause B and Cedar Alt's B.
+Owner's stated reason (recorded verbatim): brokers sometimes charge a
+reduced leasing commission on renewals — e.g. 3-4% instead of the OM's
+stated blended rate — and that isn't detectable from OM text or annual
+fiscal-year totals. Vetting it requires inspecting the actual
+lease-by-lease/rollover detail against the deal's real files, which
+needs the GUI, not something resolvable from the current fixture. Same
+evidentiary category as Freeport B: **unconfirmable without tools that
+don't exist yet, not an engine defect.** The candidate mechanisms above
+(including the owner's side-specific renewal-rate structure) remain the
+investigation menu for that stage. The
+`test_gate3_capital_lines_within_tolerance` assertion is deliberately
+unmodified and stays red, documenting the real open item — no allowlist
+mechanism, no input tuning.
+
 ### Leasing Commissions — 11 misses
 | FY | engine | published | delta | OM/engine |
 |---|--:|--:|--:|--:|
@@ -472,16 +490,24 @@ after the 2026-07-10 adjudications:
   is deliberately unmodified and stays red, documenting the real open item
   (owner instruction: no new engine/test-infrastructure work).
 
-- **E (Leasing Commissions base, Gate 3 capital lines) — OPEN (new
-  2026-07-11), awaiting owner per-cell adjudication.** The
-  `test_gate3_capital_lines_within_tolerance` assertion is red with 33
-  line-years: 11 LC (a stable ~×1.205 base/rate difference; candidates
-  above), 11 Total Capital Costs (pure LC pass-through), 11 CFBDS
-  (adjudicated-NOI cascade + LC, per criterion 1's supersession — no
-  independent information). TI, Capital Expenditures, and Capital
-  Reserves are clean in all 11 years.
+- **E (Leasing Commissions base, Gate 3 capital lines) — DEFERRED to
+  beta-stage GUI testing (owner decision 2026-07-12), alongside B.**
+  Owner's reason (verbatim in the adjudication subsection above): brokers
+  sometimes charge a reduced leasing commission on renewals — e.g. 3-4%
+  instead of the OM's stated blended rate — undetectable from OM text or
+  annual fiscal-year totals; vetting it requires inspecting the actual
+  lease-by-lease/rollover detail against the deal's real files, which
+  needs the GUI. Same evidentiary category as B: unconfirmable without
+  tools that don't exist yet, not an engine defect. The
+  `test_gate3_capital_lines_within_tolerance` assertion is deliberately
+  unmodified and stays red with its 33 line-years: 11 LC (the stable
+  ~×1.205 base/rate difference; candidates above), 11 Total Capital
+  Costs (pure LC pass-through), 11 CFBDS (adjudicated-NOI cascade + LC,
+  per criterion 1's supersession — no independent information). TI,
+  Capital Expenditures, and Capital Reserves are clean in all 11 years.
 
 All 137 Gate 2 misses trace to closed/accepted causes plus deferred-B and
-their cascade; the Gate 3 capital assertion adds open root cause E. No
-input was tuned to reduce them; nothing in this log alters the fixture or
-the engine.
+their cascade; the Gate 3 capital assertion's 33 misses trace to
+deferred-E (plus the adjudicated NOI cascade inside CFBDS). No input was
+tuned to reduce them; nothing in this log alters the fixture or the
+engine.
