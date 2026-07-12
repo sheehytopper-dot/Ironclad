@@ -621,3 +621,90 @@ calls:
 - **Revisit when:** Step 5 builds the derived price paths; a deal needs
   deposit interest, partial refunds, or the % Total Price closing
   method; any future golden publishes below-the-line rows to back-test.
+
+## 18. Debt engine: conventions and v1 narrowings (spec §3.17; Phase 3 Step 3)
+
+Built 2026-07-12 (`engine/calc/debt.py`, [AE pp. 438-449] read in full).
+**Validation path, stated plainly:** no golden fixture populates `loans`
+and none will — validation is the closed-form worked-example tests
+(tests/unit/test_debt.py) plus the **owner's bank-amortization-calculator
+hand-check** (NEXT_STEPS_TO_GATE3.md Step 0), which for debt IS the
+designed path, not a placeholder pending future data: standard mortgage
+math is universal and externally checkable in a way OM cash flows are
+not. Headline hand-check case: $1,000,000 at 6.00% amortized over 30
+years → payment 5,995.51/mo, balance after 12 payments 987,719.88,
+balloon if due in 120 months 836,857.25.
+
+Part A adjudications (citation or manual-silent reasoning per item):
+
+- **Monthly rate = annual/12**: the manual's default "12 Months" Calc
+  Method [AE p. 443]. The closed form P × r / (1 − (1+r)^−n) is spec
+  §3.17's normative statement — the manual never prints it. The 360-day
+  and semi-annual Calc Methods [AE pp. 443-444] are schema-absent.
+- **Floating resets (manual silent — chosen convention):** the manual
+  models varying rates via the Interest Rate Editor [AE pp. 441-442] and
+  never states payment behavior on a change. Chosen: on each
+  effective-rate change (index YearRate + spread; year keyed per
+  `inflation.timing_basis` like every other YearRate schedule), the
+  payment re-levels to amortize the current balance over the remaining
+  amortization horizon — the [AE p. 444] "recalculate ... over the same
+  term" behavior applied to rate changes, and the only convention under
+  which a floating fully-amortizing loan reaches zero at maturity.
+- **Additional principal — manual answers directly [AE p. 444]:**
+  Recalc Pmt Yes/No; the schema has no toggle, so the **"No"** behavior
+  is modeled (payments unchanged, payoff shortens; paydowns clamp to the
+  balance; a paid-off loan posts nothing further). First deal needing
+  "Yes" drives a schema field.
+- **Loan costs post to the financing section** ("These costs will appear
+  on the Cash Flow report in the Financing section" [AE p. 446]) — not
+  with Step 2's acquisition lines. `expense` = lump at funding (or
+  `timing` date); `amortize` = straight-line over the loan term (manual
+  silent on the schedule; spec §3.17's toggle). The manual's
+  Include-in-Loan financing, fee-frequency grid, and
+  %-of-drawn/undrawn/max fee bases [AE pp. 445-446] are schema-absent.
+- **"Other Debt" [AE pp. 448-449] is NOT modeled, and the Loan
+  docstring's "modeled as fixed-payment loans" suggestion is
+  insufficient:** the manual's Other Debt is recurring amount ×
+  frequency × inflation streams listed in the debt-service section — a
+  fixed-payment loan can represent only a level stream and would
+  misreport it as interest + principal. No schema this session; a deal
+  needing an inflated debt-section stream drives one.
+- **Ledger financing section (spec §2.3 tree):** Debt Funding /
+  Interest Expense / Principal Payments / Loan Costs / Total Debt
+  Service (= the three payment lines) / Cash Flow After Debt Service
+  (= CFBDS + Total Debt Service). **Debt Funding is display-only,
+  outside the CFADS rollup** — ARGUS's "Show Loan Proceeds" defaults to
+  No [AE p. 447], and spec §4.1 pass 14 builds leveraged IRR from
+  "CFADS + equity at t0"; proceeds inside CFADS would double-count
+  against that equity. Step 2's Purchase Price / Closing Costs /
+  Security Deposits columns moved after the financing section (still
+  below the line, still in no rollup).
+- **Funding default:** purchase date if a purchase exists, else analysis
+  begin ([AE p. 442] Loan Date default is Analysis Begin; Step 2's
+  `Purchase.date` default is also analysis begin, so they coincide
+  unless the owner moved the purchase). Pre-analysis funding is
+  supported ("modeled back to their original start date" [AE p. 442]):
+  the schedule computes from funding, only in-window months post, and
+  the window opens at the loan's then-current balance. Payments run
+  from the month after funding through maturity.
+- **Balloon posting:** a balloon (amortization horizon > term, or
+  interest_only) posts as a principal repayment in the maturity month
+  ([AE p. 438] Quick Start — Balloon Payments); after maturity the
+  balance is zero. Payoff-at-resale netting is Step 4's work — this
+  step only guarantees the balance series is correct and retained.
+- **`pct_of_value` loan amounts refuse loudly naming Step 5** ("% of
+  Adopted Valuation" [AE p. 438] needs valuation), like the derived
+  purchase price. Schema-absent manual features: Cap Rate/LTV% sizing,
+  take-out loans, max loan amount/draws, Fund Operating Deficits
+  [AE pp. 438-444], quarterly/semi-annual/annual payment schedules
+  [AE p. 442] (schema is monthly-only), Amortize Start offsets, and the
+  Item-to-Calc payment-solve [AE p. 443].
+- **§9.3 debt invariants (standing from this step):** per-loan on every
+  run — opening balance rolls from prior ending; balances never
+  negative; interest-only months amortize nothing; a fully-amortizing
+  loan's balloon is ~$0 (1¢ tolerance). Closed-form balloon/IO/floating
+  values are locked in tests, not re-derived at runtime.
+- **Revisit when:** Step 4 consumes the balance series for
+  payoff-at-resale; Step 5 unlocks pct_of_value; a deal needs Other
+  Debt, deficit funding, non-monthly schedules, or the Recalc-Pmt-Yes
+  paydown behavior.

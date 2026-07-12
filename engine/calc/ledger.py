@@ -71,11 +71,22 @@ TENANT_IMPROVEMENTS = "Tenant Improvements"
 LEASING_COMMISSIONS = "Leasing Commissions"
 TOTAL_CAPITAL_COSTS = "Total Capital Costs"
 CFBDS = "Cash Flow Before Debt Service"
-#: Below-the-line lines (Phase 3 Step 2): posted after CFBDS, outside
-#: every rollup until the debt/CFADS/distribution sections land (Steps
-#: 3+). The ARGUS Cash Flow report carries no acquisition rows — the
-#: golden CSVs end at CFBDS; purchase feeds the return metrics
-#: [AE p. 435] (spec §4.1 pass 14 consumes the price at t0).
+#: Financing section (Phase 3 Step 3; spec §2.3 tree / §4.1 pass 12).
+#: Debt Funding is a display line OUTSIDE the CFADS rollup — ARGUS's
+#: "Show Loan Proceeds" defaults to No [AE p. 447] and spec §4.1 pass 14
+#: builds leveraged IRR from "CFADS + equity at t0"; proceeds inside
+#: CFADS would double-count against that equity.
+DEBT_FUNDING = "Debt Funding"
+INTEREST_EXPENSE = "Interest Expense"
+PRINCIPAL_PAYMENTS = "Principal Payments"
+LOAN_COSTS = "Loan Costs"
+TOTAL_DEBT_SERVICE = "Total Debt Service"
+CFADS = "Cash Flow After Debt Service"
+#: Below-the-line lines (Phase 3 Step 2): posted after the financing
+#: section, outside every rollup. The ARGUS Cash Flow report carries no
+#: acquisition rows — the golden CSVs end at CFBDS; purchase feeds the
+#: return metrics [AE p. 435] (spec §4.1 pass 14 consumes the price at
+#: t0).
 PURCHASE_PRICE = "Purchase Price"
 CLOSING_COSTS = "Closing Costs"
 SECURITY_DEPOSITS = "Security Deposits"
@@ -197,6 +208,10 @@ def assemble_ledger(months: pd.PeriodIndex, *,
                     credit_loss: Optional[pd.Series] = None,
                     tenant_improvements: Optional[pd.Series] = None,
                     leasing_commissions: Optional[pd.Series] = None,
+                    debt_funding: Optional[pd.Series] = None,
+                    interest_expense: Optional[pd.Series] = None,
+                    principal_payments: Optional[pd.Series] = None,
+                    loan_costs: Optional[pd.Series] = None,
                     purchase_price: Optional[pd.Series] = None,
                     closing_costs: Optional[pd.Series] = None,
                     security_deposits: Optional[pd.Series] = None,
@@ -287,11 +302,23 @@ def assemble_ledger(months: pd.PeriodIndex, *,
         + (sum(capital.values()) if capital else _zeros(months))
     )
     columns[CFBDS] = columns[NOI] + columns[TOTAL_CAPITAL_COSTS]
+    # Financing section (Phase 3 Step 3; spec §2.3 tree). Debt Funding
+    # is display-only — outside Total Debt Service and CFADS (see the
+    # constants note above). CFADS = CFBDS + Total Debt Service.
+    columns[DEBT_FUNDING] = _optional(debt_funding, months)
+    columns[INTEREST_EXPENSE] = _optional(interest_expense, months)
+    columns[PRINCIPAL_PAYMENTS] = _optional(principal_payments, months)
+    columns[LOAN_COSTS] = _optional(loan_costs, months)
+    columns[TOTAL_DEBT_SERVICE] = (
+        columns[INTEREST_EXPENSE] + columns[PRINCIPAL_PAYMENTS]
+        + columns[LOAN_COSTS]
+    )
+    columns[CFADS] = columns[CFBDS] + columns[TOTAL_DEBT_SERVICE]
     # Below the line (Phase 3 Step 2): acquisition flows and security
-    # deposits post after CFBDS, in no rollup — the Cash Flow report has
-    # no acquisition rows and purchase feeds the return metrics
-    # [AE p. 435]. Signs arrive report-ready (outflows negative, deposit
-    # collections positive / refunds negative).
+    # deposits post after the financing section, in no rollup — the Cash
+    # Flow report has no acquisition rows and purchase feeds the return
+    # metrics [AE p. 435]. Signs arrive report-ready (outflows negative,
+    # deposit collections positive / refunds negative).
     columns[PURCHASE_PRICE] = _optional(purchase_price, months)
     columns[CLOSING_COSTS] = _optional(closing_costs, months)
     columns[SECURITY_DEPOSITS] = _optional(security_deposits, months)

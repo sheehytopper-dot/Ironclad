@@ -10,7 +10,8 @@ whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
 ``reabsorb`` on MLP profiles (speculative chains — DEVIATIONS.md §8; the
 contract-lease variant is built), TI/LC categories (DEVIATIONS.md §16),
-derived purchase prices (Step 5), and debt (Phase 3). Space absorption
+and the valuation-derived inputs (derived purchase prices, pct_of_value
+loan amounts — Step 5). Space absorption
 (Step 3 of Phase 2) generates
 synthetic leases per spec §3.15 that join the rent roll for every
 downstream pass; pre-absorption vacant space grosses Base Rental Revenue
@@ -60,6 +61,11 @@ from engine.calc.absorption import (
     reabsorption_vacancy,
 )
 from engine.calc.capital import project_lease_capital
+from engine.calc.debt import (
+    LoanSchedule,
+    assert_debt_invariants,
+    build_loan_schedule,
+)
 from engine.calc.expenses import PCT_UNITS, project_expense
 from engine.calc.investment import acquisition_flows, segment_security_deposits
 from engine.calc.leases import (
@@ -139,6 +145,7 @@ class RunResult:
     security_deposits: dict[str, pd.Series]         # by tenant_name (signed)
     purchase_price: pd.Series                       # negative at purchase month
     closing_costs: pd.Series                        # negative
+    loan_schedules: list[LoanSchedule]              # per loan (§7 report 20)
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
@@ -161,7 +168,6 @@ def _phase_guards(model: PropertyModel) -> None:
         refuse(rev.unit == RevenueUnit.pct_of_account,
                f"property revenue {rev.name!r}: unit 'pct_of_account'",
                "a later phase (DEVIATIONS.md §13)")
-    refuse(bool(model.loans), "debt", "Phase 3")
     for lease in model.rent_roll:
         where = f"lease {lease.tenant_name!r}: "
         if lease.leasing_costs is not None:
@@ -368,6 +374,27 @@ def run_property(model: PropertyModel) -> RunResult:
     }
     deposits_total = sum(security_deposits.values(),
                          pd.Series(0.0, index=months))
+
+    # Pass 12: debt (spec §3.17; [AE pp. 438-449]) — per-loan schedules
+    # with the §9.3 debt invariants asserted per loan; the ledger gets
+    # the aggregated financing section. Validation = worked-example
+    # tests + the owner's bank-calculator hand-check (DEVIATIONS.md
+    # §18) — no golden has loans.
+    loan_schedules = [
+        build_loan_schedule(loan, months, begin, model.purchase,
+                            model.inflation)
+        for loan in model.loans
+    ]
+    for schedule in loan_schedules:
+        assert_debt_invariants(schedule)
+    zeros = pd.Series(0.0, index=months)
+    debt_funding = sum((s.funding for s in loan_schedules), zeros.copy())
+    interest_expense = sum((s.interest for s in loan_schedules),
+                           zeros.copy())
+    principal_payments = sum((s.principal for s in loan_schedules),
+                             zeros.copy())
+    loan_costs_total = sum((s.loan_costs for s in loan_schedules),
+                           zeros.copy())
 
     # Pass 5: expenses that don't reference revenue.
     area = model.area_measures.property_size
@@ -581,6 +608,10 @@ def run_property(model: PropertyModel) -> RunResult:
         credit_loss=cl,
         tenant_improvements=-ti_total,
         leasing_commissions=-lc_total,
+        debt_funding=debt_funding,
+        interest_expense=interest_expense,
+        principal_payments=principal_payments,
+        loan_costs=loan_costs_total,
         purchase_price=purchase_price,
         closing_costs=closing_costs,
         security_deposits=deposits_total,
@@ -602,6 +633,7 @@ def run_property(model: PropertyModel) -> RunResult:
         security_deposits=security_deposits,
         purchase_price=purchase_price,
         closing_costs=closing_costs,
+        loan_schedules=loan_schedules,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
         property_revenue=property_revenue_total,

@@ -109,7 +109,11 @@ these.** Flagged the way golden fixture staging was flagged in Phase 2:
   all three goldens (see criterion 1's supersession note); separate-test
   isolation confirmed.
 - **Amort hand-check:** one loan schedule vs any bank amort calculator
-  (Week 7 "Your jobs") once Step 3 lands.
+  (Week 7 "Your jobs") — **Step 3 landed 2026-07-12; ready for the
+  owner now.** The prepared case: $1,000,000 loan, 6.00% rate, 30-year
+  amortization → monthly payment **$5,995.51**, balance after 12
+  payments **$987,719.88**; if due in 120 months, balloon
+  **$836,857.25** (tests/unit/test_debt.py locks the same numbers).
 - **Carried-forward items placement** (transparency rule — none of these
   are silently dropped): (a) **tenant miscellaneous items** (spec §4.1 pass
   8, [AE pp. 378-382]) — **BUILT 2026-07-11** (`engine/calc/misc_items.py`;
@@ -176,17 +180,35 @@ Narrowings + judgment calls in DEVIATIONS.md §17; 13 manual-cited tests
 populates `purchase` or `security_deposit`, the same standing as
 Step 0's carried-forward items (reabsorb, misc items).
 
-## Step 3 — Debt engine (sessions 4-5)
+## Step 3 — Debt engine (sessions 4-5) — **CLOSED 2026-07-12 (one session)**
 
-Spec §3.17 [AE pp. 438-449]: fixed and floating (index schedule + spread,
-monthly reset), IO periods, amortizing payments (standard mortgage formula),
-`fully_amortizing`/`interest_only` terms, additional principal [AE p. 444],
-loan costs (points/fees, amortize-or-expense [AE pp. 445-446]), multiple
-loans, "Other Debt" simple-interest streams [AE pp. 448-449]. Ledger grows
-the debt-service section and CFADS. Full per-loan amortization detail
-retained for the §7 report 20 builder (Phase 4). **§9.3 invariants: ending
-balance rolls month to month; payoff at resale = outstanding balance.**
-Owner hand-check (Step 0) after this lands.
+**Status: shipped 2026-07-12, full planned scope except one deliberate
+exclusion.** `engine/calc/debt.py`: fixed and floating (index YearRate
+schedule + spread; payment re-levels on each rate change — the [AE
+p. 444] "same term" recalc applied to rate changes, manual otherwise
+silent), IO periods with re-level at amortization start, balloon
+("amortized over N years due in M months"; balloon posts at maturity),
+additional principal (the [AE p. 444] Recalc-Pmt-**No** behavior — the
+schema has no toggle), loan costs (expense at funding / straight-line
+amortize over term, posting to the financing section per [AE p. 446]),
+multiple loans, per-loan `LoanSchedule` detail retained on RunResult for
+the §7 report 20 builder. Ledger financing section live: Debt Funding
+(display-only, **outside** CFADS — [AE p. 447] proceeds default-hidden;
+§4.1 pass 14 equity at t0), Interest Expense, Principal Payments, Loan
+Costs, Total Debt Service, CFADS = CFBDS + TDS. **§9.3 debt invariants
+standing on every run**: balance roll, non-negative balances, IO months
+amortize nothing, fully-amortizing balloon ~$0 (payoff-at-resale is
+Step 4, as planned — the balance series is correct and retained for
+it). `pct_of_value` loan sizing refuses loudly naming Step 5.
+**Deliberate exclusion:** "Other Debt" [AE pp. 448-449] is NOT built —
+the manual's Other Debt is inflated recurring streams, not
+simple-interest loans; the Loan docstring's "fixed-payment loans"
+suggestion is insufficient and is recorded as such (DEVIATIONS.md §18).
+19 closed-form tests (tests/unit/test_debt.py). **Validation = worked
+examples + the owner's bank-calculator hand-check (Step 0) — for debt
+that IS the designed path; no golden has loans.** Hand-check case:
+$1,000,000 / 6.00% / 30-year amortization → payment 5,995.51, balance
+after 12 payments 987,719.88, balloon at month 120 836,857.25.
 
 ## Step 4 — Resale (session 6)
 

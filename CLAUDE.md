@@ -385,33 +385,61 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   tests (tests/unit/test_investment.py). **EXTERNALLY UNVALIDATED — no
   golden populates purchase or security_deposit** (same standing as
   reabsorb/misc items). Suite: 326 passed + the same 4 golden reds.
-- **Next session's first prompt:** "Phase 3 Steps 1 and 2 are CLOSED
-  (Step 1: TI/LC posting, golden #1 capital lines green within
-  $0.50/cell, Freeport E deferred / Cedar Alt D closed as C's sibling;
-  Step 2: purchase + closing costs + security deposits shipped
-  2026-07-12, `engine/calc/investment.py`, below-the-line ledger columns,
-  DEVIATIONS.md §17 — externally unvalidated, no golden populates those
-  inputs). Next is **Step 3 of NEXT_STEPS_TO_GATE3.md: the debt engine**
-  — spec §3.17, [AE pp. 438-449] — planned as two sessions: fixed and
-  floating (index schedule + spread, monthly reset), IO periods,
-  amortizing payments (standard mortgage formula),
-  fully_amortizing/interest_only terms, additional principal [AE p. 444],
-  loan costs (points/fees, amortize-or-expense [AE pp. 445-446]),
-  multiple loans, 'Other Debt' simple-interest streams [AE pp. 448-449].
-  Read the manual pages first; the `refuse(bool(model.loans))` guard
-  lifts; ledger grows the debt-service section and CFADS; §9.3 invariants
-  extend (ending balance rolls month to month; payoff at resale =
-  outstanding balance — resale itself is Step 4); full per-loan
-  amortization detail retained for the Phase 4 report builder; worked
-  example tests per Iron Rule 3, and NO golden validates debt (no
-  fixture has loans — say so plainly, same standing as Step 2). After it
-  lands, the owner hand-checks one amort schedule vs a bank calculator
-  (Step 0). Remaining Step 0 decisions: valuation assumption sets for
-  the goldens (no OM publishes any valuation result); pct_of_account
-  stays guarded. REMEMBER the standing gaps: percentage rent + tenant
-  misc items + Step 2's purchase/deposits externally unvalidated pending
-  golden intake; Freeport B, Cedar Alt B, and Freeport E parked for
-  beta-stage GUI testing — the 4 golden reds (137/47 Gate 2, 33/12
-  Gate 3 capital) stay red by design and are the owner's queue, never
-  tuning targets; Cedar Alt D is closed, not open. Commit, push, update
-  the progress note and this prompt."
+  **Phase 3 Step 3 complete 2026-07-12 (one session; planned as two):**
+  debt engine (`engine/calc/debt.py`, spec §3.17, [AE pp. 438-449] read
+  in full) — per-loan amortization schedules (funding through maturity;
+  pre-analysis funding supported per [AE p. 442], window opens at the
+  then-current balance); monthly rate = annual/12 ([AE p. 443] "12
+  Months" Calc Method); IO periods re-level at amortization start;
+  balloon ("amortized N years due in M"; balloon posts at maturity);
+  floating = index YearRate + spread with payment re-level on each rate
+  change (manual silent — the [AE p. 444] same-term recalc applied to
+  rate changes); additional principal = the [AE p. 444] Recalc-Pmt-NO
+  behavior (schema has no toggle); loan costs to the financing section
+  [AE p. 446], expense-at-funding or straight-line-over-term; multiple
+  loans; `pct_of_value` sizing refuses naming Step 5; "Other Debt" NOT
+  built (the docstring's fixed-payment-loan suggestion recorded as
+  insufficient — DEVIATIONS.md §18). Ledger financing section live:
+  Debt Funding (display-only, OUTSIDE CFADS — [AE p. 447] + §4.1 pass
+  14 equity), Interest/Principal/Loan Costs, Total Debt Service, CFADS
+  = CFBDS + TDS; Step 2's below-the-line columns moved after it.
+  **§9.3 debt invariants standing on every run** (balance roll,
+  non-negative, IO-amortizes-nothing, fully-amortizing balloon ~$0);
+  per-loan LoanSchedule detail on RunResult for §7 report 20. 19
+  closed-form tests (tests/unit/test_debt.py). **Validation = worked
+  examples + the owner's bank-calculator hand-check (Step 0) — for
+  debt that IS the designed path; no golden has loans.** Hand-check
+  case ready: $1M / 6.00% / 30-yr am → pmt 5,995.51, balance@12
+  987,719.88, balloon@120 836,857.25. Suite: 337 passed + the same 4
+  golden reds (137/47, 33/12).
+- **Next session's first prompt:** "Phase 3 Steps 1-3 are CLOSED
+  (Step 1: TI/LC, golden #1 capital lines green within $0.50/cell,
+  Freeport E deferred / Cedar Alt D closed as C's sibling; Step 2:
+  purchase/closing/security deposits, DEVIATIONS.md §17; Step 3: debt
+  engine shipped 2026-07-12 in one session, `engine/calc/debt.py`,
+  DEVIATIONS.md §18 — 'Other Debt' deliberately NOT built, §9.3 debt
+  invariants standing, per-loan schedules on RunResult). **The owner's
+  Step 0 amort hand-check is now actionable**: $1,000,000 / 6.00% /
+  30-year amortization → payment $5,995.51, balance after 12 payments
+  $987,719.88, balloon at month 120 $836,857.25 — ask whether he has
+  run it against a bank calculator and record the outcome in
+  NEXT_STEPS_TO_GATE3.md Step 0. Next is **Step 4: resale** — spec
+  §3.18, [AE pp. 464-471] — read before implementing: all five methods
+  (cap NOI forward-12, cap current-year, gross value less costs, fixed
+  amount, % increase over price), exclude_capital NOI adjustments,
+  stabilized-occupancy recomputation [AE p. 468], adjustment amounts
+  [AE p. 469], selling costs, resale month posting, leveraged net
+  proceeds via loan payoffs (the Step 3 balance series is retained for
+  exactly this; §9.3 payoff-at-resale = outstanding balance becomes
+  assertable here). Property Resale Audit detail (spec §7 report 21)
+  retained. Manual worked-example tests per method (Iron Rule 3); no
+  golden publishes a valuation result (verified 2026-07-11) so resale
+  is validated by manual examples + invariants + owner hand-checks —
+  say so plainly. Remaining Step 0 decisions: valuation assumption sets
+  for the goldens; pct_of_account stays guarded. REMEMBER the standing
+  gaps: percentage rent + tenant misc items + purchase/deposits/debt
+  externally unvalidated (goldens can't exercise them); Freeport B,
+  Cedar Alt B, Freeport E parked for beta-stage GUI testing — the 4
+  golden reds (137/47 Gate 2, 33/12 Gate 3 capital) stay red by design,
+  owner's queue, never tuning targets; Cedar Alt D closed, not open.
+  Commit, push, update the progress note and this prompt."
