@@ -478,3 +478,43 @@ reduction — not a silent drop.**
 - **Revisit when:** never expected — the disqualification is evidence-
   based and permanent for this OM. A future fifth golden requires a new
   deal with confirmed Argus provenance and a fresh owner decision.
+
+## 15. Tenant miscellaneous items: v1 narrowings (spec §3.12; §4.1 pass 8)
+
+Built 2026-07-11 (`engine/calc/misc_items.py`) — the carried-forward item
+NEXT_STEPS_TO_GATE3.md Step 0 flagged (run.py's guard had a stale "Phase 2"
+label; Phase 2 closed without it because no golden needed it). Contract
+terms carry the lease's items [AE pp. 378-381], speculative segments their
+MLP's [AE pp. 240-244], occupied months only (the Step 2 convention), on the
+Miscellaneous Tenant Revenue line, inside PGR/EGR and both general-vacancy
+bases, with the Lease Audit reconciliation extended. Narrowings:
+
+- **"% of Rent" input method not modeled** (with its Rent Components picker
+  [AE p. 379; pp. 241-242]): `MoneyUnit` pct units fail loudly. The four
+  $/period units cover the manual's Amount-1 and $/Tenant-Area methods at
+  both frequencies; the schedule generalizes through the shared `Timing`
+  machinery [AE pp. 278, 361-362] rather than the manual's two-value
+  frequency picker.
+- **Incentives not modeled (schema-absent):** the manual's separate
+  owner-cost grid [AE pp. 381-382] (moving expenses, lease-break fees,
+  recoverable %, spread-over-remaining-term recovery) has no §3.12 field
+  and cannot be requested. First deal needing it drives the schema.
+- **Tenant-group linking not modeled:** items attach per lease / per MLP,
+  not to "pre-defined tenant groups" [AE p. 379].
+- **Limits are absolute monthly $ min/max** (the shared `Limits` clamp
+  [AE p. 279 convention]); the manual's per-area limit bases
+  ($/SF-or-tenant-area per year/month [AE pp. 380-381]) are not modeled.
+- **Inflation defaults to the general index** (revenue-side convention,
+  matching property revenues); the manual's per-item index picker
+  [AE p. 380] maps to `InflationRef`.
+- **Free-rent abatement requires both opt-ins:** the item's
+  `free_rent_abates` AND the profile's `abate_miscellaneous`
+  [AE pp. 253-254], applied as the same fractional free-month series as
+  `abate_recoveries`.
+- **EXTERNALLY UNVALIDATED** (checked 2026-07-11): no golden fixture uses
+  miscellaneous_items — manual-definition unit tests only
+  (tests/unit/test_misc_items.py), the same standing as percentage rent
+  pending golden #3.
+- **Revisit when:** a deal with tenant misc items back-tests via the
+  Benchmark Comparison report, or needs % of Rent / incentives / per-area
+  limits.

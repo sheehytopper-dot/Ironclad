@@ -90,13 +90,16 @@ these.** Flagged the way golden fixture staging was flagged in Phase 2:
   (Week 7 "Your jobs") once Step 3 lands.
 - **Carried-forward items placement** (transparency rule — none of these
   are silently dropped): (a) **tenant miscellaneous items** (spec §4.1 pass
-  8, [AE pp. 378-382]) — run.py still refuses them with a "Phase 2" label,
-  but no golden needed them and Phase 2 closed without them; assign to a
-  Phase 3 step, defer to a later phase, or leave guarded. (b) **security
-  deposits** ([AE pp. 384, 431-433]) — guards say Phase 3; proposed for
-  Step 2. (c) **`reabsorb` expirations** (DEVIATIONS.md §8 deferral) and
+  8, [AE pp. 378-382]) — **BUILT 2026-07-11** (`engine/calc/misc_items.py`;
+  guards lifted, Miscellaneous Tenant Revenue live in PGR/EGR/vacancy bases
+  and the Lease Audit; narrowings + the externally-unvalidated flag in
+  DEVIATIONS.md §15 — no golden uses misc items). (b) **security deposits**
+  ([AE pp. 384, 431-433]) — guards say Phase 3; proposed for Step 2.
+  (c) **`reabsorb` expirations** — **BUILT for contract leases 2026-07-11**
+  (owner-directed; DEVIATIONS.md §8; speculative/MLP chains stay guarded).
   (d) **`pct_of_account` expense/revenue units** — no golden driver;
-  proposed to stay guarded until a deal needs them. **Owner confirms.**
+  proposed to stay guarded until a deal needs them. **Owner confirms (d)
+  and the security-deposit placement.**
 
 ## Step 1 — TI/LC posting + golden capital lines (sessions 1-2)
 

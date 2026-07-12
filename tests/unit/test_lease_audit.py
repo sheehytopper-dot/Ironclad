@@ -172,7 +172,7 @@ class TestShape:
     def test_columns_and_no_dead_rows(self, report):
         assert list(report.columns) == [
             "tenant", "month", "phase", "base_rent", "absorption_vacancy",
-            "free_rent", "scheduled", "cpi", "percentage_rent",
+            "free_rent", "scheduled", "cpi", "percentage_rent", "misc",
             "recoveries", "total_tenant_revenue",
         ]
         # zero-activity months are omitted; every kept row has something

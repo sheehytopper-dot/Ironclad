@@ -43,6 +43,7 @@ from engine.models import (
     MarketLeasingProfile,
     MoneyRate,
     MoneyUnit,
+    MiscItemSpec,
     PctOfNew,
     PercentRentSpec,
     RecoveryAssignment,
@@ -348,6 +349,7 @@ class LeaseSegment:
     free_rent_profile: Optional[str] = None
     recoveries: RecoveryAssignment = field(default_factory=RecoveryAssignment)
     percentage_rent: Optional[PercentRentSpec] = None  # lease's (contract) / MLP's (spec) [AE p. 376]
+    miscellaneous_items: list[MiscItemSpec] = field(default_factory=list)  # lease's / MLP's [AE pp. 378-381, 240-244]
     ti: Optional[MoneyRate] = None           # weighted [AE p. 245; §4.2]
     lc_pct: Optional[float] = None           # weighted % of rent [AE pp. 246-248]
     lc_rate: Optional[MoneyRate] = None      # weighted $/SF or $ amount
@@ -507,6 +509,7 @@ def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
         free_rent_profile=(lease.free_rent.profile if lease.free_rent else None),
         recoveries=lease.recoveries,
         percentage_rent=lease.percentage_rent,
+        miscellaneous_items=list(lease.miscellaneous_items),
         ti=(lease.leasing_costs.ti if lease.leasing_costs else None),
     )
     if lease.leasing_costs is not None and lease.leasing_costs.lc is not None:
@@ -582,6 +585,7 @@ def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
             free_rent_profile=profile.free_rent_profile,
             recoveries=profile.recoveries,
             percentage_rent=profile.percentage_rent,
+            miscellaneous_items=list(profile.miscellaneous_items),
             ti=_blend_money(profile.ti_new, profile.ti_renew, p, where),
             lc_pct=lc_pct, lc_rate=lc_rate,
         )

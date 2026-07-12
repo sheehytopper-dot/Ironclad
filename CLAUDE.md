@@ -312,13 +312,31 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   capital-line activation first, then purchase/closing/deposits, debt,
   resale, PV/IRR, sensitivity) → Step 7 gate review. **DRAFT — awaiting
   owner review before any Phase 3 engine work.**
+  **Owner-directed builds 2026-07-11 (carried-forward items closed):**
+  (1) `upon_expiration 'reabsorb'` for contract leases
+  (`engine/calc/absorption.py` reabsorption_vacancy + available_from;
+  `AbsorptionSpec.reabsorbed_from` linkage with three cross-ref
+  validations; derived rentable area keeps the reabsorbed lease's area as
+  the SF anchor; MLP-chain reabsorb stays guarded; DEVIATIONS.md §8;
+  9 engineered tests — no golden exercises reabsorb). (2) **Tenant
+  miscellaneous items** (spec §3.12/§4.1 pass 8; [AE pp. 378-381,
+  240-244] read) — `engine/calc/misc_items.py`, per-segment over occupied
+  months (lease's items on contract, MLP's on speculative), $/period
+  units × Timing machinery, monthly Limits clamp, general-index default,
+  free-rent abatement gated on item `free_rent_abates` AND profile
+  `abate_miscellaneous`; Miscellaneous Tenant Revenue live in PGR/EGR,
+  both vacancy bases, and the Lease Audit (reconciliation extended to
+  seven lines); both stale "Phase 2" guards lifted; narrowings + the
+  **externally-unvalidated flag** (no golden uses misc items) in
+  DEVIATIONS.md §15; 13 manual-cited tests.
 - **Next session's first prompt:** "NEXT_STEPS_TO_GATE3.md was drafted
-  2026-07-11 and is awaiting owner review — no Phase 3 engine code exists
-  yet, and none is written until Topper has reviewed the plan and resolved
-  its Step 0 decisions (valuation assumption sets for the goldens — no OM
-  publishes any valuation result, verified 2026-07-11; CFBDS-on-#1-only
-  capital-line assertion scoping; placement of the carried-forward guards:
-  tenant misc items, security deposits, reabsorb, pct_of_account). Check
+  2026-07-11 and is awaiting owner review — reabsorb (contract) and tenant
+  misc items were owner-directed and built 2026-07-11, but the PLANNED
+  Phase 3 steps remain gated until Topper has reviewed the plan and
+  resolved its remaining Step 0 decisions (valuation assumption sets for
+  the goldens — no OM publishes any valuation result, verified 2026-07-11;
+  CFBDS-on-#1-only capital-line assertion scoping; placement of the still-
+  guarded items: security deposits, pct_of_account). Check
   with the owner: has the plan been reviewed / corrected, and are the Step 0
   decisions made? If approved: begin Step 1 (TI/LC posting, spec §3.9 /
   §4.1 pass 11 — the blended amounts already sit unposted on LeaseSegment

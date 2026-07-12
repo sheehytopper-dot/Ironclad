@@ -49,6 +49,7 @@ from engine.calc.inflation import rate_for_year
 from engine.calc.ledger import (
     CPI_ADJUSTMENT_REVENUE,
     EXPENSE_RECOVERY_REVENUE,
+    MISC_TENANT_REVENUE,
     PERCENTAGE_RENT,
     SCHEDULED_BASE_RENTAL_REVENUE,
 )
@@ -71,6 +72,7 @@ class TenantRevenue:
     recoveries: pd.Series
     absorption_vacancy: pd.Series
     percentage_rent: Optional[pd.Series] = None  # Phase 2 Step 8
+    misc: Optional[pd.Series] = None             # tenant misc items (§4.1 pass 8)
 
 
 def _zeros(months: pd.PeriodIndex) -> pd.Series:
@@ -100,11 +102,13 @@ def _tenant_base(revenue: TenantRevenue, method: VacancyMethod,
         scheduled = scheduled - revenue.absorption_vacancy  # A&T is negative
     pct_rent = (revenue.percentage_rent
                 if revenue.percentage_rent is not None else _zeros(months))
+    misc = revenue.misc if revenue.misc is not None else _zeros(months)
     lines = {
         SCHEDULED_BASE_RENTAL_REVENUE: scheduled,
         CPI_ADJUSTMENT_REVENUE: revenue.cpi,
         PERCENTAGE_RENT: pct_rent,
         EXPENSE_RECOVERY_REVENUE: revenue.recoveries,
+        MISC_TENANT_REVENUE: misc,
     }
     if include_accounts:
         base = _zeros(months)
@@ -119,9 +123,11 @@ def _tenant_base(revenue: TenantRevenue, method: VacancyMethod,
     base = lines[SCHEDULED_BASE_RENTAL_REVENUE] + lines[CPI_ADJUSTMENT_REVENUE]
     if method == VacancyMethod.percent_of_scheduled_base_plus:
         return base
-    # total tenant revenue adds percentage rent and recoveries; PGR adds
-    # property-level income on top (run.py supplies it separately)
-    return base + lines[PERCENTAGE_RENT] + lines[EXPENSE_RECOVERY_REVENUE]
+    # total tenant revenue adds percentage rent, recoveries, and misc
+    # tenant items; PGR adds property-level income on top (run.py supplies
+    # it separately)
+    return (base + lines[PERCENTAGE_RENT] + lines[EXPENSE_RECOVERY_REVENUE]
+            + lines[MISC_TENANT_REVENUE])
 
 
 def _excluded(spec) -> set:

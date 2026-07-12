@@ -76,6 +76,7 @@ from engine.calc.ledger import (
     occupied_area_from_chains,
     rentable_area_series,
 )
+from engine.calc.misc_items import project_segment_misc_items
 from engine.calc.percentage_rent import project_segment_percentage_rent
 from engine.calc.recoveries import (
     PoolAudit,
@@ -126,6 +127,7 @@ class RunResult:
     lease_rents: dict[str, LeaseRentCashflows]      # by tenant_name (chain totals)
     absorption_vacancy: dict[str, pd.Series]        # by tenant_name (negative)
     percentage_rent: dict[str, pd.Series]           # by tenant_name
+    misc_tenant_revenue: dict[str, pd.Series]       # by tenant_name
     recoveries: dict[str, pd.Series]                # by tenant_name
     recovery_audit: list[PoolAudit]                 # per tenant per pool
     general_vacancy: pd.Series                      # negative
@@ -153,16 +155,12 @@ def _phase_guards(model: PropertyModel) -> None:
     refuse(bool(model.loans), "debt", "Phase 3")
     for lease in model.rent_roll:
         where = f"lease {lease.tenant_name!r}: "
-        refuse(bool(lease.miscellaneous_items),
-               where + "miscellaneous tenant items", "Phase 2")
         refuse(lease.leasing_costs is not None,
                where + "contract TIs/LCs", "Phase 3")
         refuse(lease.security_deposit is not None,
                where + "security deposits", "Phase 3")
     for profile in model.market_leasing_profiles:
         where = f"market leasing profile {profile.name!r}: "
-        refuse(bool(profile.miscellaneous_items),
-               where + "rollover miscellaneous items", "Phase 2")
         refuse(profile.security_deposit is not None,
                where + "security deposits", "Phase 3")
         refuse(profile.upon_expiration == UponExpiration.reabsorb,
@@ -385,16 +383,22 @@ def run_property(model: PropertyModel) -> RunResult:
         expense_groups={g.name: list(g.members) for g in model.expense_groups},
     )
 
-    def _segment_abatement(lease, segment) -> Optional[pd.Series]:
+    def _segment_abatement(lease, segment,
+                           flag: str = "abate_recoveries",
+                           ) -> Optional[pd.Series]:
+        """Fractional free-month series when the segment's free-rent
+        profile abates the given charge family [AE p. 254] — recoveries
+        (``abate_recoveries``) or miscellaneous items
+        (``abate_miscellaneous``)."""
         if segment.speculative:
             profile = _free_rent_profile(segment.free_rent_profile, model)
-            if profile is not None and profile.abate_recoveries:
+            if profile is not None and getattr(profile, flag):
                 return segment_free_fraction(segment, months)
             return None
         if lease.free_rent is None:
             return None
         profile = _free_rent_profile(lease.free_rent.profile, model)
-        if profile is not None and profile.abate_recoveries:
+        if profile is not None and getattr(profile, flag):
             return contract_free_fraction(lease, months)
         return None
 
@@ -405,6 +409,26 @@ def run_property(model: PropertyModel) -> RunResult:
         ]
         for lease in all_leases
     }
+
+    # Pass 8: tenant miscellaneous items (spec §3.12; [AE pp. 378-381,
+    # 240-244]) — fee-independent like percentage rent, so a constant in
+    # the fixed point below. Contract terms carry the lease's items, each
+    # speculative segment its MLP's; occupied months only. Free rent
+    # abates an item only when the item opts in (free_rent_abates) AND the
+    # profile abates miscellaneous items (abate_miscellaneous).
+    misc_tenant = {
+        lease.tenant_name: sum(
+            (project_segment_misc_items(
+                segment, months, analysis_begin=begin,
+                inflation=model.inflation,
+                abatement=_segment_abatement(lease, segment,
+                                             "abate_miscellaneous"),
+            ) for segment in chains[lease.tenant_name]),
+            pd.Series(0.0, index=months),
+        )
+        for lease in all_leases
+    }
+    misc_total = sum(misc_tenant.values(), pd.Series(0.0, index=months))
 
     def recoveries_from(expense_series,
                         audit: Optional[list] = None) -> dict[str, pd.Series]:
@@ -436,6 +460,7 @@ def run_property(model: PropertyModel) -> RunResult:
                 recoveries=recoveries[tenant],
                 absorption_vacancy=absorption[tenant],
                 percentage_rent=percentage_rent[tenant],
+                misc=misc_tenant[tenant],
             )
             for tenant in chains
         }
@@ -448,7 +473,8 @@ def run_property(model: PropertyModel) -> RunResult:
         recovery_total = sum(recoveries.values(),
                              pd.Series(0.0, index=months))
         pgr = (base_total + absorption_total + free_total + cpi_total
-               + pct_rent_total + recovery_total + property_revenue_total)
+               + pct_rent_total + misc_total + recovery_total
+               + property_revenue_total)
         egr = pgr + gv + cl
         return recoveries, gv, cl, pgr, egr
 
@@ -504,6 +530,7 @@ def run_property(model: PropertyModel) -> RunResult:
         expenses=expense_series,
         absorption_vacancy=absorption_total,
         percentage_rent=pct_rent_total,
+        misc_tenant_revenue=misc_total,
         property_revenue=property_revenue_total,
         general_vacancy=gv,
         credit_loss=cl,
@@ -518,6 +545,7 @@ def run_property(model: PropertyModel) -> RunResult:
         rentable_area=rentable, occupancy=occupancy, segments=chains,
         lease_rents=lease_rents, absorption_vacancy=absorption,
         percentage_rent=percentage_rent,
+        misc_tenant_revenue=misc_tenant,
         recoveries=recoveries, recovery_audit=recovery_audit,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
