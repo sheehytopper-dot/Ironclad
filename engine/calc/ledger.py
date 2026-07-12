@@ -90,6 +90,13 @@ CFADS = "Cash Flow After Debt Service"
 PURCHASE_PRICE = "Purchase Price"
 CLOSING_COSTS = "Closing Costs"
 SECURITY_DEPOSITS = "Security Deposits"
+#: Resale (Phase 3 Step 4): net unleveraged proceeds post positive in
+#: the resale month; the loan payoffs post negative beside them so the
+#: leveraged net is the visible sum, not a silent netting. Below the
+#: line, in no rollup (the ARGUS Cash Flow carries no resale row; the
+#: PV analysis consumes it — spec §4.1 pass 14).
+NET_RESALE_PROCEEDS = "Net Resale Proceeds"
+LOAN_PAYOFF_AT_RESALE = "Loan Payoff at Resale"
 
 #: Revenue detail lines summed into Total Potential Gross Revenue
 #: (Scheduled Base already contains Base + A&T Vacancy + Free Rent).
@@ -215,6 +222,8 @@ def assemble_ledger(months: pd.PeriodIndex, *,
                     purchase_price: Optional[pd.Series] = None,
                     closing_costs: Optional[pd.Series] = None,
                     security_deposits: Optional[pd.Series] = None,
+                    net_resale_proceeds: Optional[pd.Series] = None,
+                    loan_payoff_at_resale: Optional[pd.Series] = None,
                     ) -> MonthlyLedger:
     """Assemble per-lease and per-expense series into the canonical monthly
     ledger (spec §2.3).
@@ -322,6 +331,8 @@ def assemble_ledger(months: pd.PeriodIndex, *,
     columns[PURCHASE_PRICE] = _optional(purchase_price, months)
     columns[CLOSING_COSTS] = _optional(closing_costs, months)
     columns[SECURITY_DEPOSITS] = _optional(security_deposits, months)
+    columns[NET_RESALE_PROCEEDS] = _optional(net_resale_proceeds, months)
+    columns[LOAN_PAYOFF_AT_RESALE] = _optional(loan_payoff_at_resale, months)
     for name, series in non_operating.items():
         columns[name] = series
 

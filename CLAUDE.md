@@ -412,34 +412,68 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   case ready: $1M / 6.00% / 30-yr am → pmt 5,995.51, balance@12
   987,719.88, balloon@120 836,857.25. Suite: 337 passed + the same 4
   golden reds (137/47, 33/12).
-- **Next session's first prompt:** "Phase 3 Steps 1-3 are CLOSED
+  **Phase 3 Step 4 complete 2026-07-12:** property resale
+  (`engine/calc/resale.py` + `engine/reports/resale_audit.py`, spec
+  §3.18, [AE pp. 464-471] read in full) — all five methods per their
+  [AE p. 465] definitions: `cap_noi_forward_12` (window resale +1..+12,
+  relative to the resale date, capped at analysis end);
+  `cap_noi_current_year` = the analysis year of sale; `gross_value_
+  less_costs` = "CAP Effective Gross Rents" = EGR − recoveries (Part A
+  finding — the schema name mislabels it); `fixed_amount` = Enter Sale
+  Price (gross AND net, no selling costs — refused if populated);
+  `pct_increase_over_price` = total % over purchase price. NOI
+  adjustments: `exclude_capital=True` a real no-op (NOI already
+  excludes capital), `False` adds the window's Total Capital Costs;
+  `stabilize_occupancy` = "NOI × Gross Up % / Average Occupancy %"
+  [AE p. 469] over the run's occupancy series (no ledger recompute).
+  Adjustments before selling costs [AE p. 465]; leveraged net =
+  unleveraged − Σ resale-month loan balances (Step 3's series). Two
+  below-the-line ledger columns (Net Resale Proceeds, Loan Payoff at
+  Resale) — leveraged net is their visible sum; CFBDS/NOI/CFADS
+  unchanged (test-locked). `apply_resale_to_cash_flow=False` computes +
+  retains but posts nothing. Property Resale Audit built (spec §7 report
+  21) reconciling exactly (1e-9). `direct_cap` refuses loudly (Step 5);
+  only `valuation.resale` consumed. **§9.3 payoff-at-resale invariant
+  standing** on every run with resale + loans. 18 tests
+  (tests/unit/test_resale.py). Narrowings in DEVIATIONS.md §19.
+  **EXTERNALLY UNVALIDATED — no golden populates valuation, none will.**
+  Hand-check: current-year NOI 100,000 at 8.00% exit cap = 1,250,000
+  gross, 3% selling 37,500, net 1,212,500. Suite: 363 passed + the same
+  4 golden reds (137/47, 33/12).
+- **Next session's first prompt:** "Phase 3 Steps 1-4 are CLOSED
   (Step 1: TI/LC, golden #1 capital lines green within $0.50/cell,
   Freeport E deferred / Cedar Alt D closed as C's sibling; Step 2:
   purchase/closing/security deposits, DEVIATIONS.md §17; Step 3: debt
-  engine shipped 2026-07-12 in one session, `engine/calc/debt.py`,
-  DEVIATIONS.md §18 — 'Other Debt' deliberately NOT built, §9.3 debt
-  invariants standing, per-loan schedules on RunResult). **The owner's
-  Step 0 amort hand-check is now actionable**: $1,000,000 / 6.00% /
-  30-year amortization → payment $5,995.51, balance after 12 payments
-  $987,719.88, balloon at month 120 $836,857.25 — ask whether he has
-  run it against a bank calculator and record the outcome in
-  NEXT_STEPS_TO_GATE3.md Step 0. Next is **Step 4: resale** — spec
-  §3.18, [AE pp. 464-471] — read before implementing: all five methods
-  (cap NOI forward-12, cap current-year, gross value less costs, fixed
-  amount, % increase over price), exclude_capital NOI adjustments,
-  stabilized-occupancy recomputation [AE p. 468], adjustment amounts
-  [AE p. 469], selling costs, resale month posting, leveraged net
-  proceeds via loan payoffs (the Step 3 balance series is retained for
-  exactly this; §9.3 payoff-at-resale = outstanding balance becomes
-  assertable here). Property Resale Audit detail (spec §7 report 21)
-  retained. Manual worked-example tests per method (Iron Rule 3); no
-  golden publishes a valuation result (verified 2026-07-11) so resale
-  is validated by manual examples + invariants + owner hand-checks —
-  say so plainly. Remaining Step 0 decisions: valuation assumption sets
-  for the goldens; pct_of_account stays guarded. REMEMBER the standing
-  gaps: percentage rent + tenant misc items + purchase/deposits/debt
-  externally unvalidated (goldens can't exercise them); Freeport B,
-  Cedar Alt B, Freeport E parked for beta-stage GUI testing — the 4
-  golden reds (137/47 Gate 2, 33/12 Gate 3 capital) stay red by design,
-  owner's queue, never tuning targets; Cedar Alt D closed, not open.
-  Commit, push, update the progress note and this prompt."
+  engine, DEVIATIONS.md §18, 'Other Debt' deliberately NOT built; Step
+  4: resale shipped 2026-07-12, `engine/calc/resale.py` +
+  `engine/reports/resale_audit.py`, DEVIATIONS.md §19 — all five
+  methods, Resale Audit report reconciling to 1e-9, §9.3
+  payoff-at-resale invariant standing). **Two owner hand-checks are now
+  actionable**: (1) the Step 3 amort case — $1,000,000 / 6.00% /
+  30-year → payment $5,995.51, balance after 12 payments $987,719.88,
+  balloon at month 120 $836,857.25; (2) the Step 4 resale — current-year
+  NOI $100,000 at an 8.00% exit cap = $1,250,000 gross, 3% selling
+  $37,500, net $1,212,500 — ask whether he has run them and record the
+  outcomes in NEXT_STEPS_TO_GATE3.md Step 0. Next is **Step 5: PV &
+  IRR** — spec §3.18 / §4.1 pass 14, [AE pp. 472-473 + the Present Value
+  Calculation Examples] — read first: unleveraged PV under all
+  discounting conventions (annual/quarterly/monthly × end-of-period/
+  mid-period), direct cap [AE pp. 453-454] (the `direct_cap` guard added
+  in Step 4 lifts here), unleveraged and leveraged IRR (monthly solve,
+  annualized), and the price-derived-from-valuation toggle that closes
+  the §3.16 `derivation` and §3.17 `pct_of_value` refusals from Steps
+  2-3. **The §9.3 self-consistency invariant becomes standing: set price
+  = computed PV, assert IRR = discount rate within 1bp.** Valuation must
+  not recompute the ledger (spec §4.1 — the RunResult/ledger is the
+  input; resale is already computed and retained on RunResult.resale).
+  No golden publishes a valuation result (verified 2026-07-11), so PV/
+  IRR is validated by manual examples + the 1bp self-consistency
+  invariant + owner hand-checks — say so plainly. Remaining Step 0
+  decisions: valuation assumption sets for the goldens; pct_of_account
+  stays guarded. REMEMBER the standing gaps: percentage rent + tenant
+  misc items + purchase/deposits/debt/resale externally unvalidated
+  (goldens can't exercise them); Freeport B, Cedar Alt B, Freeport E
+  parked for beta-stage GUI testing — the 4 golden reds (137/47 Gate 2,
+  33/12 Gate 3 capital) stay red by design, owner's queue, never tuning
+  targets; Cedar Alt D closed, not open. Commit, push, update the
+  progress note and this prompt."

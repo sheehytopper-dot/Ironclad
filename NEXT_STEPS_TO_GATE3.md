@@ -71,7 +71,8 @@ validation therefore rests on:
    to the dollar). Golden #1's capital rows are green within $0.50/cell
    and carry this criterion's external validation.
 2. **§9.3 invariants extended and passing on every calc run:** debt balance
-   roll, payoff-at-resale identity, PV/IRR self-consistency (±1bp).
+   roll (Step 3, ✓), payoff-at-resale identity (Step 4, ✓ —
+   `assert_resale_invariants`), PV/IRR self-consistency (±1bp — Step 5).
 3. **Manual worked-example unit tests** with page cites for resale, PV
    conventions, loan math, and security deposits (Iron Rule 3).
 4. **Sensitivity matrices** (IRR over price × exit cap; value over discount
@@ -210,15 +211,32 @@ that IS the designed path; no golden has loans.** Hand-check case:
 $1,000,000 / 6.00% / 30-year amortization → payment 5,995.51, balance
 after 12 payments 987,719.88, balloon at month 120 836,857.25.
 
-## Step 4 — Resale (session 6)
+## Step 4 — Resale (session 6) — **CLOSED 2026-07-12**
 
-Spec §3.18 resale block [AE pp. 464-471] — read before implementing: all
-five methods (cap NOI forward-12, cap current-year, gross value less costs,
-fixed amount, % increase over price), `exclude_capital` NOI adjustments,
-stabilized-occupancy recomputation [AE p. 468], adjustment amounts
-[AE p. 469], selling costs, resale month posting, leveraged net proceeds
-via loan payoffs. Property Resale Audit detail (spec §7 report 21) retained.
-Manual worked-example tests per method (Iron Rule 3).
+**Status: shipped 2026-07-12, full planned scope.** `engine/calc/resale.py`
+implements all five methods per their [AE p. 465] definitions — the Part A
+adjudications (`gross_value_less_costs` = CAP Effective Gross Rents,
+EGR − recoveries; `cap_noi_current_year` = the analysis year of sale;
+forward-12 window relative to the resale date, capped at analysis end;
+`exclude_capital=True` is a real no-op since NOI already excludes capital,
+`False` adds the window's Total Capital Costs; `stabilize_occupancy` =
+"NOI × Gross Up % / Average Occupancy %" [AE p. 469] over the run's
+occupancy series, no ledger recompute; adjustments before selling costs;
+payoff = the resale-month ending balance) are all in DEVIATIONS.md §19.
+Two below-the-line ledger columns (Net Resale Proceeds, Loan Payoff at
+Resale) — the leveraged net is their visible sum, CFBDS/NOI/CFADS
+unchanged (test-locked). `apply_resale_to_cash_flow=False` computes and
+retains everything but posts nothing. Property Resale Audit report built
+(`engine/reports/resale_audit.py`, spec §7 report 21) with exact
+ledger reconciliation (`reconcile_resale_audit`, tested to 1e-9),
+mirroring the lease/recovery audits. `direct_cap` refuses loudly (Step 5);
+only `valuation.resale` is consumed. **§9.3 payoff-at-resale invariant
+standing** on every run with resale + loans. 18 tests
+(tests/unit/test_resale.py). **EXTERNALLY UNVALIDATED** — no golden
+populates `valuation`, none will (no OM publishes a valuation result);
+worked examples + owner hand-checks only. Hand-check: current-year NOI
+100,000 at 8.00% exit cap = 1,250,000 gross, 3% selling 37,500, net
+1,212,500.
 
 ## Step 5 — PV & IRR (session 7)
 

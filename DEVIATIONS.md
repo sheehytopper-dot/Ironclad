@@ -708,3 +708,111 @@ Part A adjudications (citation or manual-silent reasoning per item):
   payoff-at-resale; Step 5 unlocks pct_of_value; a deal needs Other
   Debt, deficit funding, non-monthly schedules, or the Recalc-Pmt-Yes
   paydown behavior.
+
+## 19. Property resale: conventions and v1 narrowings (spec §3.18; Phase 3 Step 4)
+
+Built 2026-07-12 (`engine/calc/resale.py` + `engine/reports/resale_audit.py`,
+[AE pp. 464-471] read in full). **Validation path, stated plainly:** no
+golden fixture populates `valuation` and none ever will — no OM publishes
+a valuation result (verified 2026-07-11). Validation is the manual's
+worked-example tests (tests/unit/test_resale.py) plus engineered tests
+and owner hand-checks; there is no external golden. Headline hand-check:
+flat current-year NOI 100,000 at an 8.00% exit cap = 1,250,000 gross;
+3% selling costs 37,500; net proceeds 1,212,500.
+
+Part A adjudications (citation or manual-silent reasoning per item):
+
+1. **`gross_value_less_costs` = "CAP Effective Gross Rents (12 Months
+   After Sale)" [AE p. 465]**, the only other cap-rate-required method in
+   the manual's list [AE p. 467 note]. It differs from the CAP NOI
+   methods in the **income basis**, not the inputs: it capitalizes "net
+   effective gross rents (effective gross revenue − recoveries)"
+   [AE p. 465] over the same forward-12 window, not NOI. The schema name
+   is a poor label for that definition; mapping recorded here so a reader
+   isn't misled by "less costs" (it is EGR less recoveries, not a
+   gross-value-less-selling-costs method).
+2. **`cap_noi_current_year` = "CAP NOI (Year of Sale)" [AE p. 465]**; the
+   "year of sale" is the reporting-year bucket ("the resale year"
+   [AE p. 469]), implemented as the **analysis year** (12-month block
+   from analysis begin) containing the resale month — not a trailing-12
+   or fiscal window (the manual frames every resale-year figure in
+   reporting-year terms).
+3. **`cap_noi_forward_12` window is resale month +1..+12, relative to the
+   resale date**, not fixed to analysis end. The ledger already extends
+   analysis end + 12 months (spec §2.3) so a default (analysis-end)
+   resale's window is fully materialized; a mid-analysis resale's window
+   is earlier and equally available. `analysis_end_month()` derives the
+   true final analysis month as `months[-13]` and the resale date is
+   **capped there** — the look-forward months are not saleable (a resale
+   in them would have no 12-month NOI window). Confirmed the existing
+   timeline supports an arbitrary forward-12 slice (it is a plain
+   PeriodIndex range), so no new machinery was needed.
+4. **`exclude_capital` [AE pp. 470-471] default=True is a genuine no-op
+   here, by construction:** the ledger's NOI line already excludes TI/LC/
+   capex (Step 1: CFBDS = NOI + Total Capital Costs, so capital sits
+   *below* NOI). Using the NOI line as-is is exactly "exclude capital."
+   `False` **adds** the window's Total Capital Costs back into the basis
+   — the all-or-nothing form of the manual's per-line Deductions grid
+   [AE pp. 470-471], which the schema (a single bool, no per-line #Months)
+   cannot express in full. The manual's warning that TIs/LCs treated as
+   operating expenses double-count [AE p. 471] does not apply — the
+   engine never posts them as operating.
+5. **`stabilize_occupancy` uses the printed ratio "NOI × Gross Up % /
+   Average Occupancy %" [AE p. 469]** (the "% of Occupancy" gross-up
+   basis), where Average Occupancy % is the mean of the run's occupancy
+   series over the method's own NOI window. This is faithful to the
+   manual's stated formula and touches only the resale basis — the ledger
+   is never recomputed (spec §4.1). The manual's more elaborate
+   "Lag Vacancy" basis [AE p. 470] (market value of downtime + vacant
+   space + GV add-back) is schema-absent; `StabilizedOccupancy` carries
+   only a target percent, so the simple % of Occupancy ratio is the
+   correct match.
+6. **`adjustment_amounts` apply to the capitalized value BEFORE selling
+   costs [AE pp. 465, 471]:** the manual's Capitalization Valuation
+   Results pane subtracts adjustments to reach "the gross sale price",
+   then subtracts selling costs from the gross to reach the net. So
+   selling costs are a percent of the *adjusted* gross, not the
+   pre-adjustment value. Signed dollars (negative reduces proceeds).
+7. **Loan payoff uses the resale month's month-end ending balance**
+   (`LoanSchedule.balance[resale_month]`, Step 3's series) — the balance
+   *after* that month's scheduled payment, consistent with how Step 3
+   indexes the schedule (payments run funding+1..maturity; the balance
+   series holds each month's ending balance). Leveraged net = unleveraged
+   net − Σ payoffs.
+
+Other narrowings / decisions:
+
+- **Ledger placement:** two new below-the-line columns after Step 2/3's
+  columns — **Net Resale Proceeds** (net *unleveraged*, positive in the
+  resale month) and **Loan Payoff at Resale** (Σ payoffs, negative,
+  same month). The leveraged net is their visible sum, not a silent
+  netting. In no rollup: the ARGUS Cash Flow report carries no resale
+  row and the PV analysis consumes resale separately (spec §4.1 pass 14);
+  CFBDS/NOI/CFADS are unchanged (test-locked).
+- **`apply_resale_to_cash_flow=False`** computes the full cascade and
+  retains the `ResaleResult` (and the Resale Audit reconciles) but posts
+  nothing to the ledger.
+- **`fixed_amount` ("Enter Sale Price") admits no selling costs or
+  adjustments** — "used as the gross sale price AND net sale price"
+  [AE p. 465]; populating them is refused loudly, not silently ignored.
+- **`pct_increase_over_price` ("Inflate Purchase Price")** is narrowed to
+  the schema's single TOTAL percent over the purchase price, not ARGUS's
+  annual inflation-rate-over-hold-years field [AE p. 466]; requires a
+  purchase price.
+- **Only `valuation.resale` is consumed this step.** `direct_cap` is
+  optional-with-no-consumer and is **refused loudly** (Step 5), closing
+  the silent-numbers hole the way `purchase` was closed in Step 2; the
+  discount_rate/method/convention/sensitivity machinery is untouched and
+  read nowhere yet (Step 5).
+- **Schema-absent manual features:** multiple named resale methods with a
+  default pick [AE p. 464]; Gross Income Multiplier / Traditional /
+  Capitalization / Leasehold calc methods [AE p. 465]; Add Back Free Rent
+  [AE p. 469]; the Lag Vacancy gross-up basis and the per-line Deductions
+  #Months grid [AE pp. 470-471]; varying exit cap over time [AE p. 466].
+- **§9.3 payoff-at-resale invariant (standing from this step):** on every
+  run with both a resale and loans, each payoff equals that loan's
+  resale-month balance and leveraged net = unleveraged net − Σ balances
+  (`assert_resale_invariants`).
+- **Revisit when:** Step 5 unlocks direct cap and consumes resale in PV/
+  IRR; a deal needs a multiplier/traditional method, Add Back Free Rent,
+  the Lag Vacancy basis, or per-line deduction months.
