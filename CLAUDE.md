@@ -364,23 +364,54 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   evidentiary category as Freeport B — not an engine defect. Both Gate 3
   capital tests stay red by design (no allowlist mechanism); not Gate 3
   blockers (NEXT_STEPS_TO_GATE3.md criterion 1 + Step 7).
-- **Next session's first prompt:** "Phase 3 Step 1 is fully CLOSED
-  (built 2026-07-11, adjudicated 2026-07-12): TI/LC posting shipped
-  (`engine/calc/capital.py`, DEVIATIONS.md §16), golden #1's FY2029-FY2031
-  capital lines verified green within $0.50/cell, goldens #2/#4
-  capital-line assertions activated, Cedar Alt root cause D closed as C's
-  sibling (not independently open), and Freeport root cause E DEFERRED to
-  beta-stage GUI testing (owner decision 2026-07-12). Next is **Step 2 of
-  NEXT_STEPS_TO_GATE3.md: purchase price, closing costs, security
-  deposits** — spec §3.16/§3.12, [AE pp. 435-437, 384, 431-433] — read
-  the manual pages first, security-deposit guards lift there,
-  worked-example tests per Iron Rule 3. Check any remaining Step 0
-  decisions with the owner before relying on them (valuation assumption
-  sets for the goldens — no OM publishes any valuation result;
-  pct_of_account stays guarded). REMEMBER the standing gaps: percentage
-  rent + tenant misc items externally unvalidated pending golden #3;
-  Freeport B, Cedar Alt B, and now Freeport E all parked for beta-stage
-  GUI testing — their Gate 2/Gate 3 assertions stay red by design (4
-  golden reds: 137/47 Gate 2, 33/12 Gate 3 capital) and are the owner's
-  queue, never tuning targets; Cedar Alt D is closed, not open. Commit,
-  push, update the progress note and this prompt."
+  **Phase 3 Step 2 complete 2026-07-12:** purchase, closing costs,
+  security deposits (`engine/calc/investment.py`, spec §3.16/§3.12,
+  [AE pp. 435-437, 384, 431-433] read) — fixed-derivation price posts at
+  the purchase month (schema `date` honored; ARGUS pins analysis begin
+  [AE p. 435]); closing costs $ or %-of-price at purchase or custom
+  date; derived derivations (pv_at_discount_rate / direct_cap) refuse
+  loudly naming Step 5 — this also closed a no-silent-numbers hole
+  (`purchase` previously had no consumer AND no guard). Security
+  deposits per segment (both guards lifted): collection + at segment
+  start, refund − in the final month when `refunded_at_expiration`;
+  months-of-rent = month-one base rental revenue [AE p. 432], gross of
+  free rent; $/SF × area; flat $; contract terms use the lease's spec,
+  speculative the MLP's [AE p. 384]. Three new below-the-line ledger
+  columns (Purchase Price / Closing Costs / Security Deposits) after
+  CFBDS, in no rollup — CFBDS/NOI/EGR proven unchanged by test; the
+  golden CSVs end at CFBDS so gate assertions are untouched. Narrowings
+  + judgment calls (per-segment refund/recollect churn on renewal;
+  pre-analysis starts refund-only) in DEVIATIONS.md §17. 13 manual-cited
+  tests (tests/unit/test_investment.py). **EXTERNALLY UNVALIDATED — no
+  golden populates purchase or security_deposit** (same standing as
+  reabsorb/misc items). Suite: 326 passed + the same 4 golden reds.
+- **Next session's first prompt:** "Phase 3 Steps 1 and 2 are CLOSED
+  (Step 1: TI/LC posting, golden #1 capital lines green within
+  $0.50/cell, Freeport E deferred / Cedar Alt D closed as C's sibling;
+  Step 2: purchase + closing costs + security deposits shipped
+  2026-07-12, `engine/calc/investment.py`, below-the-line ledger columns,
+  DEVIATIONS.md §17 — externally unvalidated, no golden populates those
+  inputs). Next is **Step 3 of NEXT_STEPS_TO_GATE3.md: the debt engine**
+  — spec §3.17, [AE pp. 438-449] — planned as two sessions: fixed and
+  floating (index schedule + spread, monthly reset), IO periods,
+  amortizing payments (standard mortgage formula),
+  fully_amortizing/interest_only terms, additional principal [AE p. 444],
+  loan costs (points/fees, amortize-or-expense [AE pp. 445-446]),
+  multiple loans, 'Other Debt' simple-interest streams [AE pp. 448-449].
+  Read the manual pages first; the `refuse(bool(model.loans))` guard
+  lifts; ledger grows the debt-service section and CFADS; §9.3 invariants
+  extend (ending balance rolls month to month; payoff at resale =
+  outstanding balance — resale itself is Step 4); full per-loan
+  amortization detail retained for the Phase 4 report builder; worked
+  example tests per Iron Rule 3, and NO golden validates debt (no
+  fixture has loans — say so plainly, same standing as Step 2). After it
+  lands, the owner hand-checks one amort schedule vs a bank calculator
+  (Step 0). Remaining Step 0 decisions: valuation assumption sets for
+  the goldens (no OM publishes any valuation result); pct_of_account
+  stays guarded. REMEMBER the standing gaps: percentage rent + tenant
+  misc items + Step 2's purchase/deposits externally unvalidated pending
+  golden intake; Freeport B, Cedar Alt B, and Freeport E parked for
+  beta-stage GUI testing — the 4 golden reds (137/47 Gate 2, 33/12
+  Gate 3 capital) stay red by design and are the owner's queue, never
+  tuning targets; Cedar Alt D is closed, not open. Commit, push, update
+  the progress note and this prompt."

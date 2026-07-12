@@ -10,7 +10,8 @@ whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
 ``reabsorb`` on MLP profiles (speculative chains — DEVIATIONS.md §8; the
 contract-lease variant is built), TI/LC categories (DEVIATIONS.md §16),
-security deposits, and debt (Phase 3). Space absorption (Step 3) generates
+derived purchase prices (Step 5), and debt (Phase 3). Space absorption
+(Step 3 of Phase 2) generates
 synthetic leases per spec §3.15 that join the rent roll for every
 downstream pass; pre-absorption vacant space grosses Base Rental Revenue
 up to market with the offsetting A&T entry [AE p. 538]. General vacancy
@@ -60,6 +61,7 @@ from engine.calc.absorption import (
 )
 from engine.calc.capital import project_lease_capital
 from engine.calc.expenses import PCT_UNITS, project_expense
+from engine.calc.investment import acquisition_flows, segment_security_deposits
 from engine.calc.leases import (
     LeaseRentCashflows,
     LeaseSegment,
@@ -134,6 +136,9 @@ class RunResult:
     recovery_audit: list[PoolAudit]                 # per tenant per pool
     tenant_improvements: dict[str, pd.Series]       # by tenant_name (positive $)
     leasing_commissions: dict[str, pd.Series]       # by tenant_name (positive $)
+    security_deposits: dict[str, pd.Series]         # by tenant_name (signed)
+    purchase_price: pd.Series                       # negative at purchase month
+    closing_costs: pd.Series                        # negative
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
@@ -164,12 +169,8 @@ def _phase_guards(model: PropertyModel) -> None:
                    or lease.leasing_costs.lc_category is not None,
                    where + "TI/LC categories",
                    "a later phase (DEVIATIONS.md §16)")
-        refuse(lease.security_deposit is not None,
-               where + "security deposits", "Phase 3")
     for profile in model.market_leasing_profiles:
         where = f"market leasing profile {profile.name!r}: "
-        refuse(profile.security_deposit is not None,
-               where + "security deposits", "Phase 3")
         refuse(profile.upon_expiration == UponExpiration.reabsorb,
                where + "upon_expiration 'reabsorb'",
                "re-pooling semantics are defined (DEVIATIONS.md §8)")
@@ -348,6 +349,25 @@ def run_property(model: PropertyModel) -> RunResult:
                    pd.Series(0.0, index=months))
     lc_total = sum(leasing_commissions.values(),
                    pd.Series(0.0, index=months))
+
+    # Step 2 below-the-line flows (spec §3.16/§3.12; [AE pp. 435-437,
+    # 384, 431-433]): acquisition (fixed price only — derived derivations
+    # refuse inside acquisition_flows until Step 5) and per-segment
+    # security deposits. EXTERNALLY UNVALIDATED — no golden populates
+    # either input (DEVIATIONS.md §17).
+    if model.purchase is not None:
+        purchase_price, closing_costs = acquisition_flows(
+            model.purchase, months, begin
+        )
+    else:
+        purchase_price = pd.Series(0.0, index=months, name="purchase_price")
+        closing_costs = pd.Series(0.0, index=months, name="closing_costs")
+    security_deposits = {
+        tenant: segment_security_deposits(segments, months)
+        for tenant, segments in chains.items()
+    }
+    deposits_total = sum(security_deposits.values(),
+                         pd.Series(0.0, index=months))
 
     # Pass 5: expenses that don't reference revenue.
     area = model.area_measures.property_size
@@ -561,6 +581,9 @@ def run_property(model: PropertyModel) -> RunResult:
         credit_loss=cl,
         tenant_improvements=-ti_total,
         leasing_commissions=-lc_total,
+        purchase_price=purchase_price,
+        closing_costs=closing_costs,
+        security_deposits=deposits_total,
     )
     assert_invariants(
         ledger, analysis_begin=begin,
@@ -576,6 +599,9 @@ def run_property(model: PropertyModel) -> RunResult:
         recoveries=recoveries, recovery_audit=recovery_audit,
         tenant_improvements=tenant_improvements,
         leasing_commissions=leasing_commissions,
+        security_deposits=security_deposits,
+        purchase_price=purchase_price,
+        closing_costs=closing_costs,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
         property_revenue=property_revenue_total,

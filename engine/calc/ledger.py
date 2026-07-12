@@ -24,9 +24,10 @@ credit (DEVIATIONS.md §3, the Clorox Amortized CAM Revenue shape).
 %-of-EGR expenses and the recovery fixed point are resolved by run.py's
 ordered passes (spec §4.1 step 9) before assembly — this module posts
 whatever series it is handed. Debt, resale, and the below-CFADS section are
-Phase 3; non-operating expense detail is carried below Cash Flow Before Debt
-Service without further rollup until then. The engine never imports UI code
-(Iron Rule 1).
+Phase 3; non-operating expense detail — joined by the Phase 3 Step 2
+acquisition and security-deposit lines — is carried below Cash Flow Before
+Debt Service without further rollup until then. The engine never imports
+UI code (Iron Rule 1).
 """
 from __future__ import annotations
 
@@ -70,6 +71,14 @@ TENANT_IMPROVEMENTS = "Tenant Improvements"
 LEASING_COMMISSIONS = "Leasing Commissions"
 TOTAL_CAPITAL_COSTS = "Total Capital Costs"
 CFBDS = "Cash Flow Before Debt Service"
+#: Below-the-line lines (Phase 3 Step 2): posted after CFBDS, outside
+#: every rollup until the debt/CFADS/distribution sections land (Steps
+#: 3+). The ARGUS Cash Flow report carries no acquisition rows — the
+#: golden CSVs end at CFBDS; purchase feeds the return metrics
+#: [AE p. 435] (spec §4.1 pass 14 consumes the price at t0).
+PURCHASE_PRICE = "Purchase Price"
+CLOSING_COSTS = "Closing Costs"
+SECURITY_DEPOSITS = "Security Deposits"
 
 #: Revenue detail lines summed into Total Potential Gross Revenue
 #: (Scheduled Base already contains Base + A&T Vacancy + Free Rent).
@@ -188,6 +197,9 @@ def assemble_ledger(months: pd.PeriodIndex, *,
                     credit_loss: Optional[pd.Series] = None,
                     tenant_improvements: Optional[pd.Series] = None,
                     leasing_commissions: Optional[pd.Series] = None,
+                    purchase_price: Optional[pd.Series] = None,
+                    closing_costs: Optional[pd.Series] = None,
+                    security_deposits: Optional[pd.Series] = None,
                     ) -> MonthlyLedger:
     """Assemble per-lease and per-expense series into the canonical monthly
     ledger (spec §2.3).
@@ -275,6 +287,14 @@ def assemble_ledger(months: pd.PeriodIndex, *,
         + (sum(capital.values()) if capital else _zeros(months))
     )
     columns[CFBDS] = columns[NOI] + columns[TOTAL_CAPITAL_COSTS]
+    # Below the line (Phase 3 Step 2): acquisition flows and security
+    # deposits post after CFBDS, in no rollup — the Cash Flow report has
+    # no acquisition rows and purchase feeds the return metrics
+    # [AE p. 435]. Signs arrive report-ready (outflows negative, deposit
+    # collections positive / refunds negative).
+    columns[PURCHASE_PRICE] = _optional(purchase_price, months)
+    columns[CLOSING_COSTS] = _optional(closing_costs, months)
+    columns[SECURITY_DEPOSITS] = _optional(security_deposits, months)
     for name, series in non_operating.items():
         columns[name] = series
 

@@ -116,7 +116,9 @@ these.** Flagged the way golden fixture staging was flagged in Phase 2:
   guards lifted, Miscellaneous Tenant Revenue live in PGR/EGR/vacancy bases
   and the Lease Audit; narrowings + the externally-unvalidated flag in
   DEVIATIONS.md §15 — no golden uses misc items). (b) **security deposits**
-  ([AE pp. 384, 431-433]) — guards say Phase 3; proposed for Step 2.
+  ([AE pp. 384, 431-433]) — **BUILT 2026-07-12 in Step 2 as proposed**
+  (guards lifted; DEVIATIONS.md §17; externally unvalidated — no golden
+  uses them).
   (c) **`reabsorb` expirations** — **BUILT for contract leases 2026-07-11**
   (owner-directed; DEVIATIONS.md §8; speculative/MLP chains stay guarded).
   (d) **`pct_of_account` expense/revenue units** — no golden driver;
@@ -154,13 +156,25 @@ DISCREPANCY_LOGs for owner per-cell adjudication — never input tuning.
 inconsistency's sibling question — the OM's rollover TI/LC are published and
 will adjudicate the blend directly.)
 
-## Step 2 — Purchase, closing costs, security deposits (session 3)
+## Step 2 — Purchase, closing costs, security deposits (session 3) — **CLOSED 2026-07-12**
 
-Spec §3.16 [AE pp. 435-437]: purchase price (fixed or derived-from-valuation
-toggle — the derivation lands with Step 5), closing costs ($ or % of price,
-timed), posting acquisition flows ahead of CFBDS. Security deposits
-([AE pp. 384, 431-433], §3.12) — the guard lifts — as below-the-line flows
-per the manual's treatment. Worked-example tests with cites.
+**Status: shipped 2026-07-12.** `engine/calc/investment.py` posts the
+fixed-derivation purchase price and $/%-of-price closing costs (at the
+purchase month or a custom date) and per-segment security deposits
+(collection at segment start, refund in the final month when refundable;
+months-of-rent sized on month-one base rental revenue per [AE p. 432];
+contract terms use the lease's spec, speculative terms the MLP's per
+[AE p. 384]). Three new **below-the-line** ledger columns (Purchase
+Price / Closing Costs / Security Deposits) post after CFBDS, outside
+every rollup — the original "ahead of CFBDS" phrasing is read as
+"present before valuation consumes it," confirmed against [AE p. 435]
+(purchase feeds return metrics; the Cash Flow report has no acquisition
+rows) and test-proven CFBDS-neutral. Both security-deposit guards
+lifted; derived price derivations refuse loudly naming Step 5.
+Narrowings + judgment calls in DEVIATIONS.md §17; 13 manual-cited tests
+(tests/unit/test_investment.py). **EXTERNALLY UNVALIDATED** — no golden
+populates `purchase` or `security_deposit`, the same standing as
+Step 0's carried-forward items (reabsorb, misc items).
 
 ## Step 3 — Debt engine (sessions 4-5)
 

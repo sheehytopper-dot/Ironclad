@@ -562,3 +562,62 @@ profile abates base rent [AE p. 254]. Narrowings:
 - **Revisit when:** a deal needs spread timing, category machinery, or the
   other LC forms; Gate 3's golden capital-line assertions are the external
   back-test (Clorox FY2029-FY2031; Freeport/Cedar Alt capital rows).
+
+## 17. Purchase, closing costs, security deposits: v1 narrowings (spec §3.16/§3.12; Phase 3 Step 2)
+
+Built 2026-07-12 (`engine/calc/investment.py`, [AE pp. 435-437, 384,
+431-433] read). All three lines post **below the line** — new ledger
+columns Purchase Price / Closing Costs / Security Deposits after CFBDS,
+outside every NOI/EGR/CFBDS rollup: the ARGUS Cash Flow report carries no
+acquisition rows (all three golden CSVs end at CFBDS) and the manual
+frames purchase inputs as feeding "cash-on-cash metrics and returns, such
+as the internal rate of return" [AE p. 435]; spec §4.1 pass 14 consumes
+the price at t0 on the valuation side. The plan's "posting acquisition
+flows ahead of CFBDS" is read accordingly: present in the ledger before
+valuation consumes it, never inside the CFBDS rollup (test-proven: CFBDS
+byte-identical with and without a purchase). Narrowings and judgment
+calls:
+
+- **Only the `fixed` price derivation is built.** `pv_at_discount_rate`
+  and `direct_cap` (the manual's PV Net of Costs / Net Value /
+  Capitalization / Direct Cap methods [AE pp. 435-436]) refuse loudly
+  naming Phase 3 Step 5 — never a silent no-op.
+- **Purchase date:** ARGUS fixes it at the Analysis Begin Date ("You
+  cannot change this date" [AE p. 435]); the schema's optional `date` is
+  honored when given (posts in that month). An out-of-window purchase or
+  custom-date closing cost raises rather than silently dropping.
+- **Closing-cost methods narrowed to $ Amount and % Purchase Price:**
+  the manual's "% Total Price" (a percentage of purchase + closing —
+  self-referential) is schema-absent; Vendors Fees % and Stamp Duty %
+  are `pct_of_price` with a label [AE pp. 436-437].
+- **Months-of-rent deposit basis (not a judgment call — manual-pinned):**
+  "multiplied by the base rental revenue in the first month of the
+  lease" [AE p. 432] — the segment's month-one base-rent level, gross of
+  free rent (Base Rental Revenue posts gross of abatements; test-locked).
+  Speculative segments size on the blended month-one rent.
+- **Schema narrower than the manual's deposit profile:** no interest
+  income on deposits, no "% to Refund" split, no paired
+  refundable/non-refundable sections [AE pp. 431-433] —
+  `refunded_at_expiration` is the 100%/0% poles. The MLP carries one
+  deposit spec (the manual has New/Renew picks [AE p. 248]) — no
+  new/renew blending is possible or performed.
+- **Per-segment convention (judgment call):** each segment collects its
+  own deposit at segment start and refunds in its final month
+  ([AE p. 384]: "once the lease expires, the input under the leasing
+  profile will be used") — a rollover refunds the expiring deposit and
+  collects the successor's in adjacent months, not netted. A 100%
+  renewal therefore shows a refund/recollect pair; accepted v1 churn.
+- **Pre-analysis lease starts (judgment call):** the collection predates
+  the window and posts nothing, but an in-window refund still posts —
+  the refund is a real cash event regardless of when the deposit was
+  taken. Test-locked.
+- **EXTERNALLY UNVALIDATED** (checked 2026-07-12): no golden fixture
+  populates `purchase` or `security_deposit` — manual-definition and
+  engineered tests only (tests/unit/test_investment.py), the same
+  standing as percentage rent, misc items, and reabsorb. Note: before
+  this step, a populated `purchase` was **silently ignored** (no calc
+  consumer, no guard); Step 2 closes that no-silent-numbers hole by
+  consuming it.
+- **Revisit when:** Step 5 builds the derived price paths; a deal needs
+  deposit interest, partial refunds, or the % Total Price closing
+  method; any future golden publishes below-the-line rows to back-test.
