@@ -69,6 +69,7 @@ from engine.models import (
     AbsorptionSpec,
     FreeRent,
     Inflation,
+    LCSpec,
     Lease,
     LeaseStatus,
     LeasingCosts,
@@ -103,7 +104,8 @@ def generate_absorption_leases(
     MLP's term at the MLP's new-tenant economics (rent inflated to its own
     start when ``term_growth`` — "changes to market assumptions ... are
     dynamically incorporated" [AE p. 395]), and carries the MLP's steps,
-    free rent, recoveries, and TI/LC (costs recorded; posting is Phase 3).
+    free rent, recoveries, and TI/LC (inflated likewise; posted at each
+    lease's start by ``engine/calc/capital.py``).
     """
     try:
         profile = profiles[spec.market_leasing_profile]
@@ -124,10 +126,6 @@ def generate_absorption_leases(
     n = len(areas)
     start0 = pd.Period(snap_to_month_start(spec.start_date), freq="M")
 
-    leasing_costs = None
-    if profile.ti_new is not None or profile.lc_new is not None:
-        leasing_costs = LeasingCosts(ti=profile.ti_new, lc=profile.lc_new)
-
     leases = []
     for i, area in enumerate(areas):
         start = start0 + i * spec.interval_months
@@ -138,6 +136,20 @@ def generate_absorption_leases(
         rent_monthly = _market_monthly(
             profile.market_base_rent_new, area, factor, None, where
         )
+        # TI and $-form LC inflate to the lease's own start exactly like
+        # the rent above (a % LC needs no factor — its rent base already
+        # carries it). The generated lease's contract segment then posts
+        # them as literal dollars (engine/calc/capital.py).
+        leasing_costs = None
+        if profile.ti_new is not None or profile.lc_new is not None:
+            ti = profile.ti_new
+            if ti is not None:
+                ti = MoneyRate(amount=ti.amount * factor, unit=ti.unit)
+            lc = profile.lc_new
+            if lc is not None and lc.rate is not None:
+                lc = LCSpec(rate=MoneyRate(amount=lc.rate.amount * factor,
+                                           unit=lc.rate.unit))
+            leasing_costs = LeasingCosts(ti=ti, lc=lc)
         free_rent = None
         if profile.free_rent_months_new > 0:
             free_rent = FreeRent(months=profile.free_rent_months_new,

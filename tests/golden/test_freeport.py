@@ -8,8 +8,12 @@ fixture-lock satisfied) transcribed in ``expected_annual_cash_flow.csv``.
 Scope (owner-set): the **revenue / vacancy / expense / NOI** lines across all
 eleven published fiscal years **FY2027-FY2037** — Freeport's rollover touches
 every year, so there is no clean contract-only early subset like Clorox's
-FY2027-FY2028 (README). TI/LC and capital lines stay out of scope until
-Gate 3, same phasing as Clorox.
+FY2027-FY2028 (README). The **capital lines (TI, LC, Capital
+Expenditures/Reserves, Total Capital Costs, CFBDS) activate 2026-07-11
+as a separate test function** (Phase 3 Step 1; NEXT_STEPS_TO_GATE3.md
+criterion 1) so this file's deferred-B red assertion stays isolated; a
+CFBDS miss here is the arithmetic pass-through of the adjudicated NOI
+gaps plus any capital-line gap (criterion 1's 2026-07-11 supersession).
 
 **Misses are expected output, not bugs to fix.** Per the Golden-File Strategy
 (CLAUDE.md), inputs are never tuned to force a match; lines beyond the
@@ -38,8 +42,9 @@ FISCAL_YEARS = list(range(2027, 2038))  # FY2027-FY2037 (11 published columns)
 TOLERANCE = 500.0  # $ per line per fiscal year (spec §9.1)
 FISCAL_YEAR_END_MONTH = 6  # June (analysis July 2026 → June)
 
-#: Capital-section lines assert at Gate 3 (TI/LC and capex post in Phase 3;
-#: Total Capital Costs and CFBDS depend on them) — same phasing as Clorox.
+#: Capital-section lines assert in their own Gate 3 test function below
+#: (activated 2026-07-11, Phase 3 Step 1) and stay excluded from the
+#: Gate 2 revenue/NOI assertion so the two red sets remain separable.
 GATE3_ONLY_ACCOUNTS = {
     "Tenant Improvements",
     "Leasing Commissions",
@@ -104,6 +109,23 @@ def test_gate2_revenue_vacancy_expense_noi_within_tolerance(fiscal, expected):
         "DISCREPANCY_LOG.md, refer to owner per-cell adjudication "
         "(NEXT_STEPS_TO_GATE2.md), do not tune inputs:\n"
         + "\n".join(misses)
+    )
+
+
+def test_gate3_capital_lines_within_tolerance(fiscal, expected):
+    """Gate 3 scope (Phase 3 Step 1, activated 2026-07-11): the capital
+    section — TI, LC, Capital Expenditures, Capital Reserves, Total
+    Capital Costs, CFBDS — across FY2027-FY2037 within $500
+    (NEXT_STEPS_TO_GATE3.md criterion 1). Misses are expected output
+    logged in DISCREPANCY_LOG.md (root cause E; CFBDS additionally
+    carries the adjudicated NOI gaps arithmetically) and go to owner
+    per-cell adjudication — inputs are never tuned."""
+    misses = _collect_misses(fiscal, expected, FISCAL_YEARS,
+                             skip_accounts=set(expected) - GATE3_ONLY_ACCOUNTS)
+    assert not misses, (
+        f"{len(misses)} capital line-years beyond $500 tolerance — logged "
+        "in DISCREPANCY_LOG.md (root cause E), refer to owner per-cell "
+        "adjudication, do not tune inputs:\n" + "\n".join(misses)
     )
 
 

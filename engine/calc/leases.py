@@ -352,6 +352,7 @@ class LeaseSegment:
     miscellaneous_items: list[MiscItemSpec] = field(default_factory=list)  # lease's / MLP's [AE pp. 378-381, 240-244]
     ti: Optional[MoneyRate] = None           # weighted [AE p. 245; §4.2]
     lc_pct: Optional[float] = None           # weighted % of rent [AE pp. 246-248]
+    lc_pct_years: Optional[list[int]] = None  # lease years the % applies to (spec §3.9)
     lc_rate: Optional[MoneyRate] = None      # weighted $/SF or $ amount
 
     @property
@@ -437,16 +438,21 @@ def _blend_money(new: Optional[MoneyRate], renew: Optional[MoneyRate],
 
 
 def _blend_lc(new: Optional[LCSpec], renew: Optional[LCSpec], p: float,
-              where: str) -> tuple[Optional[float], Optional[MoneyRate]]:
+              where: str,
+              ) -> tuple[Optional[float], Optional[list[int]], Optional[MoneyRate]]:
     """Weighted leasing commission (§4.2) [AE pp. 246-248]: both sides %
     → weighted percent; both sides rate → weighted MoneyRate; missing side
-    = 0. Category refs and mixed forms defer to Phase 3 posting."""
+    = 0. Returns ``(pct, pct_years, rate)``. Category refs are refused
+    loudly (schema-present, no calc consumer — DEVIATIONS.md §16); a %
+    blend with differing ``pct_years`` between the sides has no defined
+    weighting and is refused."""
     if new is None and renew is None:
-        return None, None
+        return None, None, None
     for side in (new, renew):
         if side is not None and side.category_ref is not None:
             raise NotImplementedError(
-                f"{where}: LC categories blend at posting time (Phase 3)"
+                f"{where}: LC categories are not implemented "
+                "(DEVIATIONS.md §16); use an inline pct or rate LC"
             )
     pcts = [s.pct for s in (new, renew) if s is not None and s.pct is not None]
     rates = [s for s in (new, renew) if s is not None and s.rate is not None]
@@ -455,8 +461,15 @@ def _blend_lc(new: Optional[LCSpec], renew: Optional[LCSpec], p: float,
     if pcts:
         pct = (p * (renew.pct if renew is not None and renew.pct is not None else 0.0)
                + (1.0 - p) * (new.pct if new is not None and new.pct is not None else 0.0))
-        return pct, None
-    return None, _blend_money(
+        year_sets = {tuple(s.pct_years or []) for s in (new, renew)
+                     if s is not None and s.pct is not None}
+        if len(year_sets) > 1:
+            raise ValueError(
+                f"{where}: cannot blend % LCs with different pct_years"
+            )
+        years = list(year_sets.pop()) or None
+        return pct, years, None
+    return None, None, _blend_money(
         new.rate if new is not None else None,
         renew.rate if renew is not None else None, p, where,
     )
@@ -513,7 +526,7 @@ def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
         ti=(lease.leasing_costs.ti if lease.leasing_costs else None),
     )
     if lease.leasing_costs is not None and lease.leasing_costs.lc is not None:
-        contract.lc_pct, contract.lc_rate = _blend_lc(
+        contract.lc_pct, contract.lc_pct_years, contract.lc_rate = _blend_lc(
             lease.leasing_costs.lc, lease.leasing_costs.lc, 1.0,
             f"lease {lease.tenant_name!r}",
         )
@@ -574,7 +587,8 @@ def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
             renew_side = renew_market
         blended = p * renew_side + (1.0 - p) * new_rent
 
-        lc_pct, lc_rate = _blend_lc(profile.lc_new, profile.lc_renew, p, where)
+        lc_pct, lc_pct_years, lc_rate = _blend_lc(profile.lc_new,
+                                                  profile.lc_renew, p, where)
         segment = LeaseSegment(
             lease=lease, profile=profile, start=seg_start, end=seg_end,
             speculative=True, renewal_weight=p, downtime_months=downtime,
@@ -587,7 +601,7 @@ def resolve_lease_chain(lease: Lease, months: pd.PeriodIndex,
             percentage_rent=profile.percentage_rent,
             miscellaneous_items=list(profile.miscellaneous_items),
             ti=_blend_money(profile.ti_new, profile.ti_renew, p, where),
-            lc_pct=lc_pct, lc_rate=lc_rate,
+            lc_pct=lc_pct, lc_pct_years=lc_pct_years, lc_rate=lc_rate,
         )
         segments.append(segment)
 

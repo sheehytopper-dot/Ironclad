@@ -9,9 +9,13 @@ owner-approved (2026-07-03):
 - **Gate 1: FY2027 and FY2028, every line within $500** (passed
   2026-07-05).
 - **Gate 2 scope (activated 2026-07-06 with rollover projection):
-  FY2029-FY2031 revenue, vacancy, expense, and NOI lines.** Capital lines
-  (TI/LC, capital expenses, Total Capital Costs, CFBDS) stay excluded for
-  those years until Gate 3. FY2032 is the resale look-forward (Phase 3) —
+  FY2029-FY2031 revenue, vacancy, expense, and NOI lines.**
+- **Gate 3 scope (activated 2026-07-11 with TI/LC posting, Phase 3
+  Step 1): FY2029-FY2031 Tenant Improvements, Leasing Commissions,
+  Capital Expenses, Total Capital Costs, and CFBDS** join the same test
+  (NEXT_STEPS_TO_GATE3.md criterion 1). Amortized CAM Revenue stays
+  unasserted but is arithmetically pinned by the Total Capital Costs
+  assertion. FY2032 is the resale look-forward (Phase 3, later steps) —
   transcribed but not asserted yet.
 
 Disputes beyond tolerance go to owner per-cell adjudication (NEXT_STEPS
@@ -39,15 +43,11 @@ TOLERANCE = 500.0  # $ per line per fiscal year (spec §9.1)
 #: CSV account name → engine ledger column, where the two differ.
 ACCOUNT_TO_COLUMN = {"Capital Expenses": "Capital Reserves"}
 
-#: Capital-section lines assert at Gate 3 for the Gate-2 fiscal years
-#: (TI/LC and capex post in Phase 3; CFBDS depends on them).
+#: Still-skipped capital line (Phase 3 Step 1 activated the rest,
+#: 2026-07-11): Amortized CAM Revenue is pinned by the Total Capital
+#: Costs assertion (zero in FY2029-FY2031 on both sides).
 GATE3_ONLY_ACCOUNTS = {
-    "Tenant Improvements",
-    "Leasing Commissions",
-    "Capital Expenses",
     "Amortized CAM Revenue",
-    "Total Capital Costs",
-    "Cash Flow Before Debt Service",
 }
 
 
@@ -101,7 +101,9 @@ def test_gate1_every_line_within_tolerance(fiscal, expected):
 def test_gate2_rollover_years_within_tolerance(fiscal, expected):
     """Gate 2 scope: FY2029-FY2031 revenue/vacancy/expense/NOI lines within
     $500 — the rollover-blending validation §4.2 calls the most common
-    source of divergence. Capital lines join at Gate 3."""
+    source of divergence. Gate 3 scope (2026-07-11): TI, LC, Capital
+    Expenses, Total Capital Costs, and CFBDS join for the same years
+    (Phase 3 Step 1; NEXT_STEPS_TO_GATE3.md criterion 1)."""
     misses = _collect_misses(fiscal, expected, GATE2_FISCAL_YEARS,
                              skip_accounts=GATE3_ONLY_ACCOUNTS)
     assert not misses, (

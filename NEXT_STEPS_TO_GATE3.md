@@ -47,10 +47,20 @@ validation therefore rests on:
 1. **Golden capital lines within $500/line:** golden #1's FY2029-FY2031
    TI/LC/capital/CFBDS rows activate in `test_clorox_northlake.py`; goldens
    #2/#4's capital-section rows (TI, LC, Capital Expenditures/Reserves,
-   Total Capital Costs) activate as **separate new test functions** so the
-   deferred-B red assertions stay isolated. **CFBDS asserts on #1 only**
-   (on #2/#4 it carries NOI's deferred-B cascade) — owner to confirm this
-   scoping in Step 0.
+   Total Capital Costs, **and CFBDS**) activate as **separate new test
+   functions** so the deferred-B red assertions stay isolated.
+   *Original scoping (drafted 2026-07-11, superseded — kept as the
+   historical record, mirroring BUILD_SCHEDULE Week 7):* ~~CFBDS asserts
+   on #1 only (on #2/#4 it carries NOI's deferred-B cascade) — owner to
+   confirm this scoping in Step 0.~~ **Superseded by owner decision
+   2026-07-11:** CFBDS = NOI + Total Capital Costs is an exact linear
+   identity in every published Cedar Alt year, FY2031 included
+   (8,198,219 + (−1,641,866) = 6,556,353 — owner-verified), so a CFBDS
+   miss on #2/#4 carries no independent information beyond its NOI
+   cascade. **CFBDS asserts on all three goldens**; a #2/#4 CFBDS miss is
+   logged in the DISCREPANCY_LOG as the arithmetic pass-through of the
+   already-adjudicated NOI gaps, citing the specific root cause — never
+   treated as a new engine defect.
 2. **§9.3 invariants extended and passing on every calc run:** debt balance
    roll, payoff-at-resale identity, PV/IRR self-consistency (±1bp).
 3. **Manual worked-example unit tests** with page cites for resale, PV
@@ -84,8 +94,11 @@ these.** Flagged the way golden fixture staging was flagged in Phase 2:
   Alternatively the owner may declare valuation validated on invariants +
   manual examples + hand-checks alone, with fixtures staying debt-free and
   valuation-free. **Owner decision required.**
-- **Capital-line assertion scoping** (criterion 1): confirm CFBDS-on-#1-only
-  and the separate-test isolation design, or direct otherwise.
+- **Capital-line assertion scoping** (criterion 1): ~~confirm
+  CFBDS-on-#1-only and the separate-test isolation design, or direct
+  otherwise.~~ **Resolved 2026-07-11 (owner decision):** CFBDS asserts on
+  all three goldens (see criterion 1's supersession note); separate-test
+  isolation confirmed.
 - **Amort hand-check:** one loan schedule vs any bank amort calculator
   (Week 7 "Your jobs") once Step 3 lands.
 - **Carried-forward items placement** (transparency rule — none of these
@@ -101,7 +114,16 @@ these.** Flagged the way golden fixture staging was flagged in Phase 2:
   proposed to stay guarded until a deal needs them. **Owner confirms (d)
   and the security-deposit placement.**
 
-## Step 1 — TI/LC posting + golden capital lines (sessions 1-2)
+## Step 1 — TI/LC posting + golden capital lines (sessions 1-2) — **BUILT 2026-07-11**
+
+**Status: shipped 2026-07-11 (owner-directed).** `engine/calc/capital.py`
+posts TI/LC lump sums at each segment start (DEVIATIONS.md §16 for the
+narrowings); golden #1's FY2029-FY2031 capital lines are **green within
+$0.50**; goldens #2/#4's capital assertions are live as separate test
+functions and red as expected output — Freeport DISCREPANCY_LOG root
+cause E (open) and Cedar Alt root cause D (C's sibling), awaiting owner
+per-cell adjudication. The predicted Cedar FY2034/36 free-rent sibling
+question materialized exactly (LC deltas = 6.75% × C's deltas).
 
 Spec §3.9 / §4.1 pass 11 [AE pp. 245-248 read in Step 2 of Phase 2; re-read
 alongside the §7 report-4 Sources & Uses shape]: post TIs and LCs in the

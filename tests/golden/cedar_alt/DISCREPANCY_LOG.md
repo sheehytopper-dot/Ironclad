@@ -3,8 +3,9 @@
 Engine vs `expected_annual_cash_flow.csv` (the OM's published Argus Enterprise
 14.0.2 cash flow, owner-verified 2026-07-08), tolerance
 **$500/line/fiscal-year** (spec §9.1), scope FY2027–FY2037
-revenue/vacancy/expense/NOI lines (Gate 2; TI/LC/capital wait for Gate 3).
-Produced by `tests/golden/test_cedar_alt.py`.
+revenue/vacancy/expense/NOI lines (Gate 2) plus, from 2026-07-11, the
+capital lines in their own test function (Gate 3 Step 1 — root cause D
+below). Produced by `tests/golden/test_cedar_alt.py`.
 
 **These misses are logged for owner per-cell adjudication (CLAUDE.md
 Golden-File Strategy). Claude does not resolve them and did not tune
@@ -201,6 +202,71 @@ resolves them.
 
 ---
 
+## Root cause D — Capital lines: the LC free-rent deduction is root cause C's sibling (Gate 3, activated 2026-07-11)
+
+Phase 3 Step 1 activated the capital-section assertion
+(`test_gate3_capital_lines_within_tolerance`, its own test function —
+12 line-years beyond tolerance, separate from the Gate 2 count above).
+What passes pins down what misses:
+
+- **Tenant Improvements: clean in all 11 years, including the FY2031,
+  FY2034, and FY2036 rollovers** — the §4.2 blend inflated to segment
+  start on the market index, the formula golden #1 validated to the
+  dollar.
+- **Capital Reserves: clean in all 11 years.**
+- **Leasing Commissions: exactly 2 misses (FY2034 +64,145;
+  FY2036 +20,480), and they are root cause C to the dollar.** The engine
+  deducts free rent from the LC base per [AE p. 247] ("applied to base
+  rent plus fixed steps less free rent") using the OM's stated MLA
+  abatements; the OM's published Free Rent is zero on exactly those two
+  rollovers (adjudicated root cause C, closed 2026-07-09 as an accepted
+  unconfirmable OM inconsistency). At the fixture's 6.75%:
+  6.75% × 950,298 (C's FY2034 free-rent delta) = **64,145** and
+  6.75% × 303,410 (C's FY2036 delta) = **20,480** — the ARGUS print
+  computed its LC on the same no-free-rent basis as its own zero Free
+  Rent line (internally consistent with C's override), while the engine
+  consistently applies the stated abatements to both lines. **FY2031 —
+  the one rollover where the OM does publish free rent — the LC matches
+  within $500**, confirming the formula shape. No independent engine
+  question; D's LC misses are C's accepted inconsistency propagated
+  through the commission formula, exactly as NEXT_STEPS_TO_GATE3.md
+  Step 1 predicted ("Cedar Alt FY2034/36 TI/LC ... inherit the
+  adjudicated OM free-rent inconsistency's sibling question").
+
+### Leasing Commissions — 2 misses (= 6.75% × root cause C's free-rent deltas)
+| FY | engine | published | delta |
+|---|--:|--:|--:|
+| 2034 | -2,687,663 | -2,751,808 | +64,145 |
+| 2036 | -858,113 | -878,593 | +20,480 |
+
+### Total Capital Costs — 2 misses (pure LC pass-through)
+| FY | engine | published | delta |
+|---|--:|--:|--:|
+| 2034 | -5,356,582 | -5,420,727 | +64,145 |
+| 2036 | -1,903,373 | -1,923,853 | +20,480 |
+
+### Cash Flow Before Debt Service — 8 misses (arithmetic pass-through, no independent information)
+
+Per NEXT_STEPS_TO_GATE3.md criterion 1 (owner decision 2026-07-11): CFBDS
+= NOI + Total Capital Costs is an exact identity, so each delta below is
+the **already-adjudicated NOI cascade (root causes A + B + C) plus D's LC
+delta** — FY2034: −1,068,559 (NOI) + 64,145 (D) = −1,004,414 ✓; FY2036:
+−215,388 + 20,480 = −194,908 ✓; the other six equal the NOI deltas
+(LC clean those years). Not a new engine question.
+
+| FY | engine | published | delta |
+|---|--:|--:|--:|
+| 2027 | 7,898,519 | 7,903,900 | -5,381 |
+| 2028 | 8,175,701 | 8,181,260 | -5,559 |
+| 2029 | 8,462,503 | 8,468,261 | -5,758 |
+| 2030 | 8,759,407 | 8,765,365 | -5,958 |
+| 2031 | 6,636,144 | 6,556,353 | +79,791 |
+| 2033 | 9,659,280 | 9,658,200 | +1,080 |
+| 2034 | 1,187,090 | 2,191,504 | -1,004,414 |
+| 2036 | 7,534,373 | 7,729,281 | -194,908 |
+
+---
+
 ## Status
 
 Golden #4 comparison **FAILS** — `test_cedar_alt.py`'s Gate 2 assertion fails
@@ -236,6 +302,13 @@ standing after the 2026-07-09 adjudication:
   both the implementation and the confirmation to that stage. The comparison
   test is deliberately unmodified and stays red, documenting the real open
   item (owner instruction: no new engine/test-infrastructure work).
+- **D (capital lines, Gate 3 activation 2026-07-11) — C's sibling, nothing
+  independent.** The `test_gate3_capital_lines_within_tolerance` assertion
+  is red with 12 line-years: 2 LC (= 6.75% × C's free-rent deltas to the
+  dollar), 2 Total Capital Costs (pure LC pass-through), 8 CFBDS
+  (adjudicated-NOI cascade + LC, per NEXT_STEPS_TO_GATE3.md criterion 1's
+  supersession). TI and Capital Reserves are clean in all 11 years —
+  including every rollover.
 
 Both pre-flagged README open questions clustered exactly where predicted, and
 no other divergence exists: the seven non-rollover years miss only by the

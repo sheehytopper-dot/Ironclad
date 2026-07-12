@@ -9,8 +9,8 @@ pre-valuation invariants on every run (CLAUDE.md Conventions). Inputs
 whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
 ``reabsorb`` on MLP profiles (speculative chains — DEVIATIONS.md §8; the
-contract-lease variant is built), TI/LC posting, security deposits, and
-debt (Phase 3). Space absorption (Step 3) generates
+contract-lease variant is built), TI/LC categories (DEVIATIONS.md §16),
+security deposits, and debt (Phase 3). Space absorption (Step 3) generates
 synthetic leases per spec §3.15 that join the rent roll for every
 downstream pass; pre-absorption vacant space grosses Base Rental Revenue
 up to market with the offsetting A&T entry [AE p. 538]. General vacancy
@@ -22,8 +22,9 @@ Rollover projection (spec §4.2/§2.3): downtime months post the blended
 market rent to Base Rental Revenue and its negative to Absorption &
 Turnover Vacancy — PGR stays a full-occupancy figure; occupied area drops
 by (1 − renewal weight) × area over downtime; speculative segments recover
-per their MLP's assignment over occupied months only; TI/LC stay recorded
-on segments, unposted (Phase 3). Percentage rent (Step 8, spec §4.1
+per their MLP's assignment over occupied months only; TI/LC post as lump
+sums in each segment's start month (Phase 3 Step 1, spec §4.1 pass 11;
+engine/calc/capital.py). Percentage rent (Step 8, spec §4.1
 step 7) projects per segment over occupied months — the lease's spec on
 the contract term, the MLP's on speculative terms [AE p. 376] — and is
 **externally unvalidated pending golden #3** (CLAUDE.md standing gap).
@@ -57,6 +58,7 @@ from engine.calc.absorption import (
     pre_absorption_vacancy,
     reabsorption_vacancy,
 )
+from engine.calc.capital import project_lease_capital
 from engine.calc.expenses import PCT_UNITS, project_expense
 from engine.calc.leases import (
     LeaseRentCashflows,
@@ -130,6 +132,8 @@ class RunResult:
     misc_tenant_revenue: dict[str, pd.Series]       # by tenant_name
     recoveries: dict[str, pd.Series]                # by tenant_name
     recovery_audit: list[PoolAudit]                 # per tenant per pool
+    tenant_improvements: dict[str, pd.Series]       # by tenant_name (positive $)
+    leasing_commissions: dict[str, pd.Series]       # by tenant_name (positive $)
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
@@ -155,8 +159,11 @@ def _phase_guards(model: PropertyModel) -> None:
     refuse(bool(model.loans), "debt", "Phase 3")
     for lease in model.rent_roll:
         where = f"lease {lease.tenant_name!r}: "
-        refuse(lease.leasing_costs is not None,
-               where + "contract TIs/LCs", "Phase 3")
+        if lease.leasing_costs is not None:
+            refuse(lease.leasing_costs.ti_category is not None
+                   or lease.leasing_costs.lc_category is not None,
+                   where + "TI/LC categories",
+                   "a later phase (DEVIATIONS.md §16)")
         refuse(lease.security_deposit is not None,
                where + "security deposits", "Phase 3")
     for profile in model.market_leasing_profiles:
@@ -323,6 +330,24 @@ def run_property(model: PropertyModel) -> RunResult:
     }
     pct_rent_total = sum(percentage_rent.values(),
                          pd.Series(0.0, index=months))
+
+    # Pass 11 (computed here — it depends on the chains only): TI/LC lump
+    # sums in each segment's start month [AE pp. 245-248], contract and
+    # speculative segments alike (Phase 3 Step 1; engine/calc/capital.py).
+    # Positive dollars per tenant; the ledger posts them negated.
+    fr_profiles = {p.name: p for p in model.free_rent_profiles}
+    tenant_improvements: dict[str, pd.Series] = {}
+    leasing_commissions: dict[str, pd.Series] = {}
+    for tenant, segments in chains.items():
+        ti_series, lc_series = project_lease_capital(
+            segments, months, begin, model.inflation, fr_profiles
+        )
+        tenant_improvements[tenant] = ti_series
+        leasing_commissions[tenant] = lc_series
+    ti_total = sum(tenant_improvements.values(),
+                   pd.Series(0.0, index=months))
+    lc_total = sum(leasing_commissions.values(),
+                   pd.Series(0.0, index=months))
 
     # Pass 5: expenses that don't reference revenue.
     area = model.area_measures.property_size
@@ -534,6 +559,8 @@ def run_property(model: PropertyModel) -> RunResult:
         property_revenue=property_revenue_total,
         general_vacancy=gv,
         credit_loss=cl,
+        tenant_improvements=-ti_total,
+        leasing_commissions=-lc_total,
     )
     assert_invariants(
         ledger, analysis_begin=begin,
@@ -547,6 +574,8 @@ def run_property(model: PropertyModel) -> RunResult:
         percentage_rent=percentage_rent,
         misc_tenant_revenue=misc_tenant,
         recoveries=recoveries, recovery_audit=recovery_audit,
+        tenant_improvements=tenant_improvements,
+        leasing_commissions=leasing_commissions,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
         property_revenue=property_revenue_total,

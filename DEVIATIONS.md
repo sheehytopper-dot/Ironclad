@@ -518,3 +518,47 @@ bases, with the Lease Audit reconciliation extended. Narrowings:
 - **Revisit when:** a deal with tenant misc items back-tests via the
   Benchmark Comparison report, or needs % of Rent / incentives / per-area
   limits.
+
+## 16. TI/LC posting: v1 narrowings (spec §3.9; §4.1 pass 11)
+
+Built 2026-07-11 (Phase 3 Step 1, `engine/calc/capital.py`). Both costs
+post as a single lump sum in the month each lease segment starts — "All
+tenant improvements are paid at the beginning of the lease" [AE p. 246],
+"All leasing commissions are paid at the beginning of the lease"
+[AE p. 247] — for contract and speculative segments alike (the contract
+segment carries `Lease.leasing_costs` via an identity blend; speculative
+segments the §4.2 probability-weighted MLP sides). LC "Fixed %" applies to
+the entire lease value over the segment's full term — base rent plus fixed
+steps less free rent, CPI excluded — even past the analysis end
+[AE p. 247]; free rent reduces the base only when the segment's free-rent
+profile abates base rent [AE p. 254]. Narrowings:
+
+- **Timing distribution not modeled:** the manual's TI Timing / LC Timing
+  grids (percentages across lease years, incl. years −2/−1 [AE pp. 246,
+  248]) and `TICategory.payment_timing = spread` post nothing; lump-sum at
+  segment start is the only shape (the manual's stated default: 100% in
+  month/year one).
+- **TI/LC categories refused loudly (schema-present, no calc consumer):**
+  `TICategory`/`LCCategory` (spread timing, year tiers,
+  `include_escalations` [AE pp. 258-262]) validate refs but
+  `run_property` refuses `ti_category`/`lc_category` and chain resolution
+  refuses `LCSpec.category_ref` — never silently dropped.
+- **LC forms narrowed to Fixed % and $ forms:** the manual's
+  "1st Month + %", "% by Lease Year" (per-year rates), and "# of Months at
+  Initial Base Rent" [AE p. 247] are not representable; `LCSpec.pct_years`
+  (spec §3.9) restricts the single-pct base to listed lease years instead.
+  Blending % LCs whose `pct_years` differ between new/renew is refused (no
+  defined weighting).
+- **Speculative amounts inflate to segment start on the market index**
+  (the `term_growth` factor market rents use; absorption leases inflate at
+  generation to each lease's own start [AE p. 395]). The manual pages name
+  no index for MLP TI/LC; golden #1's published rollover TI equals blended
+  $/SF × area × the market factor exactly, so the golden is the evidence.
+  Contract-side amounts are literal dollars; a contract segment starting
+  before the analysis window posts nothing (paid pre-analysis).
+- **TI units narrowed to $ Amount and $/SF:** "% of Rent (Year 1)" and
+  custom categories [AE p. 245] are refused; any per-period `MoneyUnit` on
+  a TI/$-LC fails loudly (not a one-time cost).
+- **Revisit when:** a deal needs spread timing, category machinery, or the
+  other LC forms; Gate 3's golden capital-line assertions are the external
+  back-test (Clorox FY2029-FY2031; Freeport/Cedar Alt capital rows).

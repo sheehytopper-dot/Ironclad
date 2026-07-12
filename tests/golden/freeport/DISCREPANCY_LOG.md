@@ -2,8 +2,9 @@
 
 Engine vs `expected_annual_cash_flow.csv` (the OM's published Argus cash flow,
 owner-verified 2026-07-08), tolerance **$500/line/fiscal-year** (spec §9.1),
-scope FY2027–FY2037 revenue/vacancy/expense/NOI lines (Gate 2; TI/LC/capital
-wait for Gate 3). Produced by `tests/golden/test_freeport.py`.
+scope FY2027–FY2037 revenue/vacancy/expense/NOI lines (Gate 2) plus, from
+2026-07-11, the capital lines in their own test function (Gate 3 Step 1 —
+root cause E below). Produced by `tests/golden/test_freeport.py`.
 
 **These misses are logged for owner per-cell adjudication (CLAUDE.md
 Golden-File Strategy). Claude does not resolve them and did not tune
@@ -342,6 +343,101 @@ as accepted deltas. **Root cause D is adjudicated — accepted, closed.**
 
 ---
 
+## Root cause E — Leasing Commissions understated by a stable ~17% (Gate 3 capital lines, activated 2026-07-11)
+
+Phase 3 Step 1 activated the capital-section assertion
+(`test_gate3_capital_lines_within_tolerance`, its own test function —
+33 line-years beyond tolerance, separate from the Gate 2 count above).
+What passes is as informative as what misses:
+
+- **Tenant Improvements: clean in all 11 years** — the §4.2 blend
+  (75% × $10 renew + 25% × $20 new) inflated to each segment's start on
+  the market index matches the OM within $500 everywhere, the same
+  formula golden #1 validated to the dollar.
+- **Capital Expenditures and Capital Reserves: clean in all 11 years.**
+- **Leasing Commissions: 11 misses, engine below the OM by a strikingly
+  stable multiplicative factor** — OM/engine = 1.201–1.212 with no trend
+  across the years (e.g. FY2027 1.2035, FY2032 1.2056, FY2037 1.2013). A
+  stable ratio on every rollover cohort indicates a **base or rate
+  difference, not a timing difference** (timing would move dollars
+  between years, not scale all of them equally).
+
+The engine computes the manual's "Fixed %" definition: 6.75% × (blended
+term rent incl. steps, less the 5.0 weighted free months) [AE p. 247
+"applied to base rent plus fixed steps less free rent"], the exact
+formula golden #1 confirmed within $1 at the same 6.75%. Best-evidence
+candidates for the OM's larger base, unconfirmable without the seller's
+Argus file (owner per-cell adjudication):
+
+1. **LC-category "elements to include" beyond base rent** [AE pp.
+   258-262; spec §3.9 `include_escalations`]: an Argus LC category can
+   commission base + escalations; Freeport's office leases carry
+   substantial base-year recovery income later in term, of roughly the
+   observed magnitude. The OM states "6.75%" with no base definition.
+2. **No free-rent deduction** (the sibling of Cedar Alt root cause D /
+   its C): explains only ≈ ×1.08 of the ×1.205 (5 free months of 65,
+   front-loaded at the lowest rent) — insufficient alone.
+3. **"% by Lease Year" tiered rates** [AE p. 247] behind the OM's
+   single stated 6.75% — not visible anywhere in the OM's text.
+
+No input was tuned; the fixture's 6.75% new/renew is the OM's stated
+assumption.
+
+### Leasing Commissions — 11 misses
+| FY | engine | published | delta | OM/engine |
+|---|--:|--:|--:|--:|
+| 2027 | -49,799 | -59,933 | +10,134 | 1.2035 |
+| 2028 | -152,908 | -184,116 | +31,208 | 1.2041 |
+| 2029 | -149,539 | -181,147 | +31,608 | 1.2114 |
+| 2030 | -346,193 | -417,318 | +71,125 | 1.2054 |
+| 2031 | -208,042 | -252,205 | +44,163 | 1.2123 |
+| 2032 | -71,670 | -86,406 | +14,736 | 1.2056 |
+| 2033 | -158,948 | -191,438 | +32,490 | 1.2044 |
+| 2034 | -160,871 | -194,350 | +33,479 | 1.2081 |
+| 2035 | -168,228 | -202,600 | +34,372 | 1.2043 |
+| 2036 | -775,186 | -935,635 | +160,449 | 1.2070 |
+| 2037 | -52,316 | -62,843 | +10,527 | 1.2013 |
+
+### Total Capital Costs — 11 misses (pure E pass-through; deltas equal LC's to the dollar)
+| FY | engine | published | delta |
+|---|--:|--:|--:|
+| 2027 | -146,269 | -156,403 | +10,134 |
+| 2028 | -439,920 | -471,127 | +31,207 |
+| 2029 | -1,833,533 | -1,865,141 | +31,608 |
+| 2030 | -870,429 | -941,554 | +71,125 |
+| 2031 | -534,793 | -578,956 | +44,163 |
+| 2032 | -203,516 | -218,252 | +14,736 |
+| 2033 | -416,943 | -449,433 | +32,490 |
+| 2034 | -422,521 | -455,999 | +33,478 |
+| 2035 | -441,360 | -475,732 | +34,372 |
+| 2036 | -2,045,889 | -2,206,338 | +160,449 |
+| 2037 | -160,994 | -171,521 | +10,527 |
+
+### Cash Flow Before Debt Service — 11 misses (arithmetic pass-through, no independent information)
+
+Per NEXT_STEPS_TO_GATE3.md criterion 1 (owner decision 2026-07-11): CFBDS
+= NOI + Total Capital Costs is an exact identity, so each CFBDS delta
+below is the **already-adjudicated NOI cascade (root causes A1 + B + C +
+D, dominated by deferred-B's general-vacancy basis) plus root cause E's
+LC delta** — e.g. FY2027: −167,529 (NOI) + 10,134 (E) = −157,395 ✓. Not
+a new engine question.
+
+| FY | engine | published | delta |
+|---|--:|--:|--:|
+| 2027 | 1,039,403 | 1,196,797 | -157,394 |
+| 2028 | 701,013 | 837,025 | -136,012 |
+| 2029 | -706,963 | -561,256 | -145,707 |
+| 2030 | 297,566 | 359,385 | -61,819 |
+| 2031 | 735,240 | 787,048 | -51,808 |
+| 2032 | 1,501,314 | 1,586,562 | -85,248 |
+| 2033 | 1,257,521 | 1,315,290 | -57,769 |
+| 2034 | 1,259,546 | 1,308,542 | -48,996 |
+| 2035 | 1,337,407 | 1,400,844 | -63,437 |
+| 2036 | -1,032,316 | -1,155,693 | +123,377 |
+| 2037 | 1,700,188 | 1,771,685 | -71,497 |
+
+---
+
 ## Status
 
 Golden #2 comparison **not reconciled** — `test_freeport.py`'s Gate 2 assertion
@@ -376,6 +472,16 @@ after the 2026-07-10 adjudications:
   is deliberately unmodified and stays red, documenting the real open item
   (owner instruction: no new engine/test-infrastructure work).
 
-All 137 misses now trace to closed/accepted causes plus deferred-B and their
-cascade. No input was tuned to reduce them; nothing in this log alters the
-fixture or the engine.
+- **E (Leasing Commissions base, Gate 3 capital lines) — OPEN (new
+  2026-07-11), awaiting owner per-cell adjudication.** The
+  `test_gate3_capital_lines_within_tolerance` assertion is red with 33
+  line-years: 11 LC (a stable ~×1.205 base/rate difference; candidates
+  above), 11 Total Capital Costs (pure LC pass-through), 11 CFBDS
+  (adjudicated-NOI cascade + LC, per criterion 1's supersession — no
+  independent information). TI, Capital Expenditures, and Capital
+  Reserves are clean in all 11 years.
+
+All 137 Gate 2 misses trace to closed/accepted causes plus deferred-B and
+their cascade; the Gate 3 capital assertion adds open root cause E. No
+input was tuned to reduce them; nothing in this log alters the fixture or
+the engine.

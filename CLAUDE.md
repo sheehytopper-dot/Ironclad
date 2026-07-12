@@ -329,23 +329,52 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   seven lines); both stale "Phase 2" guards lifted; narrowings + the
   **externally-unvalidated flag** (no golden uses misc items) in
   DEVIATIONS.md §15; 13 manual-cited tests.
-- **Next session's first prompt:** "NEXT_STEPS_TO_GATE3.md was drafted
-  2026-07-11 and is awaiting owner review — reabsorb (contract) and tenant
-  misc items were owner-directed and built 2026-07-11, but the PLANNED
-  Phase 3 steps remain gated until Topper has reviewed the plan and
-  resolved its remaining Step 0 decisions (valuation assumption sets for
-  the goldens — no OM publishes any valuation result, verified 2026-07-11;
-  CFBDS-on-#1-only capital-line assertion scoping; placement of the still-
-  guarded items: security deposits, pct_of_account). Check
-  with the owner: has the plan been reviewed / corrected, and are the Step 0
-  decisions made? If approved: begin Step 1 (TI/LC posting, spec §3.9 /
-  §4.1 pass 11 — the blended amounts already sit unposted on LeaseSegment
-  since Phase 2 Step 1) and activate the goldens' capital-line assertions
-  per the plan's criterion-1 scoping, misses to the DISCREPANCY_LOGs for
-  owner adjudication, never input tuning. If not reviewed, there is NO
-  engine work to invent — do not start Step 1 (Iron Rule 2), do not
-  scaffold cancelled intake ('Phase 7'). REMEMBER the standing gaps:
-  percentage rent externally unvalidated pending golden #3; Freeport B and
-  Cedar Alt B parked for beta-stage GUI testing — their Gate 2 assertions
-  stay red by design and are not Phase 3 work. Commit, push, update the
+  **Phase 3 Step 1 complete 2026-07-11 (owner-directed Parts A-E):** TI/LC
+  posting (`engine/calc/capital.py`, [AE pp. 245-248] read) — both post as
+  a single lump sum in each segment's start month ("paid at the beginning
+  of the lease" [AE pp. 246-247]); contract segments via the identity
+  blend of `Lease.leasing_costs` (guard lifted — only a category guard
+  remains), speculative segments §4.2-weighted with $-amounts inflated to
+  segment start on the market index (manual names no index; golden #1's
+  published TI proves the factor); LC Fixed % = pct × (term base rent +
+  fixed steps − free rent, CPI excluded, over the full term even past
+  timeline end [AE p. 247]), `pct_years` threaded onto LeaseSegment;
+  absorption leases inflate TI/$-LC at generation to each lease's own
+  start; TI/LC categories + timing grids refused loudly (schema-present,
+  no consumer — DEVIATIONS.md §16); ledger TI/LC/Total Capital Costs/
+  CFBDS live; 16 manual-cited tests (tests/unit/test_capital.py).
+  **Golden #1 FY2029-FY2031 capital lines ACTIVE AND GREEN — every cell
+  within $0.50** (TI 501,275 / LC 1,465,383 exact). Goldens #2/#4 capital
+  lines active as separate test functions per criterion 1, **CFBDS on all
+  three** (the CFBDS-on-#1-only scoping was superseded by owner decision
+  2026-07-11 — NEXT_STEPS_TO_GATE3.md criterion 1), red as expected
+  output: **Freeport root cause E OPEN** (LC understated by a stable
+  ~×1.205 base/rate difference, candidates logged; TI + capex/reserves
+  clean all 11 years) and **Cedar Alt root cause D** (LC misses =
+  6.75% × adjudicated root cause C's free-rent deltas to the dollar;
+  TI + reserves clean; CFBDS = NOI-cascade pass-through, verified
+  arithmetically). Suite: 313 passed + 4 golden reds (Gate 2 pair
+  unchanged at 137/47; new Gate 3 capital pair awaiting adjudication).
+- **Next session's first prompt:** "Phase 3 Step 1 (TI/LC posting +
+  golden capital-line activation) shipped 2026-07-11; golden #1's
+  FY2029-FY2031 capital lines are green within $0.50 and CFBDS asserts on
+  all three goldens (criterion 1 superseded per owner decision). Two new
+  red assertions are expected output awaiting owner per-cell
+  adjudication: Freeport DISCREPANCY_LOG root cause E (LC understated by
+  a stable ~×1.205; candidates logged — LC-category elements-to-include,
+  no-free-rent-deduction, tiered %; TI and capex clean everywhere) and
+  Cedar Alt root cause D (pure sibling of adjudicated C — LC deltas =
+  6.75% × C's free-rent deltas exactly; TI clean). Check with the owner:
+  (1) adjudicate Freeport E and confirm Cedar D closes as C's sibling;
+  (2) the remaining Step 0 decisions — valuation assumption sets for the
+  goldens (no OM publishes any valuation result, verified 2026-07-11),
+  security-deposit placement (plan proposes Step 2), pct_of_account
+  staying guarded. If Step 2 is approved: purchase price + closing costs
+  + security deposits (spec §3.16/§3.12, [AE pp. 435-437, 384, 431-433]
+  — read first), worked-example tests per Iron Rule 3. Do not tune
+  inputs on the red capital tests — they are the owner's adjudication
+  queue. REMEMBER the standing gaps: percentage rent + tenant misc items
+  externally unvalidated pending golden #3; Freeport B and Cedar Alt B
+  parked for beta-stage GUI testing — their Gate 2 assertions stay red by
+  design (137/47, unchanged this session). Commit, push, update the
   progress note and this prompt."
