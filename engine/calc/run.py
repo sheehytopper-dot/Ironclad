@@ -93,6 +93,11 @@ from engine.calc.resale import (
     assert_resale_invariants,
     compute_resale,
 )
+from engine.calc.valuation import (
+    ValuationResult,
+    assert_pv_irr_self_consistency,
+    compute_valuation,
+)
 from engine.calc.recoveries import (
     PoolAudit,
     RecoveryContext,
@@ -152,6 +157,7 @@ class RunResult:
     closing_costs: pd.Series                        # negative
     loan_schedules: list[LoanSchedule]              # per loan (§7 report 20)
     resale: Optional[ResaleResult]                  # §7 report 21 detail
+    valuation: Optional[ValuationResult]            # §7 reports 8-9 detail
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
@@ -189,13 +195,6 @@ def _phase_guards(model: PropertyModel) -> None:
     for item in model.expenses:
         refuse(item.unit == ExpenseUnit.pct_of_account,
                f"expense {item.name!r}: unit 'pct_of_account'", "Phase 2")
-    if model.valuation is not None:
-        # Step 4 consumes ONLY valuation.resale; the discount machinery
-        # (discount_rate/method/convention/sensitivity) is Step 5 and is
-        # not read anywhere yet. direct_cap is optional with no consumer
-        # — refuse it rather than silently ignore it.
-        refuse(model.valuation.direct_cap is not None,
-               "direct cap valuation", "Phase 3 Step 5")
 
 
 def _free_rent_profile(ref: Optional[str],
@@ -641,6 +640,7 @@ def run_property(model: PropertyModel) -> RunResult:
     # cap machinery is Step 5 (direct_cap is guarded above). §9.3
     # payoff-at-resale asserts on every run with resale + loans.
     resale_result = None
+    valuation_result = None
     if model.valuation is not None:
         resale_result = compute_resale(
             model.valuation.resale, ledger, months, occupancy, model,
@@ -651,6 +651,15 @@ def run_property(model: PropertyModel) -> RunResult:
             net_resale_proceeds=resale_result.proceeds_series,
             loan_payoff_at_resale=resale_result.payoff_series,
         )
+        # Pass 14: PV / IRR / direct cap from the assembled ledger
+        # (valuation never recomputes it, spec §4.1); §9.3
+        # self-consistency asserts when price == unleveraged PV.
+        loan_proceeds = sum(float(s.funding.sum()) for s in loan_schedules)
+        valuation_result = compute_valuation(
+            model.valuation, ledger, months, begin, model, resale_result,
+            loan_proceeds,
+        )
+        assert_pv_irr_self_consistency(valuation_result, model)
 
     assert_invariants(
         ledger, analysis_begin=begin,
@@ -671,6 +680,7 @@ def run_property(model: PropertyModel) -> RunResult:
         closing_costs=closing_costs,
         loan_schedules=loan_schedules,
         resale=resale_result,
+        valuation=valuation_result,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
         property_revenue=property_revenue_total,

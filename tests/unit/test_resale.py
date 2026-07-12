@@ -354,9 +354,12 @@ class TestApplyToggleAndAudit:
         assert with_resale.ledger.frame[CFBDS].equals(
             without.ledger.frame[CFBDS])
 
-    def test_direct_cap_refused_until_step_5(self):
+    def test_direct_cap_now_builds(self):
+        """Step 5 lifted the direct_cap guard; a populated direct_cap
+        computes a value rather than refusing (covered in detail by
+        test_valuation.py)."""
         resale = Resale(method="cap_noi_forward_12", exit_cap_rate=8.0)
         model = build_model(resale)
         model.valuation.direct_cap = DirectCap(cap_rate=7.0)
-        with pytest.raises(NotImplementedError, match="Phase 3 Step 5"):
-            run_property(model)
+        result = run_property(model)
+        assert result.valuation.direct_cap_value is not None

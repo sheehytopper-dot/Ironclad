@@ -271,11 +271,15 @@ class TestAmountBases:
         with pytest.raises(ValueError, match="needs a purchase price"):
             build(loan)
 
-    def test_pct_of_value_refuses_until_step_5(self):
-        """'% of Adopted Valuation' [AE p. 438] needs valuation."""
+    def test_pct_of_value_refuses_as_open_scope(self):
+        """'% of Adopted Valuation' [AE p. 438]: after Step 5 built
+        valuation, a value-sized loan is an open owner scope decision
+        (debt at pass 12 needs the valuation from pass 14 —
+        DEVIATIONS.md §20), refused loudly."""
         loan = thirty_year(amount=LoanAmount(basis="pct_of_value",
                                              value=65.0))
-        with pytest.raises(NotImplementedError, match="Phase 3 Step 5"):
+        with pytest.raises(NotImplementedError,
+                           match="OPEN OWNER SCOPE DECISION"):
             build(loan)
 
 

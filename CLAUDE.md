@@ -440,38 +440,68 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   Hand-check: current-year NOI 100,000 at 8.00% exit cap = 1,250,000
   gross, 3% selling 37,500, net 1,212,500. Suite: 363 passed + the same
   4 golden reds (137/47, 33/12).
-- **Next session's first prompt:** "Phase 3 Steps 1-4 are CLOSED
+  **Phase 3 Step 5 complete 2026-07-12:** PV / IRR / direct cap
+  (`engine/calc/valuation.py`, spec §3.18/§4.1 pass 14, [AE pp. 450-476,
+  453-454, 472-473] read) — unleveraged/leveraged PV under all six
+  conventions (annual/quarterly/monthly × end/mid) at APR/p nominal
+  discounting; unleveraged/leveraged IRR by periodic bisection,
+  **nominal-annualized** (periodic × p) — the spec's effective
+  `((1+irr_m)^12−1)` clause is inconsistent with its own APR/p
+  discounting and would break self-consistency, so overridden
+  (DEVIATIONS.md §20 #3); direct cap [AE pp. 453-454] with year_1 vs
+  pv_start-anchored forward_12 (distinct window from resale's). Streams:
+  unleveraged = CFBDS + Net Resale Proceeds (t0 = price); leveraged =
+  CFADS + leveraged net resale (t0 = equity = price − loan proceeds);
+  below-line items excluded. Leveraged metrics = None (not silent zero)
+  without loans/price. **§9.3 PV/IRR self-consistency now standing**
+  (`assert_pv_irr_self_consistency`: price == unlev PV ⟹ IRR == discount
+  rate within 1bp, every convention). `direct_cap` guard lifted; the
+  `Purchase.derivation` + `pct_of_value` guard messages rewritten to
+  name the real open question, not "Step 5". 18 tests
+  (tests/unit/test_valuation.py). **EXTERNALLY UNVALIDATED — no golden
+  populates valuation.** Excel hand-check: par stream −1,000,000 then
+  80,000×4 and 1,080,000, annual EoP at 8% → PV 1,000,000, IRR 8.00%.
+  **OPEN OWNER SCOPE DECISION — live price derivation + pct_of_value
+  loans NOT built** (DEVIATIONS.md §20 #6): non-circular only for the
+  no-loan / non-pct_increase-resale subset, and even that needs the
+  acquisition posting deferred past valuation; value-sized loans need
+  debt reordered after valuation. Nothing needs it today; the
+  derivations refuse loudly. Suite: 381 passed + the same 4 golden reds
+  (137/47, 33/12).
+- **Next session's first prompt:** "Phase 3 Steps 1-5 are CLOSED
   (Step 1: TI/LC, golden #1 capital lines green within $0.50/cell,
   Freeport E deferred / Cedar Alt D closed as C's sibling; Step 2:
-  purchase/closing/security deposits, DEVIATIONS.md §17; Step 3: debt
-  engine, DEVIATIONS.md §18, 'Other Debt' deliberately NOT built; Step
-  4: resale shipped 2026-07-12, `engine/calc/resale.py` +
-  `engine/reports/resale_audit.py`, DEVIATIONS.md §19 — all five
-  methods, Resale Audit report reconciling to 1e-9, §9.3
-  payoff-at-resale invariant standing). **Two owner hand-checks are now
-  actionable**: (1) the Step 3 amort case — $1,000,000 / 6.00% /
-  30-year → payment $5,995.51, balance after 12 payments $987,719.88,
-  balloon at month 120 $836,857.25; (2) the Step 4 resale — current-year
-  NOI $100,000 at an 8.00% exit cap = $1,250,000 gross, 3% selling
-  $37,500, net $1,212,500 — ask whether he has run them and record the
-  outcomes in NEXT_STEPS_TO_GATE3.md Step 0. Next is **Step 5: PV &
-  IRR** — spec §3.18 / §4.1 pass 14, [AE pp. 472-473 + the Present Value
-  Calculation Examples] — read first: unleveraged PV under all
-  discounting conventions (annual/quarterly/monthly × end-of-period/
-  mid-period), direct cap [AE pp. 453-454] (the `direct_cap` guard added
-  in Step 4 lifts here), unleveraged and leveraged IRR (monthly solve,
-  annualized), and the price-derived-from-valuation toggle that closes
-  the §3.16 `derivation` and §3.17 `pct_of_value` refusals from Steps
-  2-3. **The §9.3 self-consistency invariant becomes standing: set price
-  = computed PV, assert IRR = discount rate within 1bp.** Valuation must
-  not recompute the ledger (spec §4.1 — the RunResult/ledger is the
-  input; resale is already computed and retained on RunResult.resale).
-  No golden publishes a valuation result (verified 2026-07-11), so PV/
-  IRR is validated by manual examples + the 1bp self-consistency
-  invariant + owner hand-checks — say so plainly. Remaining Step 0
-  decisions: valuation assumption sets for the goldens; pct_of_account
-  stays guarded. REMEMBER the standing gaps: percentage rent + tenant
-  misc items + purchase/deposits/debt/resale externally unvalidated
+  purchase/closing/deposits, DEVIATIONS.md §17; Step 3: debt engine,
+  DEVIATIONS.md §18, 'Other Debt' NOT built; Step 4: resale + Resale
+  Audit, DEVIATIONS.md §19; Step 5: PV/IRR/direct cap shipped
+  2026-07-12, `engine/calc/valuation.py`, DEVIATIONS.md §20 — all six
+  discount conventions, nominal IRR annualization, §9.3 PV/IRR
+  self-consistency invariant standing). **THREE owner hand-checks are
+  now actionable** — ask whether he has run them and record outcomes in
+  NEXT_STEPS_TO_GATE3.md Step 0: (1) Step 3 amort — $1,000,000 / 6.00% /
+  30yr → pmt $5,995.51, balance@12 $987,719.88, balloon@120 $836,857.25;
+  (2) Step 4 resale — current-year NOI $100,000 at 8.00% exit cap =
+  $1,250,000 gross, 3% selling $37,500, net $1,212,500; (3) Step 5
+  PV/IRR — par stream −1,000,000 then 80,000×4 and 1,080,000, annual
+  end-of-period at 8% → PV $1,000,000, IRR 8.00% (Excel
+  NPV()/IRR()-checkable). **ALSO put the OPEN OWNER SCOPE DECISION to
+  Topper: live price derivation (`pv_at_discount_rate`/`direct_cap`
+  price) + `pct_of_value` loans (DEVIATIONS.md §20 #6)** — build the
+  clean no-loan derived-price subset (a post-valuation re-assembly) or
+  leave the derivations permanently refusing? Nothing needs it today.
+  Next build step is **Step 6: sensitivity matrices** — spec §3.18
+  `sensitivity_intervals`, [AE pp. 451-452] — read first: IRR matrix
+  (price × exit cap) and value matrix (discount rate × exit cap) as
+  data builders (rendering is Phase 4), 5/7-point grids, each cell
+  produced by **re-running valuation only, never the ledger** (spec §4.1
+  note; the RunResult/ledger is the fixed input — resale + valuation
+  already recompute cheaply from it). Cross-check test: every matrix
+  cell equals a direct single-point valuation at those inputs. No golden
+  exercises it — manual-structure + engineered tests only. After Step 6,
+  Step 7 is the Gate 3 owner review. Remaining Step 0 decisions:
+  valuation assumption sets for the goldens; pct_of_account stays
+  guarded. REMEMBER the standing gaps: percentage rent + tenant misc
+  items + purchase/deposits/debt/resale/valuation externally unvalidated
   (goldens can't exercise them); Freeport B, Cedar Alt B, Freeport E
   parked for beta-stage GUI testing — the 4 golden reds (137/47 Gate 2,
   33/12 Gate 3 capital) stay red by design, owner's queue, never tuning

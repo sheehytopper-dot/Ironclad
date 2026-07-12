@@ -135,11 +135,12 @@ class TestPurchaseAndClosing:
     ])
     def test_derived_price_refuses_loudly(self, derivation):
         """The derived derivations (PV / direct cap [AE pp. 435-436])
-        are Step 5 — a loud refusal naming that step, never a silent
-        no-op or a wrong number."""
+        refuse loudly — live derivation is an open owner scope decision
+        after Step 5 (DEVIATIONS.md §20), never a silent no-op or a wrong
+        number."""
         purchase = Purchase(derivation=derivation)
         with pytest.raises(NotImplementedError,
-                           match="Phase 3 Step 5"):
+                           match="OPEN OWNER SCOPE DECISION"):
             run_property(build_model([basic_lease()], purchase=purchase))
 
     def test_cfbds_and_noi_unaffected(self):

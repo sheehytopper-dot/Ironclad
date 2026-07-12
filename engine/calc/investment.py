@@ -18,7 +18,8 @@ pass 14 consumes the price at t0 on the valuation side.
   Analysis Begin Date ("You cannot change this date" [AE p. 435]); the
   schema's optional ``date`` is honored when given (DEVIATIONS.md §17).
   The derived derivations (PV / direct cap [AE pp. 435-436]) refuse
-  loudly until Phase 3 Step 5 builds valuation.
+  loudly — live derivation is an open owner scope decision after Step 5
+  (DEVIATIONS.md §20).
 - **Closing costs** [AE pp. 436-437]: each posts negative, $ amount or
   % of the purchase price, in the purchase month or at its own
   ``custom_date``. The manual's "% Total Price" method (a percentage of
@@ -72,9 +73,15 @@ def acquisition_flows(purchase: Purchase, months: pd.PeriodIndex,
     if purchase.derivation != PriceDerivation.fixed:
         raise NotImplementedError(
             f"purchase price derivation '{purchase.derivation.value}' "
-            "(price backed out from computed valuation) is not implemented "
-            "until Phase 3 Step 5; use derivation 'fixed' or wait for that "
-            "step"
+            "(price backed out from computed valuation) is not implemented. "
+            "Step 5 (PV/IRR) built the unleveraged PV this would derive from, "
+            "but live derivation is an OPEN OWNER SCOPE DECISION "
+            "(DEVIATIONS.md §20): deriving the price from the unleveraged PV "
+            "is non-circular ONLY with no price-dependent loans and a resale "
+            "method other than pct_increase_over_price, and even then needs "
+            "the acquisition-flow posting deferred past valuation; a "
+            "pct_of_price/pct_of_value loan sized off the derived price needs "
+            "debt reordered after valuation. Use derivation 'fixed'."
         )
     price = pd.Series(0.0, index=months, name="purchase_price")
     closing = pd.Series(0.0, index=months, name="closing_costs")

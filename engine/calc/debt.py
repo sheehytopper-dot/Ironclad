@@ -138,8 +138,13 @@ def _principal0(loan: Loan, purchase: Optional[Purchase]) -> float:
         return purchase.price * loan.amount.value / 100.0
     raise NotImplementedError(
         f"loan {loan.name!r}: amount basis 'pct_of_value' (\"% of Adopted "
-        "Valuation\" [AE p. 438]) is not implemented until Phase 3 Step 5 "
-        "builds valuation; use an amount or pct_of_price"
+        "Valuation\" [AE p. 438]) is not implemented. Step 5 (PV/IRR) built "
+        "the valuation this would size off, but a loan sized off the derived "
+        "property value is an OPEN OWNER SCOPE DECISION (DEVIATIONS.md §20): "
+        "debt is computed at pass 12 and valuation at pass 14, so a "
+        "value-sized loan needs the (unleveraged) valuation reordered before "
+        "debt — added architecture no golden or current deal needs. Use an "
+        "amount or pct_of_price."
     )
 
 

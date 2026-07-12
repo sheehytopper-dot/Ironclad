@@ -816,3 +816,108 @@ Other narrowings / decisions:
 - **Revisit when:** Step 5 unlocks direct cap and consumes resale in PV/
   IRR; a deal needs a multiplier/traditional method, Add Back Free Rent,
   the Lag Vacancy basis, or per-line deduction months.
+
+## 20. PV / IRR / direct cap: conventions and the price-derivation scope decision (spec §3.18/§4.1 pass 14; Phase 3 Step 5)
+
+Built 2026-07-12 (`engine/calc/valuation.py`, [AE pp. 450-476, 453-454,
+472-473] read). **Validation path, stated plainly:** no golden populates
+`valuation` and none ever will (no OM publishes a valuation result,
+verified 2026-07-11) — proven by closed-form worked-example tests
+(tests/unit/test_valuation.py), engineered tests, the §9.3
+self-consistency invariant, and an owner Excel NPV()/IRR() hand-check.
+Headline hand-check: the par stream −1,000,000 then 80,000 × 4 and
+1,080,000, annual end-of-period at 8% → PV 1,000,000, IRR 8.00%.
+
+Part A adjudications:
+
+1. **Cash-flow basis (spec §4.1 pass 14, confirmed):** unleveraged =
+   ledger CFBDS per month + Net Resale Proceeds (unleveraged) in the
+   resale month, t0 = purchase price; leveraged = CFADS + leveraged net
+   resale (Net Resale Proceeds + Loan Payoff at Resale), t0 = equity =
+   price − loan funding proceeds. Below-the-line items (closing costs,
+   deposits) are NOT in the stream — the spec basis is CFBDS/CFADS +
+   resale, and folding closing costs into t0 would break the §9.3
+   identity.
+2. **Six conventions:** {annual, quarterly, monthly} × {end_of_period,
+   mid_period}. The rate is an APR [AE p. 472]; periodic = APR/p. The
+   monthly stream aggregates into p-per-year buckets from pv_start, each
+   discounted at (1 + APR/p)^(−e), e = 1-based period index (end) or
+   index − 0.5 (mid, the [AE p. 472] half-period). t0 price at exponent
+   0. The manual's "Present Value Calculation Examples" is a hyperlink
+   with NO inline printed worked-number table in this PDF; the spec §4.1
+   DF formulas are the normative source, and the tests use closed-form
+   textbook streams (owner-verifiable in Excel).
+3. **IRR annualization — the spec is internally inconsistent, decision
+   recorded:** spec §4.1 says both "(1+r/12)^−m" (nominal APR/12
+   discounting) AND "annualized ((1+irr_m)^12−1)" (effective). These
+   cannot both hold for self-consistency: with nominal discounting,
+   price = PV forces the periodic IRR to APR/p, which annualizes back to
+   the APR only under **nominal (periodic × p)** annualization. Effective
+   annualization would report (1+APR/12)^12−1 ≠ APR and break the §9.3
+   "IRR = discount rate" invariant (and ARGUS's core "value = PV such
+   that IRR = discount rate" identity). **Chosen: nominal annualization**,
+   matching the manual's APR label and the spec's DF formula; the spec's
+   effective clause is overridden. This changes the reported IRR
+   materially at any real rate — flagged, not silent.
+4. **pv_start (default analysis begin)** is the discounting anchor and
+   t0; cash flows before it are excluded and exponents measured from it.
+   The resale month (≤ analysis end, Step 4) is discounted at its own
+   period index relative to pv_start; a specified late pv_start shortens
+   the horizon but the resale still lands in its actual month's bucket.
+5. **direct_cap NOI basis [AE pp. 453-454]:** value = NOI / (cap_rate),
+   anchored at pv_start. `year_1` = analysis year 1 (the first 12 ledger
+   months); `forward_12` = the 12 months forward from pv_start. They
+   coincide when pv_start = analysis begin and are a DISTINCT window from
+   resale's `cap_noi_forward_12` (anchored at the resale date, Step 4) —
+   implemented as logically separate derivations.
+
+Leveraged metrics return **None** (not a silent zero) when their inputs
+are absent: leveraged PV/IRR require loans; leveraged and unleveraged IRR
+require a purchase price (the t0 investment). Only-price-absent still
+yields the unleveraged PV.
+
+### Part A #6 — price derivation / pct_of_value: OPEN OWNER SCOPE DECISION (not built)
+
+The finding, plainly: this is **not uniformly circular, but not
+uniformly clean**:
+- **Unleveraged PV depends on neither the purchase price nor debt** (CFBDS
+  is pre-debt-service; the purchase is below-the-line). So deriving the
+  purchase price from the unleveraged PV / direct cap is **non-circular**
+  — EXCEPT the `pct_increase_over_price` resale method, which reads the
+  purchase price (price → resale → unleveraged PV → price is genuinely
+  circular).
+- **A `pct_of_price` or `pct_of_value` loan sized off a derived price**
+  needs that value **before pass-12 debt** runs, while valuation is
+  pass 14 — a pass **reordering** (compute unleveraged valuation before
+  debt), not a fixed point. Only fixed-$ loans avoid it.
+
+So a clean subset exists: derive price from unleveraged PV / direct cap
+when there are no price-dependent loans and the resale method isn't
+`pct_increase_over_price`. But even that clean subset needs Step 2's
+acquisition-flow posting deferred past valuation and the below-line
+columns re-assembled — real architecture for a path **no golden and no
+current deal needs**. **Decision (2026-07-12): NOT built this step.** The
+three derivations stay refusing, with messages rewritten to name this
+actual open question (not "Step 5", which has happened):
+`Purchase.derivation != fixed` (engine/calc/investment.py),
+`LoanAmountBasis.pct_of_value` (engine/calc/debt.py). The §9.3
+self-consistency invariant is proven **without** live derivation (Part C:
+a fixed price set equal to a first run's computed PV). This is the
+owner's scope call — recorded recommendation: the no-loan derived-price
+subset is cleanly buildable as a post-valuation re-assembly if a deal
+needs it; the loan-participation cases need the pass reorder. Nothing is
+half-built; the whole derivation surface is a single loud refusal.
+
+- **Schema-absent / not modeled:** Increment Discount Rate adjustments
+  (separate unlev/lev cash-flow and resale rate deltas [AE p. 473]);
+  Semi-Annual and "Monthly in Advance" discount methods [AE p. 472]
+  (schema has annual/quarterly/monthly × end/mid only); Traditional and
+  Capitalization Valuation calc paths and their overrides
+  [AE pp. 474-475]; leveraged Increment rates.
+- **§9.3 self-consistency invariant (standing from this step):** whenever
+  a purchase price equals the computed unleveraged PV (within 1¢), the
+  unleveraged IRR equals the discount rate within 1bp
+  (`assert_pv_irr_self_consistency`), across every discount convention.
+- **Revisit when:** the owner decides to build live price derivation (per
+  the finding above); a deal needs Semi-Annual discounting, the Increment
+  rates, or a Traditional/Cap valuation path.

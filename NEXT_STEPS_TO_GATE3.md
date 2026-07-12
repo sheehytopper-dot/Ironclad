@@ -72,7 +72,8 @@ validation therefore rests on:
    and carry this criterion's external validation.
 2. **§9.3 invariants extended and passing on every calc run:** debt balance
    roll (Step 3, ✓), payoff-at-resale identity (Step 4, ✓ —
-   `assert_resale_invariants`), PV/IRR self-consistency (±1bp — Step 5).
+   `assert_resale_invariants`), PV/IRR self-consistency (±1bp — Step 5, ✓ —
+   `assert_pv_irr_self_consistency`).
 3. **Manual worked-example unit tests** with page cites for resale, PV
    conventions, loan math, and security deposits (Iron Rule 3).
 4. **Sensitivity matrices** (IRR over price × exit cap; value over discount
@@ -175,7 +176,9 @@ every rollup — the original "ahead of CFBDS" phrasing is read as
 "present before valuation consumes it," confirmed against [AE p. 435]
 (purchase feeds return metrics; the Cash Flow report has no acquisition
 rows) and test-proven CFBDS-neutral. Both security-deposit guards
-lifted; derived price derivations refuse loudly naming Step 5.
+lifted; derived price derivations refuse loudly (their message was
+"naming Step 5" here; Step 5 reframed it as an open owner scope
+decision — DEVIATIONS.md §20 #6).
 Narrowings + judgment calls in DEVIATIONS.md §17; 13 manual-cited tests
 (tests/unit/test_investment.py). **EXTERNALLY UNVALIDATED** — no golden
 populates `purchase` or `security_deposit`, the same standing as
@@ -200,7 +203,9 @@ Costs, Total Debt Service, CFADS = CFBDS + TDS. **§9.3 debt invariants
 standing on every run**: balance roll, non-negative balances, IO months
 amortize nothing, fully-amortizing balloon ~$0 (payoff-at-resale is
 Step 4, as planned — the balance series is correct and retained for
-it). `pct_of_value` loan sizing refuses loudly naming Step 5.
+it). `pct_of_value` loan sizing refuses loudly (its message was "naming
+Step 5" here; Step 5 reframed it as an open owner scope decision —
+DEVIATIONS.md §20 #6).
 **Deliberate exclusion:** "Other Debt" [AE pp. 448-449] is NOT built —
 the manual's Other Debt is inflated recurring streams, not
 simple-interest loans; the Loan docstring's "fixed-payment loans"
@@ -238,16 +243,38 @@ worked examples + owner hand-checks only. Hand-check: current-year NOI
 100,000 at 8.00% exit cap = 1,250,000 gross, 3% selling 37,500, net
 1,212,500.
 
-## Step 5 — PV & IRR (session 7)
+## Step 5 — PV & IRR (session 7) — **CLOSED 2026-07-12 (price derivation deferred to owner)**
 
-Spec §3.18 / §4.1 pass 14 [AE pp. 472-473 + Present Value Calculation
-Examples]: unleveraged PV under all discounting conventions (annual /
-quarterly / monthly × end-of-period / mid-period), direct cap
-[AE pp. 453-454], unleveraged and leveraged IRR (monthly solve, annualized),
-price-derived-from-valuation closes the §3.16 toggle. **The §9.3
-self-consistency test becomes a standing invariant: set price = computed PV,
-assert IRR = discount rate within 1bp.** Valuation runs must not recompute
-the ledger (spec §4.1; the RunResult is the input).
+**Status: shipped 2026-07-12; full PV/IRR/direct-cap scope, with live
+price derivation left as an explicit owner scope decision.**
+`engine/calc/valuation.py`: unleveraged/leveraged PV under all six
+conventions (annual/quarterly/monthly × end/mid), APR/p nominal
+discounting; unleveraged/leveraged IRR (periodic bisection, **nominal
+annualization** — the spec's effective `((1+irr_m)^12−1)` clause is
+inconsistent with its own APR/p discounting and would break
+self-consistency, so overridden — DEVIATIONS.md §20 #3); direct cap
+[AE pp. 453-454] with year_1 vs pv_start-anchored forward_12 (distinct
+from resale's forward_12). Leveraged metrics return None (not silent
+zero) when loans/price absent. **§9.3 PV/IRR self-consistency is now a
+standing invariant** (`assert_pv_irr_self_consistency`: price == unlev PV
+⟹ IRR == discount rate within 1bp). The `direct_cap` guard lifted; the
+`Purchase.derivation` and `pct_of_value` guards were rewritten to name
+the real open question (not "Step 5"). 18 tests
+(tests/unit/test_valuation.py). **EXTERNALLY UNVALIDATED** — no golden
+populates valuation; worked examples + the §9.3 invariant + owner Excel
+hand-check. Hand-check: par stream −1,000,000 then 80,000 × 4 and
+1,080,000, annual end-of-period at 8% → PV 1,000,000, IRR 8.00%.
+
+**OPEN OWNER SCOPE DECISION — live price derivation
+(`pv_at_discount_rate` / `direct_cap` price) and `pct_of_value` loans
+(DEVIATIONS.md §20 #6):** deriving the price from the unleveraged PV is
+non-circular ONLY with no price-dependent loans and a non-`pct_increase`
+resale method, and even then needs the acquisition posting deferred past
+valuation; a value-sized loan needs debt reordered after valuation. NOT
+built — the three derivations refuse loudly. **Nothing (no golden, no
+current deal) needs it.** Owner to decide whether to build the clean
+no-loan subset (a post-valuation re-assembly) or leave it permanently
+refusing.
 
 ## Step 6 — Sensitivity matrices (session 8)
 
