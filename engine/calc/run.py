@@ -8,8 +8,9 @@ expense resolution → recoveries → ledger assembly, and asserts the §9.3
 pre-valuation invariants on every run (CLAUDE.md Conventions). Inputs
 whose passes don't exist yet raise ``NotImplementedError`` rather than
 silently posting nothing (Design principle "no silent numbers"):
-``reabsorb`` expirations (DEVIATIONS.md §8), TI/LC posting, security
-deposits, and debt (Phase 3). Space absorption (Step 3) generates
+``reabsorb`` on MLP profiles (speculative chains — DEVIATIONS.md §8; the
+contract-lease variant is built), TI/LC posting, security deposits, and
+debt (Phase 3). Space absorption (Step 3) generates
 synthetic leases per spec §3.15 that join the rent roll for every
 downstream pass; pre-absorption vacant space grosses Base Rental Revenue
 up to market with the offsetting A&T entry [AE p. 538]. General vacancy
@@ -54,12 +55,14 @@ import pandas as pd
 from engine.calc.absorption import (
     generate_absorption_leases,
     pre_absorption_vacancy,
+    reabsorption_vacancy,
 )
 from engine.calc.expenses import PCT_UNITS, project_expense
 from engine.calc.leases import (
     LeaseRentCashflows,
     LeaseSegment,
     contract_free_fraction,
+    lease_term_periods,
     project_contract_rent,
     project_segment_rent,
     resolve_lease_chain,
@@ -156,9 +159,6 @@ def _phase_guards(model: PropertyModel) -> None:
                where + "contract TIs/LCs", "Phase 3")
         refuse(lease.security_deposit is not None,
                where + "security deposits", "Phase 3")
-        refuse(lease.upon_expiration == UponExpiration.reabsorb,
-               where + "upon_expiration 'reabsorb'",
-               "re-pooling semantics are defined (DEVIATIONS.md §8)")
     for profile in model.market_leasing_profiles:
         where = f"market leasing profile {profile.name!r}: "
         refuse(bool(profile.miscellaneous_items),
@@ -193,20 +193,49 @@ def run_property(model: PropertyModel) -> RunResult:
     # Pass 3: lease chain resolution — contract terms + absorption-generated
     # leases (spec §3.15: each behaves like a rent roll lease thereafter),
     # each resolved into speculative segments per MLP through timeline end
-    # (spec §4.2). Pre-absorption vacant months post nothing to revenue;
-    # the space counts in rentable/available area (DEVIATIONS.md §8).
+    # (spec §4.2). Vacant space — pre-absorption and reabsorbed alike —
+    # carries market value in Potential Base Rent with the offsetting A&T
+    # entry [AE p. 538] and counts in rentable/available area
+    # (DEVIATIONS.md §8).
     profiles = {p.name: p for p in model.market_leasing_profiles}
     synthetic: list = []
+    linked_generated_names: set[str] = set()
     pre_vacancy: dict[str, pd.Series] = {}
+    reabsorb_end = {
+        lease.tenant_name: lease_term_periods(lease)[1]
+        for lease in model.rent_roll
+        if lease.upon_expiration == UponExpiration.reabsorb
+    }
     for spec in model.absorption:
         generated = generate_absorption_leases(
             spec, profiles, begin, model.inflation
         )
         synthetic.extend(generated)
+        # A spec linked to a reabsorbed lease re-leases that lease's space:
+        # its phantom starts when the space becomes vacant (expiration + 1),
+        # not at timeline start (DEVIATIONS.md §8).
+        available_from = (
+            reabsorb_end[spec.reabsorbed_from] + 1
+            if spec.reabsorbed_from is not None else None
+        )
         pre_vacancy.update(pre_absorption_vacancy(
             generated, profiles[spec.market_leasing_profile],
-            months, begin, model.inflation,
+            months, begin, model.inflation, available_from=available_from,
         ))
+        if spec.reabsorbed_from is not None:
+            linked_generated_names.update(l.tenant_name for l in generated)
+    # Reabsorbed contract leases: the uncovered remainder carries the
+    # market-in / A&T-out phantom from expiration to timeline end
+    # (DEVIATIONS.md §8; covered portions ride the linked specs above).
+    for lease in model.rent_roll:
+        if lease.upon_expiration != UponExpiration.reabsorb:
+            continue
+        linked = [s for s in model.absorption
+                  if s.reabsorbed_from == lease.tenant_name]
+        pre_vacancy[lease.tenant_name] = reabsorption_vacancy(
+            lease, profiles[lease.market_leasing_profile], linked,
+            months, begin, model.inflation,
+        )
     all_leases = list(model.rent_roll) + synthetic
     names = [lease.tenant_name for lease in all_leases]
     duplicates = {n for n in names if names.count(n) > 1}
@@ -222,7 +251,14 @@ def run_property(model: PropertyModel) -> RunResult:
         for lease in all_leases
     }
     occupied = occupied_area_from_chains(chains.values(), months)
-    rentable = rentable_area_series(model.area_measures, all_leases, months)
+    # Derived rentable area counts a reabsorbed lease's stated area as the
+    # permanent SF anchor for its space — leases generated by linked specs
+    # re-lease that same square footage and are excluded from the sum
+    # (fixed/schedule modes are unaffected).
+    rentable_leases = [l for l in all_leases
+                       if l.tenant_name not in linked_generated_names]
+    rentable = rentable_area_series(model.area_measures, rentable_leases,
+                                    months)
     occupancy = occupancy_series(occupied, rentable)
     available = (rentable - occupied).rename("available_area")
 

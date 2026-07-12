@@ -154,14 +154,47 @@ are fixed, not listed.
   then-current market rent, inflating month-by-month under
   ``term_growth`` (annual golden data cannot discriminate this against
   freeze-at-start; a dispute goes to owner per-cell adjudication).
-- **Still deferred:** ``upon_expiration = 'reabsorb'`` (space returning
-  to the absorption pool). The manual does not define the re-pooling
-  mechanics (which schedule, what timing), so v1 refuses it loudly in
-  run.py rather than letting the space sit silently vacant;
-  ``resolve_lease_chain`` itself simply ends the chain.
-- **Revisit when:** goldens #4/#5 (triaged for absorption coverage)
-  back-test the corrected treatment against published Argus output;
-  reabsorb waits for a deal that needs it.
+- **Reabsorb shipped for contract leases (2026-07-11; Phase 3 / Step 1),
+  per the owner's authoritative description of AE's mechanics** (the
+  manual itself does not define the re-pooling; the owner's 2026-07-11
+  spec governs): a contract lease with ``upon_expiration = 'reabsorb'``
+  retires at expiration (``resolve_lease_chain`` ends the chain, as it
+  always did) and its space returns to the vacant pool. From the month
+  after expiration the space is carried at its market value in Potential
+  Base Rent with the equal offsetting A&T entry — netting $0 in
+  Scheduled/EGR/NOI — until absorption re-leases it or the timeline ends.
+  The market rate comes from the lease's own ``market_leasing_profile``
+  (required by the schema for reabsorb), valued month-by-month under
+  ``term_growth`` (this section's standing convention). Re-leasing is
+  connected explicitly: ``AbsorptionSpec.reabsorbed_from`` names the
+  reabsorbed lease; linked specs' phantom windows start at the lease's
+  expiration + 1 (not timeline start), the lease itself phantoms only the
+  uncovered remainder, and the ARGUS step-down is the emergent sum.
+  Cross-validated loudly: the ref must name a 'reabsorb' lease, linked
+  specs start after expiration, and linked areas sum to at most the
+  lease's area. Derived rentable area keeps the reabsorbed lease's stated
+  area as the permanent SF anchor and excludes linked specs' generated
+  leases from the sum (owner decision 2026-07-11 — no double count).
+  **Externally unvalidated:** no golden exercises reabsorb (Freeport's
+  RSDS partial reabsorption was deliberately encoded without it);
+  engineered tests only (tests/unit/test_reabsorb.py), flagged in each
+  docstring.
+- **Still deferred: reabsorb on speculative/MLP chains**
+  (``MarketLeasingProfile.upon_expiration = 'reabsorb'`` stays refused in
+  run.py). A speculative chain segment has no fixed, known expiration
+  date for the ``reabsorbed_from`` linkage validations to anchor on — the
+  v1 narrowing scoped 2026-07-11, same pattern as other v1 narrowings.
+  The engine cannot know at input-validation time when (or whether) a
+  probabilistically-rolled segment ends.
+- **Not enforced (documented, user responsibility):** nothing prevents
+  staging another rent-roll lease on a reabsorbed space — the schema has
+  no suite-occupancy model, so "can no longer be leased from the Rent
+  Roll" is staging discipline, the same stance as AbsorptionSpec sizing
+  generally.
+- **Revisit when:** a golden or real deal exercises reabsorb (back-test
+  via the Benchmark Comparison report), or a deal needs speculative-chain
+  reabsorb (then the linkage needs a resolved-chain anchor, a genuinely
+  new design).
 
 ## 9. General vacancy / credit loss: schema narrowings vs the manual
 

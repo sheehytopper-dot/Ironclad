@@ -123,6 +123,14 @@ class Lease(StrictModel):
             raise ValueError("end_date must be after start_date")
         if self.upon_expiration == UponExpiration.option and self.option_profile is None:
             raise ValueError("upon_expiration 'option' requires option_profile")
+        if (self.upon_expiration == UponExpiration.reabsorb
+                and self.market_leasing_profile is None):
+            raise ValueError(
+                "upon_expiration 'reabsorb' requires a market_leasing_profile: "
+                "after the lease expires, the reabsorbed space is carried at "
+                "market value (Potential Base Rent offset by Absorption & "
+                "Turnover Vacancy), and that profile supplies the market rent."
+            )
         return self
 
 
@@ -132,6 +140,16 @@ class AbsorptionSpec(StrictModel):
     Generates synthetic leases on the schedule; each behaves like a rent roll
     lease thereafter (rollover chains etc.). Give exactly one of
     ``number_of_leases`` / ``area_per_lease``.
+
+    ``reabsorbed_from`` links this spec to a rent-roll lease whose
+    ``upon_expiration`` is ``reabsorb``: the spec re-leases (part of) that
+    lease's space after it expires. The linkage drives the pre-absorption
+    market-value window (the space is available from the lease's expiration,
+    not from analysis begin) and keeps derived rentable area from counting
+    the same square footage twice (the reabsorbed lease's stated area remains
+    the permanent SF anchor). Multiple specs may link to one lease; their
+    combined ``total_area`` may not exceed the lease's area, and each must
+    start after the lease expires (validated on the PropertyModel).
     """
 
     name: str
@@ -142,6 +160,7 @@ class AbsorptionSpec(StrictModel):
     interval_months: int = Field(default=1, ge=0)  # between lease starts
     lease_type: LeaseType = LeaseType.office
     market_leasing_profile: Ref  # or inline lease terms (v1: profile only)
+    reabsorbed_from: Optional[Ref] = None  # tenant_name of a 'reabsorb' lease
 
     @model_validator(mode="after")
     def _one_of(self) -> "AbsorptionSpec":

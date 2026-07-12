@@ -52,12 +52,14 @@ _RECONCILED_LINES = {
 
 def _phase(segments, period: pd.Period) -> str:
     """Lease-phase label for one month from the resolved chain: contract
-    or speculative occupancy, rollover downtime, else vacant (which for a
-    not-yet-absorbed space still carries its market value in base rent
-    and A&T [AE p. 538]). An absorption-generated lease's first
-    generation is the chain's contract segment mechanically, but the
-    manual shows absorption leases as speculative [AE p. 398] — the
-    lease's own status wins the label."""
+    or speculative occupancy, rollover downtime, reabsorbed (months after
+    a 'reabsorb' lease expires — the space carries its market value in
+    base rent and A&T until absorption re-leases it, DEVIATIONS.md §8),
+    else vacant (which for a not-yet-absorbed space still carries its
+    market value in base rent and A&T [AE p. 538]). An
+    absorption-generated lease's first generation is the chain's contract
+    segment mechanically, but the manual shows absorption leases as
+    speculative [AE p. 398] — the lease's own status wins the label."""
     for segment in segments:
         if segment.start <= period <= segment.end:
             if segment.speculative or segment.lease.status.value == "speculative":
@@ -66,6 +68,10 @@ def _phase(segments, period: pd.Period) -> str:
         if (segment.downtime_months
                 and segment.downtime_start <= period < segment.start):
             return "downtime"
+    last = segments[-1] if segments else None
+    if (last is not None and period > last.end
+            and last.lease.upon_expiration.value == "reabsorb"):
+        return "reabsorbed"
     return "vacant"
 
 

@@ -2,7 +2,7 @@
   "$defs": {
     "AbsorptionSpec": {
       "additionalProperties": false,
-      "description": "Lease-up of currently vacant space (spec \u00a73.15) [AE pp. 395-403].\n\nGenerates synthetic leases on the schedule; each behaves like a rent roll\nlease thereafter (rollover chains etc.). Give exactly one of\n``number_of_leases`` / ``area_per_lease``.",
+      "description": "Lease-up of currently vacant space (spec \u00a73.15) [AE pp. 395-403].\n\nGenerates synthetic leases on the schedule; each behaves like a rent roll\nlease thereafter (rollover chains etc.). Give exactly one of\n``number_of_leases`` / ``area_per_lease``.\n\n``reabsorbed_from`` links this spec to a rent-roll lease whose\n``upon_expiration`` is ``reabsorb``: the spec re-leases (part of) that\nlease's space after it expires. The linkage drives the pre-absorption\nmarket-value window (the space is available from the lease's expiration,\nnot from analysis begin) and keeps derived rentable area from counting\nthe same square footage twice (the reabsorbed lease's stated area remains\nthe permanent SF anchor). Multiple specs may link to one lease; their\ncombined ``total_area`` may not exceed the lease's area, and each must\nstart after the lease expires (validated on the PropertyModel).",
       "properties": {
         "name": {
           "title": "Name",
@@ -57,6 +57,18 @@
         "market_leasing_profile": {
           "title": "Market Leasing Profile",
           "type": "string"
+        },
+        "reabsorbed_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reabsorbed From"
         }
       },
       "required": [

@@ -191,10 +191,12 @@ class TestChaining:
 
     def test_reabsorb_ends_the_chain_for_absorption(self):
         """Reabsorbed space returns via the absorption engine (Step 3);
-        the chain itself ends (spec §3.6)."""
+        the chain itself ends (spec §3.6). Since Phase 3 / Step 1 a
+        reabsorb lease must carry a market_leasing_profile — it prices the
+        post-expiration phantom (DEVIATIONS.md §8) — but the profile does
+        NOT generate a successor segment."""
         segments = resolve(
-            clorox_lease(upon_expiration=UponExpiration.reabsorb,
-                         market_leasing_profile=None),
+            clorox_lease(upon_expiration=UponExpiration.reabsorb),
             clorox_profile(),
         )
         assert len(segments) == 1

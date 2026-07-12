@@ -30,12 +30,30 @@ Base, EGR, and NOI are untouched by the gross-up (it nets to zero inside
 Scheduled); what it changes is the Potential Base Rent presentation and,
 critically, the A&T ledger line that general vacancy's
 ``reduce_by_absorption_turnover`` offset consumes (spec §3.4;
-DEVIATIONS.md §8 records the 2026-07-06 correction). ``reabsorb``
-expirations (space returning to the absorption pool) have undefined
-re-pooling semantics in v1 and are refused loudly by run.py — also
-DEVIATIONS.md §8. The manual's separate Available-vs-Start dates and
-Absorption Months input are UI conveniences the §3.15 schema deliberately
-omits (start_date + interval_months express the same schedule).
+DEVIATIONS.md §8 records the 2026-07-06 correction).
+
+**Reabsorbed space (contract leases, v1 — DEVIATIONS.md §8):** a contract
+lease with ``upon_expiration = 'reabsorb'`` retires at expiration and hands
+its square footage to the absorption pool. From the month after expiration
+the space is carried at market value with the offsetting A&T entry —
+netting to $0 in Scheduled/EGR/NOI — until absorption re-leases it or the
+timeline ends. The accounting splits in two, and the ARGUS step-down is
+emergent from their sum: ``reabsorption_vacancy`` posts the **uncovered
+remainder** (the lease's area minus all linked specs' total_area — the full
+area when nothing is linked, zero when fully covered) on the reabsorbed
+lease itself, while each linked spec's generated leases post their own
+pre-start phantom via ``pre_absorption_vacancy`` with ``available_from`` =
+the reabsorbed lease's expiration + 1 (not timeline start — before that,
+the contract tenant's real rent occupies those months). Together: the full
+area at market from expiration, stepping down suite by suite as staggered
+absorption leases start. Speculative/MLP-chain reabsorb stays refused (a
+chain segment has no fixed expiration for the linkage to anchor on).
+
+The manual's separate Available-vs-Start dates and Absorption Months input
+are UI conveniences the §3.15 schema deliberately omits (start_date +
+interval_months express the same schedule; an ARGUS-style "absorb 5,000 SF
+per month" maps to area_per_lease=5000 + interval_months=1 — discrete
+monthly leases, not a continuous ramp).
 """
 from __future__ import annotations
 
@@ -45,7 +63,7 @@ from typing import Mapping
 
 import pandas as pd
 
-from engine.calc.leases import _market_factor, _market_monthly
+from engine.calc.leases import _market_factor, _market_monthly, lease_term_periods
 from engine.calc.timeline import snap_to_month_start
 from engine.models import (
     AbsorptionSpec,
@@ -152,39 +170,104 @@ def generate_absorption_leases(
     return leases
 
 
+def _market_value_series(
+    profile: MarketLeasingProfile,
+    area: float,
+    first: pd.Period,
+    last: pd.Period,
+    months: pd.PeriodIndex,
+    analysis_begin: dt.date,
+    inflation: Inflation,
+    where: str,
+) -> pd.Series:
+    """Market value of ``area`` for the months ``first``..``last``
+    (inclusive), valued month-by-month at the then-current market rent —
+    the profile's new-tenant rate inflated to each vacant month under
+    ``term_growth`` ("changes to market assumptions ... are dynamically
+    incorporated" [AE p. 395]; DEVIATIONS.md §8's month-level convention).
+    Shared by the pre-absorption and reabsorption phantom paths."""
+    series = pd.Series(0.0, index=months, name="vacant_market_value")
+    for period in months:
+        if period < first:
+            continue
+        if period > last:
+            break
+        factor = (
+            _market_factor(inflation, period, analysis_begin)
+            if profile.term_growth else 1.0
+        )
+        series[period] = _market_monthly(
+            profile.market_base_rent_new, area, factor, None, where
+        )
+    return series
+
+
 def pre_absorption_vacancy(
     leases: list[Lease],
     profile: MarketLeasingProfile,
     months: pd.PeriodIndex,
     analysis_begin: dt.date,
     inflation: Inflation,
+    available_from: pd.Period | None = None,
 ) -> dict[str, pd.Series]:
     """Market value of each generated lease's space for the months before
     its lease starts — the "market value of the currently vacant spaces"
     that ARGUS carries in Potential Base Rent with the offsetting
     Absorption & Turnover Vacancy entry [AE p. 538].
 
-    Valued month-by-month at the then-current market rent (the profile's
-    new-tenant rate inflated to each vacant month under ``term_growth`` —
-    "changes to market assumptions ... are dynamically incorporated"
-    [AE p. 395]). run.py posts each series positively to Base Rental
-    Revenue and negatively to Absorption & Turnover Vacancy, exactly like
-    rollover downtime (spec §4.2). Returns ``{tenant_name: series}``.
+    Valued month-by-month at the then-current market rent (module
+    docstring; DEVIATIONS.md §8). ``available_from`` is the first month
+    the space is vacant: ``None`` (day-one vacant space) means the start
+    of the timeline; a spec linked to a reabsorbed lease passes that
+    lease's expiration + 1, so no phantom posts while the contract tenant
+    still occupies the space. run.py posts each series positively to Base
+    Rental Revenue and negatively to Absorption & Turnover Vacancy,
+    exactly like rollover downtime (spec §4.2). Returns
+    ``{tenant_name: series}``.
     """
     where = f"absorption profile {profile.name!r}"
+    first_vacant = months[0] if available_from is None else available_from
     vacancy: dict[str, pd.Series] = {}
     for lease in leases:
         start = pd.Period(snap_to_month_start(lease.start_date), freq="M")
-        series = pd.Series(0.0, index=months, name="pre_absorption_vacancy")
-        for period in months:
-            if period >= start:
-                break
-            factor = (
-                _market_factor(inflation, period, analysis_begin)
-                if profile.term_growth else 1.0
-            )
-            series[period] = _market_monthly(
-                profile.market_base_rent_new, lease.area, factor, None, where
-            )
-        vacancy[lease.tenant_name] = series
+        vacancy[lease.tenant_name] = _market_value_series(
+            profile, lease.area, first_vacant, start - 1, months,
+            analysis_begin, inflation, where,
+        )
     return vacancy
+
+
+def reabsorption_vacancy(
+    lease: Lease,
+    profile: MarketLeasingProfile,
+    linked_specs: list[AbsorptionSpec],
+    months: pd.PeriodIndex,
+    analysis_begin: dt.date,
+    inflation: Inflation,
+) -> pd.Series:
+    """Post-expiration phantom for a reabsorbed contract lease: the market
+    value of its **uncovered remainder** — ``lease.area`` minus the linked
+    specs' combined ``total_area`` — from the month after expiration
+    through the end of the timeline (DEVIATIONS.md §8; the owner's ARGUS
+    mechanics: potential revenue and the vacancy deduction "offset each
+    other, netting to $0 ... until it is dealt with elsewhere").
+
+    The covered portion's phantom is NOT posted here: each linked spec's
+    generated leases carry it via ``pre_absorption_vacancy`` with
+    ``available_from`` = expiration + 1, so the total across both paths is
+    the full area at market from expiration, stepping down as staggered
+    absorption leases start. With no linked specs the remainder is the
+    full area (space stays vacant to timeline end); fully covered, this
+    series is zero. Priced from the reabsorbed lease's own
+    ``market_leasing_profile`` (required by the schema for reabsorb).
+    """
+    where = (f"lease {lease.tenant_name!r} (reabsorb) / "
+             f"profile {profile.name!r}")
+    remainder = lease.area - sum(s.total_area for s in linked_specs)
+    if remainder <= 1e-9:
+        return pd.Series(0.0, index=months, name="vacant_market_value")
+    _, end = lease_term_periods(lease)
+    return _market_value_series(
+        profile, remainder, end + 1, months[-1], months,
+        analysis_begin, inflation, where,
+    )

@@ -294,8 +294,8 @@ One record per lease/suite.
 | `miscellaneous_items` | list of misc items | `[]` | see below |
 | `leasing_costs` | `{ti, ti_category, lc, lc_category}` | null | contract-term TIs/LCs (rollover costs come from the MLP) |
 | `security_deposit` | see below | null | |
-| `market_leasing_profile` | ref | null | **required when `upon_expiration` = `market`** |
-| `upon_expiration` | `market` \| `option` \| `renew` \| `vacate` \| `reabsorb` | `market` | |
+| `market_leasing_profile` | ref | null | **required when `upon_expiration` = `market` or `reabsorb`** (for reabsorb it prices the vacant space's market value after expiration) |
+| `upon_expiration` | `market` \| `option` \| `renew` \| `vacate` \| `reabsorb` | `market` | `reabsorb` retires the lease at expiration and returns the space to the absorption pool: carried at market value with the offsetting A&T entry ($0 net) until an `AbsorptionSpec` with `reabsorbed_from` re-leases it or the analysis ends. Contract leases only — `reabsorb` on a market leasing profile is refused (no fixed expiration to anchor on) |
 | `option_profile` | ref | null | required when `upon_expiration` = `option` |
 | `tenant_classifications` | dict of str → str | `{}` | free-form tags |
 | `notes` | str | null | |
@@ -369,6 +369,11 @@ beside an uncapped tax pool in one structure.
 | `interval_months` | int ≥ 0 | `1` | between lease starts |
 | `lease_type` | lease type | `office` | |
 | `market_leasing_profile` | ref | **req** | generated leases follow this profile |
+| `reabsorbed_from` | ref | null | tenant_name of a rent-roll lease with `upon_expiration: reabsorb` — this spec re-leases (part of) that lease's space. Validated: the ref must name a reabsorb lease, `start_date` must be after that lease expires, and all linked specs' `total_area` together may not exceed the lease's area. Linked specs' vacant-space market value starts at the lease's expiration, not analysis begin; derived rentable area excludes their generated leases (the reabsorbed lease's stated area is the permanent SF anchor) |
+
+An ARGUS-style lease-up rate ("absorb 5,000 SF per month") maps to
+`area_per_lease: 5000` + `interval_months: 1` — discrete leases generated on
+the interval, not a continuous SF ramp.
 
 ## Purchase (`purchase`)
 

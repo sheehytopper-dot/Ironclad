@@ -126,6 +126,61 @@ class PropertyModel(StrictModel):
                 "market leasing profile", f"absorption {spec.name!r}",
             )
 
+        # reabsorbed_from linkage (spec §3.15 + reabsorb; DEVIATIONS.md §8):
+        # each linked spec re-leases part of a reabsorbing lease's space, so
+        # it must point at a real 'reabsorb' lease, start after that lease
+        # expires, and the linked specs together may not exceed its area.
+        def _month_index(d) -> int:
+            return d.year * 12 + (d.month - 1)
+
+        leases_by_name = {t.tenant_name: t for t in self.rent_roll}
+        linked_area_by_lease: dict[str, float] = {}
+        for spec in self.absorption:
+            if spec.reabsorbed_from is None:
+                continue
+            where = f"absorption {spec.name!r}"
+            lease = leases_by_name.get(spec.reabsorbed_from)
+            if lease is None:
+                raise ValueError(
+                    f"{where}: reabsorbed_from names {spec.reabsorbed_from!r}, "
+                    "but no rent roll lease has that tenant_name. Link the "
+                    "spec to the lease whose space it re-leases."
+                )
+            if lease.upon_expiration != UponExpiration.reabsorb:
+                raise ValueError(
+                    f"{where}: reabsorbed_from names lease "
+                    f"{spec.reabsorbed_from!r}, but that lease's "
+                    f"upon_expiration is '{lease.upon_expiration.value}', not "
+                    "'reabsorb'. Only a reabsorbed lease returns its space to "
+                    "the absorption pool."
+                )
+            if lease.end_date is not None:
+                lease_end = _month_index(lease.end_date)
+            else:
+                lease_end = _month_index(lease.start_date) + lease.term_months - 1
+            if _month_index(spec.start_date) < lease_end + 1:
+                raise ValueError(
+                    f"{where}: start_date {spec.start_date.isoformat()} is "
+                    f"before lease {spec.reabsorbed_from!r} has expired — the "
+                    "space is not vacant yet. Absorption of reabsorbed space "
+                    "can begin no earlier than the month after the lease's "
+                    "last occupied month."
+                )
+            linked_area_by_lease[spec.reabsorbed_from] = (
+                linked_area_by_lease.get(spec.reabsorbed_from, 0.0)
+                + spec.total_area
+            )
+        for tenant_name, linked_total in linked_area_by_lease.items():
+            lease_area = leases_by_name[tenant_name].area
+            if linked_total > lease_area + 1e-9:
+                raise ValueError(
+                    f"absorption specs linked to lease {tenant_name!r} total "
+                    f"{linked_total:,.0f} SF, more than the lease's "
+                    f"{lease_area:,.0f} SF — the same space would be leased "
+                    "twice. Reduce the linked specs' total_area to at most "
+                    "the reabsorbed lease's area."
+                )
+
         for coll_name in ("miscellaneous_revenues", "parking_revenues", "storage_revenues"):
             for rev in getattr(self, coll_name):
                 check_inflation(rev.inflation, f"{coll_name} {rev.name!r}")
