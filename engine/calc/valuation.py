@@ -11,12 +11,17 @@ NPV()/IRR() (DEVIATIONS.md §20). Valuation never recomputes the ledger
 Cash-flow basis (spec §4.1 pass 14):
 
 - **Unleveraged** stream = the ledger's Cash Flow Before Debt Service
-  each month + Net Resale Proceeds (unleveraged) in the resale month;
-  t0 outflow = the purchase price. Independent of debt and — apart from
-  the ``pct_increase_over_price`` resale method — of the price itself.
-- **Leveraged** stream = Cash Flow After Debt Service + leveraged net
-  resale (Net Resale Proceeds + Loan Payoff at Resale) in the resale
+  over the holding period (pv_start through the resale month; the resale
+  look-forward is the buyer's, not owned cash flow) + the unleveraged net
+  resale proceeds in the resale month; t0 outflow = the purchase price.
+  Independent of debt and — apart from the ``pct_increase_over_price``
+  resale method — of the price itself.
+- **Leveraged** stream = Cash Flow After Debt Service over the hold +
+  the leveraged net resale (net proceeds − loan payoffs) in the resale
   month; t0 outflow = equity = purchase price − loan funding proceeds.
+- The resale amount is taken from the ``ResaleResult`` directly (not the
+  posted ledger column), so it values correctly even when
+  ``apply_resale_to_cash_flow`` is False (:func:`holding_stream`).
 - Below-the-line items (closing costs, deposits) are NOT in the stream —
   the spec basis is CFBDS/CFADS + resale only, and folding closing costs
   into t0 would break the §9.3 identity.
@@ -64,8 +69,6 @@ from engine.models.valuation import (
 from .ledger import (
     CFADS,
     CFBDS,
-    LOAN_PAYOFF_AT_RESALE,
-    NET_RESALE_PROCEEDS,
     NOI,
     MonthlyLedger,
 )
@@ -126,6 +129,21 @@ def _present_value(buckets: list[tuple[float, float]], annual_rate_pct: float,
     periodic = (annual_rate_pct / 100.0) / _PERIODS_PER_YEAR[method]
     return sum(amount / (1.0 + periodic) ** exponent
                for exponent, amount in buckets)
+
+
+def holding_stream(operating: pd.Series, resale_amount: float,
+                   resale_month: pd.Period) -> pd.Series:
+    """The investor's cash-flow stream over the holding period: the
+    operating series (CFBDS or CFADS) truncated at the resale month, with
+    the net resale proceeds added there. Months AFTER the resale belong
+    to the buyer — the 12-month resale look-forward exists only to value
+    the terminal cap-NOI (spec §2.3), it is not owned cash flow — so they
+    are dropped. Taking the resale amount directly (not the ledger's
+    posted column) also values it correctly when
+    ``apply_resale_to_cash_flow`` is False."""
+    stream = operating[operating.index <= resale_month].copy()
+    stream.loc[resale_month] += resale_amount
+    return stream
 
 
 def _solve_irr(buckets: list[tuple[float, float]], t0: float,
@@ -193,21 +211,23 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
                       loan_funding_proceeds: float) -> ValuationResult:
     """Unleveraged/leveraged PV and IRR + direct cap from the assembled
     ledger (spec §4.1 pass 14; module docstring). ``resale`` supplies the
-    terminal value posted in its month; the ledger's resale columns
-    already carry it, so the CFBDS/CFADS + resale streams are read
-    straight off the frame."""
+    terminal value; the holding stream truncates the operating cash flows
+    at the resale month and adds the net proceeds there (the resale
+    look-forward is not owned cash flow — :func:`holding_stream`)."""
     frame = ledger.frame
     pv_start = _pv_start_month(valuation, analysis_begin, months)
     method = valuation.discount_method
     convention = valuation.period_convention
     rate = valuation.discount_rate
+    resale_month = resale.resale_month
 
     price = (model.purchase.price
              if model.purchase is not None and model.purchase.price is not None
              else None)
 
-    # Unleveraged: CFBDS + unleveraged net resale (already a ledger column).
-    unlev_stream = frame[CFBDS] + frame[NET_RESALE_PROCEEDS]
+    # Unleveraged: CFBDS over the hold + the unleveraged net resale.
+    unlev_stream = holding_stream(frame[CFBDS], resale.net_unleveraged,
+                                  resale_month)
     unlev_buckets = _period_buckets(unlev_stream, pv_start, method, convention)
     unleveraged_pv = _present_value(unlev_buckets, rate, method)
     unleveraged_irr = (
@@ -215,13 +235,13 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
         else None
     )
 
-    # Leveraged: CFADS + leveraged net resale (proceeds + payoff columns);
+    # Leveraged: CFADS over the hold + the leveraged net resale;
     # t0 = equity = price − loan proceeds. Computable only with loans.
     leveraged_pv = None
     leveraged_irr = None
     if model.loans:
-        lev_stream = (frame[CFADS] + frame[NET_RESALE_PROCEEDS]
-                      + frame[LOAN_PAYOFF_AT_RESALE])
+        lev_stream = holding_stream(frame[CFADS], resale.net_leveraged,
+                                    resale_month)
         lev_buckets = _period_buckets(lev_stream, pv_start, method, convention)
         leveraged_pv = _present_value(lev_buckets, rate, method)
         if price is not None:

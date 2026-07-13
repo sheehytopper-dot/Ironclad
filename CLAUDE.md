@@ -468,42 +468,53 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   debt reordered after valuation. Nothing needs it today; the
   derivations refuse loudly. Suite: 381 passed + the same 4 golden reds
   (137/47, 33/12).
-- **Next session's first prompt:** "Phase 3 Steps 1-5 are CLOSED
-  (Step 1: TI/LC, golden #1 capital lines green within $0.50/cell,
-  Freeport E deferred / Cedar Alt D closed as C's sibling; Step 2:
-  purchase/closing/deposits, DEVIATIONS.md §17; Step 3: debt engine,
-  DEVIATIONS.md §18, 'Other Debt' NOT built; Step 4: resale + Resale
-  Audit, DEVIATIONS.md §19; Step 5: PV/IRR/direct cap shipped
-  2026-07-12, `engine/calc/valuation.py`, DEVIATIONS.md §20 — all six
-  discount conventions, nominal IRR annualization, §9.3 PV/IRR
-  self-consistency invariant standing). **THREE owner hand-checks are
-  now actionable** — ask whether he has run them and record outcomes in
-  NEXT_STEPS_TO_GATE3.md Step 0: (1) Step 3 amort — $1,000,000 / 6.00% /
-  30yr → pmt $5,995.51, balance@12 $987,719.88, balloon@120 $836,857.25;
-  (2) Step 4 resale — current-year NOI $100,000 at 8.00% exit cap =
-  $1,250,000 gross, 3% selling $37,500, net $1,212,500; (3) Step 5
-  PV/IRR — par stream −1,000,000 then 80,000×4 and 1,080,000, annual
-  end-of-period at 8% → PV $1,000,000, IRR 8.00% (Excel
-  NPV()/IRR()-checkable). **ALSO put the OPEN OWNER SCOPE DECISION to
-  Topper: live price derivation (`pv_at_discount_rate`/`direct_cap`
-  price) + `pct_of_value` loans (DEVIATIONS.md §20 #6)** — build the
-  clean no-loan derived-price subset (a post-valuation re-assembly) or
-  leave the derivations permanently refusing? Nothing needs it today.
-  Next build step is **Step 6: sensitivity matrices** — spec §3.18
-  `sensitivity_intervals`, [AE pp. 451-452] — read first: IRR matrix
-  (price × exit cap) and value matrix (discount rate × exit cap) as
-  data builders (rendering is Phase 4), 5/7-point grids, each cell
-  produced by **re-running valuation only, never the ledger** (spec §4.1
-  note; the RunResult/ledger is the fixed input — resale + valuation
-  already recompute cheaply from it). Cross-check test: every matrix
-  cell equals a direct single-point valuation at those inputs. No golden
-  exercises it — manual-structure + engineered tests only. After Step 6,
-  Step 7 is the Gate 3 owner review. Remaining Step 0 decisions:
-  valuation assumption sets for the goldens; pct_of_account stays
-  guarded. REMEMBER the standing gaps: percentage rent + tenant misc
-  items + purchase/deposits/debt/resale/valuation externally unvalidated
-  (goldens can't exercise them); Freeport B, Cedar Alt B, Freeport E
-  parked for beta-stage GUI testing — the 4 golden reds (137/47 Gate 2,
-  33/12 Gate 3 capital) stay red by design, owner's queue, never tuning
-  targets; Cedar Alt D closed, not open. Commit, push, update the
-  progress note and this prompt."
+  **Phase 3 Step 6 complete 2026-07-12 — ALL SIX BUILD STEPS DONE:**
+  sensitivity matrices (`engine/calc/sensitivity.py`, spec §3.18/§7
+  reports 5-6, [AE pp. 451-452] read) — value matrix (unleveraged PV over
+  discount rate × exit cap) + unleveraged/leveraged IRR matrices (price ×
+  exit cap) as DataFrames on `RunResult.sensitivity`. Grids `count` ∈
+  {5,7} centered on the base case; price axis = unleveraged PV at the
+  discount-rate grid at the base cap ("prices at PV of rate grid" — a
+  pure sweep, NOT live price derivation, Step 5 refusal untouched). Pure
+  re-computation over the RunResult — ledger never recomputed; columns
+  reuse `compute_resale` at a substituted cap, cells reuse the Step 5
+  PV/IRR primitives; the cross-check test proves every cell equals a
+  direct single-point Step 4/5 call. Leveraged IRR NaN without loans
+  (no silent zero); sensitivity None for non-cap resale methods.
+  **Also fixed a Step 5 holding-stream bug surfaced here** (PV had
+  discounted the resale look-forward year the seller never owns; now
+  truncated at the resale month via shared `valuation.holding_stream`,
+  which also fixes apply_resale=False — DEVIATIONS.md §21; no golden
+  affected). 11 tests (tests/unit/test_sensitivity.py). **EXTERNALLY
+  UNVALIDATED — no golden populates valuation.** Hand-check: flat NOI
+  100,000 → any diagonal value cell where discount == cap equals
+  100,000/cap. Suite: 392 passed + the same 4 golden reds (137/47,
+  33/12).
+- **Next session's first prompt:** "Phase 3 Steps 1-6 are ALL CLOSED —
+  every build step is done; only the Gate 3 owner review (Step 7)
+  remains before Phase 4. This is a REVIEW session, not a build session:
+  there is NO more engine code to write for Gate 3 (Iron Rule 2 — do not
+  invent any; do not scaffold cancelled 'Phase 7' intake). Walk Topper
+  through NEXT_STEPS_TO_GATE3.md Step 7's four pass-conditions and help
+  him decide: (1) confirm criteria 1-5 are evidenced in one pytest run
+  (`.venv\\Scripts\\python -m pytest` → 392 passed + exactly the 4
+  by-design golden reds); (2) confirm the six DISCREPANCY_LOG misses
+  stay as-is by design (Freeport Gate 2 137 deferred-B; Cedar Gate 2 47
+  deferred-B; Freeport Gate 3 capital 33 root cause E deferred; Cedar
+  Gate 3 capital 12 root cause D closed as C's sibling) — none is a
+  blocker; (3) the three owner hand-checks from Steps 3/4/5 (amort:
+  $1M/6%/30yr → pmt $5,995.51, bal@12 $987,719.88, balloon@120
+  $836,857.25; resale: NOI $100,000 at 8% cap → net $1,212,500 at 3%
+  selling; PV/IRR: par stream −1,000,000 then 80,000×4 and 1,080,000
+  annual EoP at 8% → PV $1,000,000, IRR 8.00%); (4) the Step 5
+  price-derivation scope decision (DEVIATIONS.md §20 #6) — resolve
+  (build the clean no-loan derived-price subset) or defer again. Also
+  still open from earlier Step 0: valuation assumption sets for the
+  goldens (no OM publishes one) and pct_of_account (stays guarded). If
+  Topper declares Gate 3 passed, update BUILD_SCHEDULE.md + CLAUDE.md
+  status and the plan doc, then Phase 4 begins (full §7 report catalog +
+  Excel export — Iron Rule 2). REMEMBER the standing gaps: percentage
+  rent + tenant misc items + purchase/deposits/debt/resale/valuation/
+  sensitivity externally unvalidated (goldens can't exercise them);
+  Freeport B, Cedar Alt B, Freeport E parked for beta-stage GUI testing.
+  Commit, push, update the progress note and this prompt."

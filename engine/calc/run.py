@@ -93,6 +93,7 @@ from engine.calc.resale import (
     assert_resale_invariants,
     compute_resale,
 )
+from engine.calc.sensitivity import SensitivityMatrices, compute_sensitivity
 from engine.calc.valuation import (
     ValuationResult,
     assert_pv_irr_self_consistency,
@@ -158,6 +159,7 @@ class RunResult:
     loan_schedules: list[LoanSchedule]              # per loan (§7 report 20)
     resale: Optional[ResaleResult]                  # §7 report 21 detail
     valuation: Optional[ValuationResult]            # §7 reports 8-9 detail
+    sensitivity: Optional[SensitivityMatrices]      # §7 reports 5-6 detail
     general_vacancy: pd.Series                      # negative
     credit_loss: pd.Series                          # negative
     expense_series: list[tuple[ExpenseItem, pd.Series]]
@@ -666,7 +668,7 @@ def run_property(model: PropertyModel) -> RunResult:
         fiscal_year_end_month=model.property.fiscal_year_end_month,
         occupied_area=occupied, rentable_area=rentable,
     )
-    return RunResult(
+    result = RunResult(
         ledger=ledger, months=months, occupied_area=occupied,
         rentable_area=rentable, occupancy=occupancy, segments=chains,
         lease_rents=lease_rents, absorption_vacancy=absorption,
@@ -681,7 +683,13 @@ def run_property(model: PropertyModel) -> RunResult:
         loan_schedules=loan_schedules,
         resale=resale_result,
         valuation=valuation_result,
+        sensitivity=None,
         general_vacancy=gv, credit_loss=cl,
         expense_series=expense_series,
         property_revenue=property_revenue_total,
     )
+    # Pass 15: sensitivity matrices — a pure re-computation over the
+    # assembled result (never the ledger, spec §4.1). None when there is
+    # no valuation or the resale method has no exit cap.
+    result.sensitivity = compute_sensitivity(model, result)
+    return result

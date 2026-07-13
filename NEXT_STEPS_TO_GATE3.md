@@ -276,25 +276,63 @@ current deal) needs it.** Owner to decide whether to build the clean
 no-loan subset (a post-valuation re-assembly) or leave it permanently
 refusing.
 
-## Step 6 — Sensitivity matrices (session 8)
+## Step 6 — Sensitivity matrices (session 8) — **CLOSED 2026-07-12 (all six build steps done)**
 
-Spec §3.18 `sensitivity_intervals` [AE pp. 451-452]: IRR matrix (price ×
-exit cap) and value matrix (discount rate × exit cap) as data builders
-(report rendering is Phase 4), 5/7-point grids, each cell produced by
-re-running valuation only. Cross-check: every matrix cell equals a direct
-single-point valuation at those inputs (engineered test).
+**Status: shipped 2026-07-12 — this closes every Phase 3 build step;
+only the Gate 3 owner review (Step 7) remains before Phase 4.**
+`engine/calc/sensitivity.py`: the value matrix (unleveraged PV over
+discount rate × exit cap) and IRR matrices (unleveraged + a parallel
+leveraged, price × exit cap) as DataFrames on `RunResult.sensitivity`
+(rendering is Phase 4). Grids are `count` ∈ {5,7} points centered on the
+base case; the price axis is unleveraged PV at the discount-rate grid at
+the base exit cap ("prices at PV of rate grid" — a pure sensitivity axis,
+NOT live price derivation, so Step 5's refusal is untouched). Pure
+re-computation over the assembled RunResult — the ledger is never
+recomputed; columns reuse `compute_resale` at a substituted cap, cells
+reuse the Step 5 PV/IRR primitives. The plan's cross-check test proves
+every cell equals a direct single-point Step 4/5 call. Leveraged IRR
+cells are NaN without loans (no silent zero); sensitivity is `None` for
+non-cap resale methods (no cap axis). Narrowings + a **Step 5
+holding-stream correction discovered here** (the PV had discounted the
+resale look-forward year the seller never owns; now truncated at the
+resale month — DEVIATIONS.md §21) are recorded. 11 tests
+(tests/unit/test_sensitivity.py). **EXTERNALLY UNVALIDATED** — no golden
+populates valuation. Hand-check: flat NOI 100,000 → any diagonal value
+cell where discount == cap equals 100,000 / cap (value = NOI/cap).
 
-## Step 7 — Gate 3 review (owner)
+## Step 7 — Gate 3 review (owner) — **NEXT AND FINAL Phase 3 item (a review session, not a build session)**
 
-Criteria 1-5 evidenced in one pytest run: golden capital lines within
-tolerance (or misses adjudicated), invariants green, worked-example tests
-green, matrices self-consistent, hand-checks done. Red by design and **not
-Gate 3 blockers**: the Freeport/Cedar Alt Gate 2 assertions (deferred-B
-items) and **Freeport's Gate 3 capital-line assertion (root cause E,
-deferred to beta-stage GUI testing — owner decision 2026-07-12)**; Cedar
-Alt's capital assertion is red only through root cause D, closed as C's
-sibling with no independent engine question. Then — and only then —
-Phase 4 (Iron Rule 2).
+All six build steps (1-6) are CLOSED. Step 7 is Topper's review; there is
+no more engine code to write for Gate 3 (Iron Rule 2 — do not invent
+any). **For Topper to declare Gate 3 passed, these must all hold in one
+pytest run and by owner sign-off:**
+
+1. **Criteria 1-5 evidenced (checklist above):** golden capital lines
+   within tolerance or their misses adjudicated; the §9.3 invariants
+   green on every run (debt balance roll, payoff-at-resale, PV/IRR
+   1bp self-consistency — all three now standing); manual worked-example
+   tests green (resale methods, PV conventions, loan math, security
+   deposits); sensitivity matrices self-consistent (the cross-check
+   test); owner hand-checks done.
+2. **The six DISCREPANCY_LOG-documented golden misses stay as-is by
+   design** — not fixed, not tuned: Freeport Gate 2 (137, deferred-B
+   general-vacancy basis), Cedar Alt Gate 2 (47, deferred-B rollover
+   recovery timing), Freeport Gate 3 capital (33, root cause E — LC
+   base, deferred to beta-stage GUI testing), Cedar Alt Gate 3 capital
+   (12, root cause D — C's sibling, closed). All red **by design**; none
+   is a Gate 3 blocker.
+3. **The three owner hand-checks from Steps 3/4/5 run and confirmed:**
+   (a) Step 3 amort — $1,000,000 / 6.00% / 30yr → payment $5,995.51,
+   balance@12 $987,719.88, balloon@120 $836,857.25; (b) Step 4 resale —
+   current-year NOI $100,000 at 8.00% exit cap → $1,250,000 gross, 3%
+   selling $37,500, net $1,212,500; (c) Step 5 PV/IRR — par stream
+   −1,000,000 then 80,000×4 and 1,080,000, annual end-of-period at 8% →
+   PV $1,000,000, IRR 8.00% (Excel NPV()/IRR()).
+4. **The Step 5 price-derivation scope decision (DEVIATIONS.md §20 #6)
+   is resolved OR explicitly deferred again** — build the clean no-loan
+   derived-price subset, or leave the derivations permanently refusing.
+
+Then — and only then — Phase 4 (Iron Rule 2).
 
 ---
 

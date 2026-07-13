@@ -921,3 +921,73 @@ half-built; the whole derivation surface is a single loud refusal.
 - **Revisit when:** the owner decides to build live price derivation (per
   the finding above); a deal needs Semi-Annual discounting, the Increment
   rates, or a Traditional/Cap valuation path.
+
+## 21. Sensitivity matrices + a valuation holding-stream correction (spec §3.18/§7 reports 5-6; Phase 3 Step 6)
+
+Built 2026-07-12 (`engine/calc/sensitivity.py`, [AE pp. 451-452] read).
+**EXTERNALLY UNVALIDATED:** no golden populates `valuation`; proven by
+engineered tests and the plan's cross-check — every matrix cell equals a
+direct single-point Step 4/5 call with those substituted inputs
+(tests/unit/test_sensitivity.py::TestCrossCheck). Pure re-computation
+over the assembled RunResult; the ledger is never recomputed (spec §4.1).
+
+Part A adjudications:
+
+1. **Axes (spec §7 reports 5-6):** value matrix = unleveraged PV over
+   discount rate (rows) × exit cap (columns); IRR matrix = IRR over
+   price (rows) × exit cap (columns). The manual [AE pp. 451-452] gives
+   only the interval/step sizes, not the grid layout (that is the report
+   rendering, Phase 4). **Which IRR:** the spec says only "IRR"; built as
+   **both** an unleveraged IRR matrix (primary — the price axis is an
+   unleveraged-PV concept) and a parallel leveraged IRR matrix on the
+   same axes, the latter all-NaN without loans (Part D #11; never a
+   silent zero).
+2. **Grid centered on the base case (manual silent — chosen):** the
+   manual states the step but not the arrangement; `count` ∈ {5, 7} is
+   odd, so the grid is centered on the base with `±k × step` points — the
+   standard sensitivity-matrix convention, and the odd count guarantees a
+   center cell equal to the exact base case (where the §9.3
+   self-consistency appears: center IRR = the base discount rate).
+3. **Price axis = unleveraged PV at the discount-rate grid, at the BASE
+   exit cap** ("prices at PV of rate grid", spec §7 report 5) = the
+   base-cap column of the value matrix. This is a pure sensitivity axis
+   computed by arithmetic on the existing streams — it never sets
+   `model.purchase.price`, calls `run_property`, or touches
+   `acquisition_flows`, so Step 5's price-derivation refusal
+   (DEVIATIONS.md §20 #6) is untouched. Consequence: the IRR matrix is
+   computable even with no fixed purchase price.
+4. **No ledger recompute:** each column reuses `compute_resale` (Step 4)
+   with a `model_copy` substituting the exit cap (reads the existing NOI
+   window only); each cell reuses Step 5's `_period_buckets` /
+   `_present_value` / `_solve_irr`. The exit-cap axis applies only to
+   cap-NOI resale methods [AE p. 451]; for fixed/pct-increase resales
+   there is no cap axis and sensitivity is `None` (not a fabricated grid).
+
+### Valuation holding-stream correction (Step 5 fix surfaced here)
+
+Building Step 6's hand-check exposed that Step 5's `compute_valuation`
+discounted the ledger's CFBDS/CFADS over **all** timeline months —
+including the 12-month resale look-forward beyond analysis end — when the
+property is sold at the resale month (≤ analysis end). Post-resale cash
+flows belong to the buyer; the look-forward exists only to value the
+terminal cap-NOI (spec §2.3). Step 5's self-consistency tests passed
+regardless (price = PV ⟹ IRR = discount holds for any stream shape), so
+the error was latent. **Fixed (2026-07-12):** a shared
+`valuation.holding_stream` truncates the operating series at the resale
+month and adds the net resale proceeds there, taken from the
+`ResaleResult` directly (not the posted ledger column — so it values
+correctly even when `apply_resale_to_cash_flow` is False). Both
+`compute_valuation` (Step 5) and the sensitivity streams use it, so PV
+and the sensitivity value matrix agree. Effect: e.g. a flat NOI 100,000
+property at an 8% discount/8% exit cap now values 1,250,000 (= NOI/cap)
+rather than 1,313,017 (which had folded in a sixth year of ownership the
+seller never had). No golden is affected (none set `valuation`).
+
+- **Schema-absent / not modeled:** Purchase Price Interval and IRR
+  Target [AE p. 452] (the schema has discount_rate_step / cap_rate_step /
+  count only — the price axis is derived from the discount grid, not a
+  price step); Resale Amount / Gross Income Multiplier intervals
+  [AE pp. 451-452] (apply to non-cap resale methods, which have no
+  sensitivity here).
+- **Revisit when:** Phase 4 renders these as the §7 report 5-6 grids; a
+  deal needs a price-step or GIM-interval axis.
