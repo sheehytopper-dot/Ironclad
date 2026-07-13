@@ -514,43 +514,39 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   now is real architecture with zero current pull; a permanent boundary,
   not an open gap.** **Phase 4 begins** (spec §10: full §7 report catalog
   + Excel export).
-- **Next session's first prompt:** "GATE 3 PASSED (owner declaration
-  2026-07-12), but **Phase 4 does NOT start yet.** The first task is to
-  review **DEVIATIONS.md §24 with Topper and adjudicate all eight open
-  debt/resale/valuation findings** from the Codex review before any Phase
-  4 work begins. These are real open items — six are bugs or genuine
-  cash-flow-basis/numerical-method decisions (#1 leveraged-IRR funding
-  timing; #2 closing costs excluded from returns; #3 amortized-loan-cost
-  cash timing; #5 one-time capital costs capitalized into perpetuity in
-  resale — the highest dollar impact, ~$6.25M vs $500k on a $500k TI/LC
-  at an 8% cap; #7 multiple-IRR solver handling; #8 IRR bracket's
-  negative-rate floor), and two are recommended as ANSWERED / doc
-  touch-ups (#6 stabilize-occupancy whole-NOI scaling; #10 end-of-month
-  sale convention). For EACH of the eight, get Topper's decision — fix
-  now / defer / accept-as-documented — and RECORD each adjudication in
-  §24 (dated, like the §22/§23 corrections). Recommended order in §24:
-  #5, then #1/#2, then #3/#7/#8, then #6/#10. **Do not draft
-  NEXT_STEPS_TO_PHASE4.md, do not write any Phase 4 (report/UI/export)
-  code, and do not revert to 'Phase 4 begins' language until every §24
-  item is adjudicated and that adjudication is recorded.** Any item
-  Topper says to fix is engine work that lands (with tests + a DEVIATIONS
-  entry) before Phase 4; any item deferred/accepted is marked as such in
-  §24. Only once §24 is fully adjudicated does Phase 4 planning open —
-  and then, per Iron Rule 2, Phase 4 opens by drafting
-  NEXT_STEPS_TO_PHASE4.md (spec §10 Phase 4 row; §7 full report catalog
-  as DataFrame builders — Cash Flow / Lease Audit / Recovery Audit /
-  Property Resale Audit already exist, enumerate the rest; the Total $ /
-  $ per SF / per-month / per-occupied-SF toggles and annual/quarterly/
-  fiscal views per spec §4.3; the formatted Excel export package per
-  spec §8 with side-by-side-vs-ARGUS-print review as the Phase 4 gate;
-  the rent roll import template round-trip per spec §5.2) and
-  owner-reviewing it BEFORE any Phase 4 engine code — no scaffolding, no
-  cancelled 'Phase 7' intake. REMEMBER the standing gaps, all carried
-  forward unchanged: percentage rent externally unvalidated pending
-  golden #3; tenant misc items externally unvalidated; Freeport B, Cedar
-  Alt B, and Freeport E parked for beta-stage GUI testing (their Gate 2/3
-  assertions stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital);
-  Cedar Alt D closed as C's sibling, not open; live price derivation
-  permanently refusing per the Gate 3 declaration (DEVIATIONS.md §20 #6),
-  not an open gap. Commit each adjudication/fix, push, and update this
-  prompt as the §24 queue is worked down."
+  **DEVIATIONS §24 FULLY CLOSED (owner-verified 2026-07-13):** all eight
+  Codex debt/resale/valuation findings adjudicated — **six fixed** (#1
+  leveraged-IRR funding timing, #2 closing costs in returns, #3
+  amortized-loan-cost cash timing, #5 one-time capital costs no longer
+  capitalized in resale, #7 multiple-IRR guard, #8 convention-aware IRR
+  floor; commit 33057f7) and **two answered as documentation** (#6
+  stabilize-occupancy whole-NOI scaling, #10 end-of-month sale
+  convention). The two sensitivity-module follow-ups (grid t0 reframe via
+  shared `valuation._t0_costs`/`_apply_loan_proceeds`; per-cell NaN on
+  ambiguous IRR) are **also CLOSED** (commit 5268c64). Suite 425 passed +
+  the same 4 by-design golden reds (137/47, 33/12).
+- **Next session's first prompt:** "Phase 4 is OPEN (GATE 3 passed
+  2026-07-12; DEVIATIONS §24 fully closed and owner-verified 2026-07-13).
+  **NEXT_STEPS_TO_PHASE4.md was drafted 2026-07-13 and is awaiting owner
+  review** — per Iron Rule 2 applied to planning, NO Phase 4
+  engine/report/UI/export code is written until Topper has reviewed and
+  approved that plan. First task: check with the owner whether he has
+  reviewed NEXT_STEPS_TO_PHASE4.md and resolved its Step 0 owner-gated
+  decisions (report-scope trims, the ARGUS-print comparison source for
+  the §8 export gate, ModelingPolicies rounding defaults). If approved,
+  begin Phase 4 Step 1 per that plan (the report-builder contract +
+  toggle/period infrastructure — spec §7 intro, §4.3), each report's
+  acceptance check being ledger/audit reconciliation, never input tuning.
+  If NOT yet reviewed, there is NO Phase 4 code to invent — do not
+  scaffold reports, the Excel exporter, or the cancelled in-app OM
+  ingestion ('Phase 7'). REMEMBER the standing gaps, all carried forward
+  unchanged and none a Phase 4 blocker: percentage rent externally
+  unvalidated pending golden #3; tenant misc items + purchase/deposits/
+  debt/resale/valuation/sensitivity externally unvalidated (no golden
+  exercises them); Freeport B, Cedar Alt B, and Freeport E parked for
+  beta-stage GUI testing (their Gate 2/3 assertions stay red by design —
+  137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's
+  sibling, not open; live price derivation permanently refusing
+  (DEVIATIONS §20 #6), not an open gap. When the plan is approved and a
+  step lands, commit, push, and update this prompt to point at the next
+  Phase 4 step."
