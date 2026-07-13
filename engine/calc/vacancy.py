@@ -130,17 +130,28 @@ def _tenant_base(revenue: TenantRevenue, method: VacancyMethod,
             + lines[MISC_TENANT_REVENUE])
 
 
-def _excluded(spec) -> set:
-    return {o.tenant_ref for o in spec.tenant_overrides if o.exclude}
+def _excluded(spec,
+              tenant_name_by_ref: Optional[Mapping[str, str]]) -> set:
+    """Canonical tenant_names to exclude from the base. A TenantOverride's
+    ``tenant_ref`` may be a ``tenant_name`` OR an ``external_id`` — intake
+    accepts both (property_model ``_validate_refs``) — so it must resolve
+    to the ``tenant_name`` the ``tenants`` dict is keyed by, or the
+    exclusion silently no-ops (Codex-review correction — DEVIATIONS.md
+    §23). ``tenant_name_by_ref`` maps every accepted ref (name and
+    external_id) to its tenant_name; absent, refs pass through unchanged."""
+    resolve = tenant_name_by_ref or {}
+    return {resolve.get(o.tenant_ref, o.tenant_ref)
+            for o in spec.tenant_overrides if o.exclude}
 
 
 def _base_and_at(spec, tenants: Mapping[str, TenantRevenue],
                  months: pd.PeriodIndex, gross_up: bool,
                  property_revenue: Optional[pd.Series],
+                 tenant_name_by_ref: Optional[Mapping[str, str]] = None,
                  ) -> tuple[pd.Series, pd.Series]:
     """The percentage base over non-excluded tenants, and those tenants'
     A&T vacancy total (negative) for the allowance reduction."""
-    excluded = _excluded(spec)
+    excluded = _excluded(spec, tenant_name_by_ref)
     base = _zeros(months)
     at_total = _zeros(months)
     for name, revenue in tenants.items():
@@ -162,20 +173,23 @@ def general_vacancy_series(spec: GeneralVacancy,
                            months: pd.PeriodIndex, analysis_begin: dt.date,
                            timing_basis: TimingBasis,
                            property_revenue: Optional[pd.Series] = None,
+                           tenant_name_by_ref: Optional[Mapping[str, str]] = None,
                            ) -> pd.Series:
     """Monthly General Vacancy (negative; spec §3.4 [AE pp. 224-228]).
 
     With ``reduce_by_absorption_turnover``: target = rate × base at 100%
     occupancy; posted allowance = −max(0, target − |A&T|) [AE pp. 225-226].
     Without: −(rate × as-scheduled base), independent of A&T [AE p. 226].
-    Excluded tenants leave both the base and the A&T offset.
+    Excluded tenants leave both the base and the A&T offset;
+    ``tenant_name_by_ref`` resolves external_id overrides to tenant_names.
     """
     series = pd.Series(0.0, index=months, name="general_vacancy")
     if spec.method == VacancyMethod.none:
         return series
     reduce = spec.reduce_by_absorption_turnover
     base, at_total = _base_and_at(spec, tenants, months, gross_up=reduce,
-                                  property_revenue=property_revenue)
+                                  property_revenue=property_revenue,
+                                  tenant_name_by_ref=tenant_name_by_ref)
     rate = _rate_series(spec.rate, months, analysis_begin, timing_basis)
     target = rate * base
     if reduce:
@@ -191,15 +205,18 @@ def credit_loss_series(spec: CreditLoss,
                        months: pd.PeriodIndex, analysis_begin: dt.date,
                        timing_basis: TimingBasis,
                        property_revenue: Optional[pd.Series] = None,
+                       tenant_name_by_ref: Optional[Mapping[str, str]] = None,
                        ) -> pd.Series:
     """Monthly Credit Loss (negative; spec §3.5 [AE pp. 229-232]): applied
     after General Vacancy on the reduced base — rate × max(0, base −
-    |general vacancy|) — with no A&T gross-up or offset of its own."""
+    |general vacancy|) — with no A&T gross-up or offset of its own.
+    ``tenant_name_by_ref`` resolves external_id overrides to tenant_names."""
     series = pd.Series(0.0, index=months, name="credit_loss")
     if spec.method == VacancyMethod.none:
         return series
     base, _ = _base_and_at(spec, tenants, months, gross_up=False,
-                           property_revenue=property_revenue)
+                           property_revenue=property_revenue,
+                           tenant_name_by_ref=tenant_name_by_ref)
     reduced = (base + general_vacancy).clip(lower=0.0)  # GV is negative
     rate = _rate_series(spec.rate, months, analysis_begin, timing_basis)
     return (-(rate * reduced)).rename("credit_loss")

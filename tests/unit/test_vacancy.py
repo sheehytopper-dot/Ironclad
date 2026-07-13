@@ -264,3 +264,80 @@ class TestGate2Criterion5:
         )
         # the property-level identity: total vacancy is the stated 20% in
         # downtime and fully-occupied months alike
+
+
+class TestExternalIdOverrideResolution:
+    """Codex-review correction (DEVIATIONS.md §23): a vacancy/credit-loss
+    TenantOverride may reference a tenant by external_id (intake accepts
+    it); the calc layer must resolve it to the tenant_name the tenants
+    dict is keyed by, or the exclusion silently no-ops. Exercised through
+    run_property (where the resolver map is built)."""
+
+    def model(self, *, general_vacancy=None, credit_loss=None):
+        credit = Lease(
+            tenant_name="Credit Tenant", external_id="EXT-CREDIT",
+            area=500_000, lease_type="industrial", start_date=BEGIN,
+            term_months=120,
+            base_rent=MoneyRate(amount=12.0,
+                                unit=MoneyUnit.dollars_per_area_per_year),
+            upon_expiration=UponExpiration.vacate)
+        other = Lease(
+            tenant_name="Other", area=100_000, lease_type="industrial",
+            start_date=BEGIN, term_months=120,
+            base_rent=MoneyRate(amount=12.0,
+                                unit=MoneyUnit.dollars_per_area_per_year),
+            upon_expiration=UponExpiration.vacate)
+        kwargs = {}
+        if general_vacancy is not None:
+            kwargs["general_vacancy"] = general_vacancy
+        if credit_loss is not None:
+            kwargs["credit_loss"] = credit_loss
+        return PropertyModel(
+            property=PropertyInfo(name="Ext", property_type="industrial",
+                                  analysis_begin=BEGIN, analysis_term_years=2),
+            area_measures=AreaMeasures(
+                property_size=600_000,
+                rentable_area_mode=RentableAreaMode.fixed,
+                rentable_area_fixed=600_000),
+            inflation=Inflation(general_rate=[YearRate(year=1, rate=0.0)]),
+            rent_roll=[credit, other], **kwargs)
+
+    def test_general_vacancy_override_by_external_id_excludes(self):
+        """Base = Credit 500,000 + Other 100,000 = 600,000/mo; a 10% GV
+        excluding the credit tenant BY EXTERNAL_ID must fall to 10% of
+        Other only (100,000) = 10,000, not stay at 60,000."""
+        gv = GeneralVacancy(
+            method=VacancyMethod.percent_of_scheduled_base_plus,
+            rate=[YearRate(year=1, rate=10.0)],
+            tenant_overrides=[TenantOverride(tenant_ref="EXT-CREDIT")])
+        frame = run_property(self.model(general_vacancy=gv)).ledger.frame
+        assert frame["General Vacancy"].iloc[0] == pytest.approx(-10_000.0)
+
+    def test_general_vacancy_override_by_name_also_excludes(self):
+        """The tenant_name form still works (both must resolve to the same
+        identity)."""
+        gv = GeneralVacancy(
+            method=VacancyMethod.percent_of_scheduled_base_plus,
+            rate=[YearRate(year=1, rate=10.0)],
+            tenant_overrides=[TenantOverride(tenant_ref="Credit Tenant")])
+        frame = run_property(self.model(general_vacancy=gv)).ledger.frame
+        assert frame["General Vacancy"].iloc[0] == pytest.approx(-10_000.0)
+
+    def test_credit_loss_override_by_external_id_excludes(self):
+        """Credit loss consumes the same _base_and_at: excluding the credit
+        tenant by external_id drops the CL base to Other only → 2% of
+        100,000 = 2,000 (no general vacancy configured)."""
+        cl = CreditLoss(
+            method=VacancyMethod.percent_of_scheduled_base_plus,
+            rate=[YearRate(year=1, rate=2.0)],
+            tenant_overrides=[TenantOverride(tenant_ref="EXT-CREDIT")])
+        frame = run_property(self.model(credit_loss=cl)).ledger.frame
+        assert frame["Credit Loss"].iloc[0] == pytest.approx(-2_000.0)
+
+    def test_without_override_credit_tenant_is_in_the_base(self):
+        """Control: no override → the full 600,000 base → 10% = 60,000."""
+        gv = GeneralVacancy(
+            method=VacancyMethod.percent_of_scheduled_base_plus,
+            rate=[YearRate(year=1, rate=10.0)])
+        frame = run_property(self.model(general_vacancy=gv)).ledger.frame
+        assert frame["General Vacancy"].iloc[0] == pytest.approx(-60_000.0)

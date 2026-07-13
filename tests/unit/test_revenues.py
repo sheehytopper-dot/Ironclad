@@ -41,8 +41,8 @@ EXP10 = Inflation(general_rate=[YearRate(year=1, rate=0.0)],
 PROP = "Parking / Storage / Miscellaneous Property Revenue"
 
 
-def rev(amount, unit, **kwargs):
-    return PropertyRevenue(name="Rev", amount=amount, unit=unit, **kwargs)
+def rev(amount, unit, name="Rev", **kwargs):
+    return PropertyRevenue(name=name, amount=amount, unit=unit, **kwargs)
 
 
 class TestUnits:
@@ -155,11 +155,16 @@ class TestRunIntegration:
 
     def test_three_collections_sum_on_one_line(self):
         """Parking + storage + misc all post to the single property-revenue
-        ledger line (spec §2.3)."""
+        ledger line (spec §2.3). Names are distinct across the three lists
+        — a cross-list name collision is now rejected at intake (the
+        Codex-review uniqueness fix, DEVIATIONS.md §23)."""
         model = make_model(
-            parking_revenues=[rev(12_000, RevenueUnit.dollars_per_year)],
-            storage_revenues=[rev(6_000, RevenueUnit.dollars_per_year)],
-            miscellaneous_revenues=[rev(1_200, RevenueUnit.dollars_per_month)],
+            parking_revenues=[rev(12_000, RevenueUnit.dollars_per_year,
+                                  name="Parking")],
+            storage_revenues=[rev(6_000, RevenueUnit.dollars_per_year,
+                                  name="Storage")],
+            miscellaneous_revenues=[rev(1_200, RevenueUnit.dollars_per_month,
+                                        name="Misc")],
         )
         month = run_property(model).ledger.frame.iloc[0]
         assert month[PROP] == pytest.approx(1_000 + 500 + 1_200)
@@ -188,3 +193,41 @@ class TestRunIntegration:
                             account_ref="Base Rental Revenue")])
         with pytest.raises(NotImplementedError, match="pct_of_account"):
             run_property(model)
+
+
+class TestRevenueNameUniqueness:
+    """Codex-review correction (DEVIATIONS.md §23): property-revenue names
+    must be unique ACROSS miscellaneous/parking/storage combined, because
+    the %-of-revenue fixed point keys its series by name. A collision
+    silently discarded revenue."""
+
+    def test_same_list_duplicate_rejected(self):
+        with pytest.raises(ValueError, match="property revenues"):
+            make_model(parking_revenues=[
+                rev(12_000, RevenueUnit.dollars_per_year, name="Fee"),
+                rev(6_000, RevenueUnit.dollars_per_year, name="Fee")])
+
+    def test_cross_list_duplicate_rejected(self):
+        """The exact collision the review flagged: one 'Fee' in
+        miscellaneous, one in parking — a per-list check would miss it."""
+        with pytest.raises(ValueError, match="property revenues"):
+            make_model(
+                miscellaneous_revenues=[
+                    rev(10.0, RevenueUnit.pct_of_pgr, name="Fee")],
+                parking_revenues=[
+                    rev(10.0, RevenueUnit.pct_of_pgr, name="Fee")])
+
+    def test_two_distinct_pct_revenues_both_participate(self):
+        """The $125.00 case: two 10%-of-PGR revenues with distinct names
+        both enter the fixed point → PGR = 100,000 + 20% × PGR = 125,000
+        (each posts 12,500). A name collision would have collapsed them to
+        one, solving to 111,111.11 — a silent understatement."""
+        model = make_model(
+            miscellaneous_revenues=[
+                rev(10.0, RevenueUnit.pct_of_pgr, name="Fee A")],
+            parking_revenues=[
+                rev(10.0, RevenueUnit.pct_of_pgr, name="Fee B")])
+        month = run_property(model).ledger.frame.iloc[0]
+        pgr = month["Total Potential Gross Revenue"]
+        assert pgr == pytest.approx(125_000.0)
+        assert month[PROP] == pytest.approx(25_000.0)  # both fees, 12,500 each

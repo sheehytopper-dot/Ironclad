@@ -309,6 +309,49 @@ class TestCapsFloors:
         year3 = series.iloc[24:36].sum()
         assert year3 == pytest.approx(120_000 * 1.04**2)
 
+    def test_partial_first_year_annualized_before_capping(self):
+        """Codex-review correction (DEVIATIONS.md §23): a segment starting
+        mid-year annualizes its partial first calendar year before using
+        it as the growth-cap baseline. A December-2026 start at $1,000/mo
+        with a 5% yearly cap: the 2026 baseline is one month ($1,000), but
+        annualized to a $12,000/yr run rate, so 2027's full $12,000 flows
+        through UNCAPPED — not capped to the old $1,000 × 1.05 = $1,050
+        (a 91% understatement)."""
+        from engine.calc.recoveries import _apply_caps_floors
+        from engine.models.recoveries import CapsFloors
+        months = build_month_index(BEGIN, 3)  # through 2029-12 (ample)
+        start = pd.Period("2026-12", freq="M")
+        end = pd.Period("2027-12", freq="M")
+        series = pd.Series(0.0, index=months)
+        for p in months:
+            if start <= p <= end:
+                series[p] = 1_000.0
+        out = _apply_caps_floors(series, CapsFloors(yearly_cap_pct=5.0),
+                                 start, end, months, BEGIN, FLAT, "test")
+        y2027 = sum(float(out[p]) for p in months if p.year == 2027)
+        assert y2027 == pytest.approx(12_000.0)      # uncapped
+        assert float(out[start]) == pytest.approx(1_000.0)  # Dec 2026 intact
+
+    def test_partial_first_year_still_caps_a_genuine_overshoot(self):
+        """The annualized baseline still enforces the cap: December start
+        at $1,000/mo, then 2027 jumps to $2,000/mo ($24,000 raw). The
+        annualized 2026 baseline is $12,000, so 2027 is capped to
+        $12,000 × 1.05 = $12,600."""
+        from engine.calc.recoveries import _apply_caps_floors
+        from engine.models.recoveries import CapsFloors
+        months = build_month_index(BEGIN, 3)
+        start = pd.Period("2026-12", freq="M")
+        end = pd.Period("2027-12", freq="M")
+        series = pd.Series(0.0, index=months)
+        series[start] = 1_000.0
+        for p in months:
+            if p.year == 2027:
+                series[p] = 2_000.0
+        out = _apply_caps_floors(series, CapsFloors(yearly_cap_pct=5.0),
+                                 start, end, months, BEGIN, FLAT, "test")
+        y2027 = sum(float(out[p]) for p in months if p.year == 2027)
+        assert y2027 == pytest.approx(12_600.0)
+
 
 class TestPoolBaseYearAndFixed:
     def rising_cam(self):

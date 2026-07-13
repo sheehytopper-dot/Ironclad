@@ -460,6 +460,17 @@ def run_property(model: PropertyModel) -> RunResult:
                   for item in pct_items}
     timing_basis = model.inflation.timing_basis
 
+    # Vacancy/credit-loss tenant overrides may reference a tenant by name
+    # OR external_id (intake accepts both); the tenants dict is keyed by
+    # tenant_name, so resolve every accepted ref to its tenant_name once
+    # here rather than in the fixed-point loop (Codex-review correction —
+    # DEVIATIONS.md §23).
+    tenant_name_by_ref: dict[str, str] = {}
+    for lease in model.rent_roll:
+        tenant_name_by_ref[lease.tenant_name] = lease.tenant_name
+        if lease.external_id:
+            tenant_name_by_ref[lease.external_id] = lease.tenant_name
+
     # Context for user structures / gross-up, and per-segment free-rent
     # abatement fractions (applied when the segment's profile abates
     # recoveries [AE p. 254]) — all fee-independent, computed once.
@@ -552,10 +563,12 @@ def run_property(model: PropertyModel) -> RunResult:
         }
         gv = general_vacancy_series(model.general_vacancy, tenants, months,
                                     begin, timing_basis,
-                                    property_revenue=property_revenue_total)
+                                    property_revenue=property_revenue_total,
+                                    tenant_name_by_ref=tenant_name_by_ref)
         cl = credit_loss_series(model.credit_loss, tenants, gv, months,
                                 begin, timing_basis,
-                                property_revenue=property_revenue_total)
+                                property_revenue=property_revenue_total,
+                                tenant_name_by_ref=tenant_name_by_ref)
         recovery_total = sum(recoveries.values(),
                              pd.Series(0.0, index=months))
         pgr = (base_total + absorption_total + free_total + cpi_total

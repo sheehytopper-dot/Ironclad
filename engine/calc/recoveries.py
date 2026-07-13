@@ -357,29 +357,38 @@ def _apply_caps_floors(series: pd.Series, caps: Optional[CapsFloors],
             out[period] = value
     if caps.yearly_cap_pct is not None or caps.cumulative_cap_pct is not None:
         years = sorted({p.year for p in occupied})
-        first_total: Optional[float] = None
-        prev_total: Optional[float] = None
+        first_rate: Optional[float] = None   # annualized baseline run rate
+        prev_rate: Optional[float] = None
         for i, year in enumerate(years):
             block = [p for p in occupied if p.year == year]
             raw = float(sum(out[p] for p in block))
-            allowed = raw
+            # Growth caps compare full-year run rates. A partial calendar
+            # year (segment starts mid-year, or the analysis window
+            # truncates it) is annualized to a 12-month run rate — the
+            # same convention as the base-year stop (_frozen_stop_annual)
+            # — so a full subsequent year is not capped against a fraction
+            # of a year, and a partial year is itself capped on its run
+            # rate (Codex-review correction — DEVIATIONS.md §23).
+            raw_rate = raw * 12.0 / len(block)
+            allowed_rate = raw_rate
             if i > 0 and raw > 0:
                 if caps.yearly_cap_pct is not None:
-                    allowed = min(allowed,
-                                  prev_total * (1 + caps.yearly_cap_pct / 100.0))
+                    allowed_rate = min(
+                        allowed_rate,
+                        prev_rate * (1 + caps.yearly_cap_pct / 100.0))
                 if caps.cumulative_cap_pct is not None:
-                    allowed = min(
-                        allowed,
-                        first_total * (1 + caps.cumulative_cap_pct / 100.0) ** i,
+                    allowed_rate = min(
+                        allowed_rate,
+                        first_rate * (1 + caps.cumulative_cap_pct / 100.0) ** i,
                     )
-                if allowed < raw:
-                    scale = allowed / raw
+                if allowed_rate < raw_rate:
+                    scale = allowed_rate / raw_rate  # 12/len cancels
                     for p in block:
                         out[p] *= scale
-            final = min(raw, allowed)
-            prev_total = final
+            final_rate = min(raw_rate, allowed_rate)
+            prev_rate = final_rate
             if i == 0:
-                first_total = final
+                first_rate = final_rate
     return out
 
 

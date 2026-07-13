@@ -1038,3 +1038,78 @@ timing, capital-cost capitalization in resale, multiple-IRR handling,
 the IRR bracket's negative-rate floor, the end-of-month sale convention,
 and the stabilize-occupancy whole-NOI scaling) are adjudicated by the
 owner.
+
+## 23. Codex-review corrections (2026-07-12): revenue-name uniqueness, recovery-cap partial-year baseline, vacancy exclusion by external_id
+
+Three real bugs a second Codex review found in Phase 1/2 code. Each is a
+**correction to previously wrong behavior** (not a narrowing), so the OLD
+behavior and the NEW behavior are both stated, per the transparency rule.
+No golden fixture exercises any of the three (verified: none uses growth
+caps, tenant overrides, external_ids, or duplicate revenue names), so no
+golden number moves.
+
+**(1) Duplicate property-revenue names silently discarded revenue.**
+`_check_unique_names` (engine/models/property_model.py) validated names
+within each collection but never checked the three property-revenue lists
+(`miscellaneous_revenues`, `parking_revenues`, `storage_revenues`).
+`run.py`'s `rev_pct_series` keys the %-of-revenue fixed point by name
+across all three combined, so two revenues sharing a name — even across
+different lists — collapsed to one series entry.
+- *Old:* two 10%-of-PGR revenues both named "Fee" on a $100 base solved
+  to PGR = 100 + 10%×PGR = $111.11 (one silently dropped), cascading into
+  EGR, vacancy, and recoverable %-fees.
+- *New:* names must be unique across the three lists combined (a single
+  "property revenues (miscellaneous/parking/storage)" entry in the
+  uniqueness validator); the collision is refused at intake. Two
+  distinctly-named 10%-of-PGR revenues correctly solve to $125.00.
+- A pre-existing unit test that summed three same-named revenues onto the
+  one ledger line was updated to give them distinct names (its real
+  intent — three items on one line — is unchanged).
+
+**(2) Recovery growth caps used an unannualized partial first year as the
+baseline.** In `_apply_caps_floors` (engine/calc/recoveries.py), when a
+segment started mid-calendar-year, the first calendar year's raw dollar
+total (e.g. one month) became the baseline against which the next FULL
+year was capped.
+- *Old:* a segment starting December 2026 at $1,000/mo with a 5% yearly
+  cap set the baseline to $1,000 (one month), so 2027's $12,000 was
+  capped to $1,000 × 1.05 = $1,050 — a 91% understatement.
+- *New:* the growth-cap comparison is done in annualized run-rate terms.
+  Each calendar year's total is annualized to a 12-month run rate
+  (`raw × 12 / months_in_block`) — the same convention as the base-year
+  stop (`_frozen_stop_annual`, DEVIATIONS.md §10, which the review noted
+  and which stays) — before comparison. The December baseline annualizes
+  to $12,000/yr, so 2027's $12,000 flows through uncapped; a genuine
+  overshoot (2027 at $2,000/mo) is still capped to $12,600. For
+  full-year (January-start) segments the run rate equals the raw total,
+  so behavior is byte-identical — the existing YoY/cumulative cap tests
+  are unchanged. Note §10's calendar-year-as-recovery-year convention is
+  itself unchanged; this fixes only the missing annualization of a
+  partial first/last year.
+
+**(3) Vacancy/credit-loss tenant exclusion silently ignored external_id
+refs.** `TenantOverride.tenant_ref` is documented and validated
+(property_model `_validate_refs`) as either a `Lease.tenant_name` OR its
+`external_id`, but `engine/calc/vacancy.py` `_excluded` collected raw ref
+strings and compared them against the `tenants` dict, which is keyed by
+`tenant_name` only.
+- *Old:* an override whose `tenant_ref` was an external_id passed intake
+  validation and then matched no tenant, so the exclusion had zero effect
+  on general vacancy, credit loss, or anything downstream — a silent
+  no-op.
+- *New:* `run.py` builds a `tenant_name_by_ref` map (every tenant_name
+  and external_id → tenant_name) once and threads it through
+  `general_vacancy_series` / `credit_loss_series` → `_base_and_at` →
+  `_excluded`, which resolves each ref to its canonical tenant_name
+  before comparison. An external_id override now excludes the tenant, the
+  same as the tenant_name form.
+- **Bug-class sweep (as requested):** the only schema field accepting a
+  tenant by name-OR-external_id is this `override.tenant_ref` (the sole
+  field validated against the combined `tenant_refs` set at
+  property_model.py). Recovery assignments reference expenses/structures
+  by their own name sets (resolved consistently); the Lease Audit and
+  Recovery Audit builders iterate the already-canonical `tenant_name`
+  keys. No other instance of this name-vs-external_id resolution gap
+  exists.
+
+**Revisit when:** n/a — these are corrections, not deferrals.

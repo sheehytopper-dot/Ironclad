@@ -226,6 +226,16 @@ class PropertyModel(StrictModel):
             "expense_groups": [g.name for g in self.expense_groups],
             "custom_indices": [i.name for i in self.inflation.custom_indices],
             "loans": [ln.name for ln in self.loans],
+            # Property revenues are three separate lists but share a single
+            # name-keyed series in the %-of-revenue fixed point
+            # (run.py rev_pct_series), so names must be unique ACROSS all
+            # three combined — a per-list check would miss a cross-list
+            # collision that silently discards revenue (Codex finding).
+            "property revenues (miscellaneous/parking/storage)": [
+                r.name for r in (list(self.miscellaneous_revenues)
+                                 + list(self.parking_revenues)
+                                 + list(self.storage_revenues))
+            ],
         }
         for coll, names in collections.items():
             dupes = {n for n in names if names.count(n) > 1}
