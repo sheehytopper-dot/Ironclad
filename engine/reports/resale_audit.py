@@ -37,13 +37,13 @@ def resale_audit(result) -> pd.DataFrame:
             rows.append(("Occupancy gross-up factor",
                          resale.occupancy_factor,
                          "NOI × Gross Up % / Average Occupancy % [AE p. 469]"))
-        if resale.capital_adjustment:
-            rows.append(("Capital costs included",
-                         resale.capital_adjustment,
-                         "exclude_capital=False [AE pp. 470-471]"))
         rows.append(("Adjusted basis", resale.adjusted_basis, ""))
     rows.append(("Base value", resale.base_value,
                  f"method {resale.method.value}"))
+    if resale.capital_adjustment:
+        # one-time deduction from the sale value, not capitalized (§24 #5)
+        rows.append(("Capital costs deducted", resale.capital_adjustment,
+                     "exclude_capital=False [AE p. 471]"))
     for name, amount in resale.adjustments:
         rows.append((f"Adjustment: {name}", amount, "[AE p. 471]"))
     rows.append(("Gross sale price", resale.gross_sale_price, ""))

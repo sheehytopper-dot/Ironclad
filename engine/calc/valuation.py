@@ -69,6 +69,8 @@ from engine.models.valuation import (
 from .ledger import (
     CFADS,
     CFBDS,
+    CLOSING_COSTS,
+    LOAN_COSTS,
     NOI,
     MonthlyLedger,
 )
@@ -81,8 +83,13 @@ _PERIODS_PER_YEAR = {
     DiscountMethod.quarterly: 4,
     DiscountMethod.monthly: 12,
 }
-#: IRR bisection bracket, as ANNUAL nominal rates (percent).
-_IRR_LOW_PCT = -99.0
+#: IRR bisection bracket. The floor is a PERIODIC percent kept safely
+#: above −100% (so the discount factor 1 + periodic stays positive); the
+#: annual-nominal floor is this × periods-per-year, convention-aware —
+#: for monthly it is −1188%, not a fixed −99%, so valid deeply-negative
+#: (large-loss) IRRs are reachable (#8, DEVIATIONS.md §24). The ceiling
+#: is an annual nominal percent.
+_IRR_PERIODIC_FLOOR_PCT = -99.0
 _IRR_HIGH_PCT = 1_000.0
 _IRR_TOL = 1e-10
 
@@ -97,8 +104,10 @@ class ValuationResult:
     pv_start: pd.Period
     unleveraged_pv: float
     unleveraged_irr: Optional[float]         # annual percent; None if no price
+    unleveraged_t0: Optional[float]          # price + t0 closing/financing costs
     leveraged_pv: Optional[float]            # None if no loans
     leveraged_irr: Optional[float]           # None if no loans or no price
+    leveraged_equity: Optional[float]        # t0 equity; None if no loans/price
     direct_cap_value: Optional[float]        # None if no direct_cap input
 
 
@@ -146,18 +155,39 @@ def holding_stream(operating: pd.Series, resale_amount: float,
     return stream
 
 
+def _sign_changes(amounts: list[float]) -> int:
+    """Number of sign changes in a cash-flow sequence, ignoring zeros."""
+    signs = [1 if a > 0.0 else -1 for a in amounts if a != 0.0]
+    return sum(1 for a, b in zip(signs, signs[1:]) if a != b)
+
+
 def _solve_irr(buckets: list[tuple[float, float]], t0: float,
                method: DiscountMethod) -> Optional[float]:
     """Annual nominal IRR (percent) for the stream ``t0`` (at exponent 0)
     plus ``buckets``: bisect the periodic rate that zeroes NPV, then
     annualize × p. Returns ``None`` when the endpoints don't bracket a
-    root (no sign change → no real IRR)."""
+    root (no sign change → no real IRR). **Raises ``ValueError`` when the
+    stream has more than one sign change** — multiple internal rates of
+    return may exist, and returning one arbitrary root would be a silent
+    number (#7, DEVIATIONS.md §24). The bracket floor is convention-aware
+    (#8), so valid deeply-negative IRRs are reachable."""
     p = _PERIODS_PER_YEAR[method]
+
+    flow = [t0] + [amount for _, amount in buckets]
+    changes = _sign_changes(flow)
+    if changes > 1:
+        raise ValueError(
+            f"IRR is ambiguous: the cash-flow stream has {changes} sign "
+            "changes, so more than one internal rate of return may exist. "
+            "Refusing to return a single arbitrary root (no silent "
+            "numbers — Iron Rule / spec §1.3). Inspect the stream (e.g. a "
+            "large mid-hold capital event or staged loan draw)."
+        )
 
     def npv(annual_pct: float) -> float:
         return t0 + _present_value(buckets, annual_pct, method)
 
-    lo, hi = _IRR_LOW_PCT, _IRR_HIGH_PCT
+    lo, hi = _IRR_PERIODIC_FLOOR_PCT * p, _IRR_HIGH_PCT
     f_lo, f_hi = npv(lo), npv(hi)
     if f_lo == 0.0:
         return lo
@@ -208,7 +238,7 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
                       months: pd.PeriodIndex, analysis_begin: dt.date,
                       model: PropertyModel,
                       resale: Optional[ResaleResult],
-                      loan_funding_proceeds: float) -> ValuationResult:
+                      loan_schedules: list) -> ValuationResult:
     """Unleveraged/leveraged PV and IRR + direct cap from the assembled
     ledger (spec §4.1 pass 14; module docstring). ``resale`` supplies the
     terminal value; the holding stream truncates the operating cash flows
@@ -234,28 +264,57 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
              if model.purchase is not None and model.purchase.price is not None
              else None)
 
-    # Unleveraged: CFBDS over the hold + the unleveraged net resale.
+    # t0 acquisition/financing costs the investor pays at the valuation
+    # date — closing costs and loan costs posted at or before pv_start.
+    # These are below-the-line (not in CFBDS/CFADS), and the owner-approved
+    # reframe (#2, DEVIATIONS.md §24) counts returns net of them: the t0
+    # outflow is price + these costs, not price alone ("the numbers LP
+    # cares about is the actual return including closing costs"). Costs
+    # dated AFTER pv_start are a known residual gap (still below the line).
+    # Ledger columns are negative (report sign); flip to positive outflows.
+    closing_at_t0 = -float(frame[CLOSING_COSTS][frame.index <= pv_start].sum())
+    financing_at_t0 = -float(frame[LOAN_COSTS][frame.index <= pv_start].sum())
+    t0_costs = closing_at_t0 + financing_at_t0
+
+    # Unleveraged: CFBDS over the hold + the unleveraged net resale;
+    # t0 = price + t0 closing/financing costs.
     unlev_stream = holding_stream(frame[CFBDS], resale.net_unleveraged,
                                   resale_month)
     unlev_buckets = _period_buckets(unlev_stream, pv_start, method, convention)
     unleveraged_pv = _present_value(unlev_buckets, rate, method)
+    unleveraged_t0 = (price + t0_costs) if price is not None else None
     unleveraged_irr = (
-        _solve_irr(unlev_buckets, -price, method) if price is not None
-        else None
+        _solve_irr(unlev_buckets, -unleveraged_t0, method)
+        if unleveraged_t0 is not None else None
     )
 
-    # Leveraged: CFADS over the hold + the leveraged net resale;
-    # t0 = equity = price − loan proceeds. Computable only with loans.
+    # Leveraged: CFADS over the hold + the leveraged net resale, plus each
+    # loan's proceeds posted at its ACTUAL funding month (#1). t0 equity =
+    # price + t0 costs − only the proceeds available at t0 (loans funding
+    # at pv_start, plus the assumed outstanding balance of any loan funded
+    # before pv_start); later-funding draws post as stream inflows, not
+    # netted at t0. Computable only with loans.
     leveraged_pv = None
     leveraged_irr = None
+    leveraged_equity = None
     if model.loans:
         lev_stream = holding_stream(frame[CFADS], resale.net_leveraged,
                                     resale_month)
+        day_one_proceeds = 0.0
+        for s in loan_schedules:
+            if s.funding_month == pv_start:
+                day_one_proceeds += s.principal0
+            elif s.funding_month < pv_start:
+                # assumed existing loan: the buyer takes on its balance
+                day_one_proceeds += float(s.balance[pv_start])
+            elif s.funding_month <= resale_month:
+                # staged/construction draw: a positive inflow at its month
+                lev_stream.loc[s.funding_month] += s.principal0
         lev_buckets = _period_buckets(lev_stream, pv_start, method, convention)
         leveraged_pv = _present_value(lev_buckets, rate, method)
         if price is not None:
-            equity = price - loan_funding_proceeds
-            leveraged_irr = _solve_irr(lev_buckets, -equity, method)
+            leveraged_equity = price + t0_costs - day_one_proceeds
+            leveraged_irr = _solve_irr(lev_buckets, -leveraged_equity, method)
 
     direct_cap_value = _direct_cap_value(valuation, frame, pv_start, months,
                                          analysis_begin)
@@ -264,28 +323,33 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
         discount_rate=rate, discount_method=method,
         period_convention=convention, pv_start=pv_start,
         unleveraged_pv=unleveraged_pv, unleveraged_irr=unleveraged_irr,
+        unleveraged_t0=unleveraged_t0,
         leveraged_pv=leveraged_pv, leveraged_irr=leveraged_irr,
+        leveraged_equity=leveraged_equity,
         direct_cap_value=direct_cap_value,
     )
 
 
 def assert_pv_irr_self_consistency(result: ValuationResult,
                                    model: PropertyModel) -> None:
-    """§9.3 self-consistency, standing whenever a purchase price equals
-    the computed unleveraged PV: the unleveraged IRR then equals the
-    discount rate within 1bp (0.01 percentage points). This is ARGUS's
-    core "value = PV such that IRR = discount rate" identity and holds
+    """§9.3 self-consistency, standing whenever the **total t0 outlay**
+    (price + t0 closing/financing costs) equals the computed unleveraged
+    PV: the unleveraged IRR then equals the discount rate within 1bp
+    (0.01 percentage points). This is ARGUS's "value net of costs = PV ⟹
+    IRR = discount rate" identity — a tautology of the bisection solver.
+    The reframe (#2, DEVIATIONS.md §24) only changed *what value is
+    tested* (price → price + t0 costs), not the identity's logic; it holds
     for every discount convention under nominal annualization."""
-    if (model.purchase is None or model.purchase.price is None
-            or result.unleveraged_irr is None):
+    if result.unleveraged_t0 is None or result.unleveraged_irr is None:
         return
-    price = model.purchase.price
-    if abs(price - result.unleveraged_pv) > 0.01:
-        return  # price isn't set to the computed PV — identity not claimed
+    total_outlay = result.unleveraged_t0  # price + t0 closing/financing
+    if abs(total_outlay - result.unleveraged_pv) > 0.01:
+        return  # outlay isn't set to the computed PV — identity not claimed
     if abs(result.unleveraged_irr - result.discount_rate) > 0.01:
         raise ValueError(
-            f"PV/IRR self-consistency violated: purchase price equals the "
-            f"unleveraged PV ({price:,.2f}) but the unleveraged IRR "
+            f"PV/IRR self-consistency violated: the total t0 outlay "
+            f"(price + closing/financing = {total_outlay:,.2f}) equals the "
+            f"unleveraged PV but the unleveraged IRR "
             f"({result.unleveraged_irr:.4f}%) is not the discount rate "
             f"({result.discount_rate:.4f}%) within 1bp"
         )

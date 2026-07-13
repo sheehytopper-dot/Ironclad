@@ -240,21 +240,34 @@ class TestLoanCosts:
             -20_000.0)
         assert schedule.loan_costs.sum() == pytest.approx(-20_000.0)
 
-    def test_amortize_straight_line_over_term(self):
-        """Manual silent on the amortization schedule — straight-line
-        over the loan term (DEVIATIONS.md §18): 12,000 over 120 months =
-        100/month starting the month after funding."""
+    def test_amortize_posts_full_cost_at_funding_like_expense(self):
+        """Codex #3 fix (DEVIATIONS.md §24): amortize/expense are the same
+        for cash timing — the fee is paid in full at funding in both cases
+        (the amortize/expense distinction is tax-basis, not modeled here).
+        OLD behavior spread 12,000 over 120 months at 100/month; NEW posts
+        the full 12,000 at funding (2026-01)."""
         loan = thirty_year(
             term_months=120,
             loan_costs=LoanCosts(points_pct=0.0, fees=12_000.0,
                                  handling="amortize"),
         )
         schedule = build(loan)
-        assert schedule.loan_costs[month("2026-02")] == pytest.approx(
-            -100.0)
-        assert schedule.loan_costs[month("2026-01")] == 0.0
-        # only the in-window months post (timeline ends before the term)
-        assert schedule.loan_costs.sum() == pytest.approx(-100.0 * 71)
+        assert schedule.loan_costs[month("2026-01")] == pytest.approx(
+            -12_000.0)
+        assert schedule.loan_costs.sum() == pytest.approx(-12_000.0)
+
+    def test_amortize_and_expense_have_identical_cash_timing(self):
+        """The two handling values now produce byte-identical loan-cost
+        series for the same loan."""
+        base = dict(term_months=120)
+        amort = build(thirty_year(
+            loan_costs=LoanCosts(points_pct=1.0, fees=5_000.0,
+                                 handling="amortize"), **base))
+        exp = build(thirty_year(
+            loan_costs=LoanCosts(points_pct=1.0, fees=5_000.0,
+                                 handling="expense"), **base))
+        assert amort.loan_costs.equals(exp.loan_costs)
+        assert amort.loan_costs[month("2026-01")] == pytest.approx(-15_000.0)
 
 
 class TestAmountBases:

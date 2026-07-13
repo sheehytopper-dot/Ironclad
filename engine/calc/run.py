@@ -668,11 +668,11 @@ def run_property(model: PropertyModel) -> RunResult:
         )
         # Pass 14: PV / IRR / direct cap from the assembled ledger
         # (valuation never recomputes it, spec §4.1); §9.3
-        # self-consistency asserts when price == unleveraged PV.
-        loan_proceeds = sum(float(s.funding.sum()) for s in loan_schedules)
+        # self-consistency asserts when the total t0 outlay == unleveraged
+        # PV. Valuation reads per-loan funding timing off the schedules.
         valuation_result = compute_valuation(
             model.valuation, ledger, months, begin, model, resale_result,
-            loan_proceeds,
+            loan_schedules,
         )
         assert_pv_irr_self_consistency(valuation_result, model)
 

@@ -170,8 +170,13 @@ def compute_resale(resale: Resale, ledger: MonthlyLedger,
         else:
             income_basis = float(frame[NOI][window].sum())
         if not resale.noi_adjustments.exclude_capital:
-            # include the window's capital costs in the basis — the
-            # all-or-nothing Deductions grid [AE pp. 470-471]
+            # The window's capital costs (negative; report sign) are a
+            # ONE-TIME dollar deduction from the sale VALUE, applied after
+            # capitalization below — NOT added to the NOI basis (which
+            # would capitalize a one-time cost into perpetuity, dividing it
+            # by the cap rate). The manual deducts leasing/capital costs
+            # from the resale value once [AE p. 471] (Codex #5 fix,
+            # DEVIATIONS.md §24).
             capital_adjustment = float(frame[TOTAL_CAPITAL_COSTS][window].sum())
         stabilize = resale.noi_adjustments.stabilize_occupancy
         if stabilize is not None:
@@ -183,7 +188,7 @@ def compute_resale(resale: Resale, ledger: MonthlyLedger,
                     "undefined"
                 )
             occupancy_factor = (stabilize.occupancy_pct / 100.0) / average
-        adjusted_basis = income_basis * occupancy_factor + capital_adjustment
+        adjusted_basis = income_basis * occupancy_factor
         base_value = adjusted_basis / (resale.exit_cap_rate / 100.0)
 
     if resale.method == ResaleMethod.fixed_amount:
@@ -192,7 +197,11 @@ def compute_resale(resale: Resale, ledger: MonthlyLedger,
         selling = 0.0
     else:
         adjustments = [(a.name, a.amount) for a in resale.adjustment_amounts]
-        gross = base_value + sum(amount for _, amount in adjustments)
+        # capital_adjustment (a one-time value deduction, negative) sits
+        # alongside the adjustment_amounts, before selling costs — never
+        # capitalized. It is 0.0 for pct_increase (never a cap method).
+        gross = (base_value + capital_adjustment
+                 + sum(amount for _, amount in adjustments))
         selling = resale.selling_costs_pct / 100.0 * gross
     net_unleveraged = gross - selling
 

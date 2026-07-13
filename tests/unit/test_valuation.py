@@ -42,7 +42,12 @@ from engine.models import (
     UponExpiration,
     YearRate,
 )
-from engine.models.investment import Loan, LoanAmount
+from engine.models.investment import (
+    ClosingCost,
+    Loan,
+    LoanAmount,
+    LoanCosts,
+)
 from engine.models.valuation import (
     DirectCap,
     DiscountMethod,
@@ -150,10 +155,44 @@ class TestIRR:
                                   PeriodConvention.end_of_period)
         assert _solve_irr(buckets, 100.0, DiscountMethod.annual) is None
 
+    def test_large_loss_below_minus_99pct_now_solves(self):
+        """#8: a deal returning 0.5% of the investment as a lump sum after
+        5 years (monthly convention) has a valid IRR of ≈ −101.42%. The
+        old fixed −99% floor returned None; the convention-aware floor
+        (−1188% annual for monthly) finds it."""
+        # (1+m)^60 = 0.005 → monthly m; annual nominal = m × 12
+        buckets = _period_buckets(monthly_series({59: 5_000.0}), PV_START,
+                                  DiscountMethod.monthly,
+                                  PeriodConvention.end_of_period)
+        irr = _solve_irr(buckets, -1_000_000.0, DiscountMethod.monthly)
+        assert irr == pytest.approx(-101.42, abs=0.01)
+
+    def test_multiple_sign_changes_raises(self):
+        """#7: a non-conventional stream (two sign changes) may have
+        multiple IRRs — refuse rather than return one arbitrary root."""
+        # −100 at t0, +230 at period 1, −132 at period 2 (classic
+        # two-IRR polynomial)
+        buckets = _period_buckets(monthly_series({0: 230.0, 12: -132.0}),
+                                  PV_START, DiscountMethod.annual,
+                                  PeriodConvention.end_of_period)
+        with pytest.raises(ValueError, match="more than one internal rate"):
+            _solve_irr(buckets, -100.0, DiscountMethod.annual)
+
+    def test_single_sign_change_still_solves(self):
+        """The guard does not trip on a conventional (one sign change)
+        stream even with a large positive interior flow."""
+        buckets = _period_buckets(monthly_series(PAR_FLOWS), PV_START,
+                                  DiscountMethod.annual,
+                                  PeriodConvention.end_of_period)
+        assert _solve_irr(buckets, -1_000_000.0,
+                          DiscountMethod.annual) == pytest.approx(8.0,
+                                                                  abs=1e-6)
+
 
 def flat_noi_model(*, price=None, discount_rate=8.0, method="annual",
                    convention="end_of_period", loans=(), direct_cap=None,
-                   pv_start=None, resale_method="cap_noi_current_year"):
+                   pv_start=None, resale_method="cap_noi_current_year",
+                   closing_costs=()):
     """A flat property: $10/SF/yr on 12,000 SF, non-recoverable OpEx
     20,000/yr → NOI 100,000/yr; 8% exit cap resale at analysis end."""
     lease = Lease(
@@ -175,7 +214,8 @@ def flat_noi_model(*, price=None, discount_rate=8.0, method="annual",
                               unit=ExpenseUnit.dollars_per_year,
                               recoverable=False)],
         loans=list(loans),
-        purchase=(Purchase(price=price) if price is not None else None),
+        purchase=(Purchase(price=price, closing_costs=list(closing_costs))
+                  if price is not None else None),
         valuation=ValuationInputs(
             discount_rate=discount_rate, discount_method=method,
             period_convention=convention, pv_start=pv_start,
@@ -239,11 +279,13 @@ class TestSelfConsistency:
             assert_pv_irr_self_consistency,
         )
         model = flat_noi_model(price=1_000_000.0)
+        # total t0 outlay (unleveraged_t0) equals the PV but IRR ≠ rate
         bad = ValuationResult(
             discount_rate=8.0, discount_method=DiscountMethod.annual,
             period_convention=PeriodConvention.end_of_period,
             pv_start=PV_START, unleveraged_pv=1_000_000.0,
-            unleveraged_irr=6.0, leveraged_pv=None, leveraged_irr=None,
+            unleveraged_irr=6.0, unleveraged_t0=1_000_000.0,
+            leveraged_pv=None, leveraged_irr=None, leveraged_equity=None,
             direct_cap_value=None)
         with pytest.raises(ValueError, match="self-consistency violated"):
             assert_pv_irr_self_consistency(bad, model)
@@ -313,3 +355,82 @@ class TestNoValuationNoResult:
                 rentable_area_fixed=12_000),
             inflation=FLAT, rent_roll=[lease])
         assert run_property(model).valuation is None
+
+
+class TestT0Reframe:
+    """§24 #1+#2 (coupled): the t0 outflow now includes price + t0
+    closing/financing costs (not price alone), and leveraged IRR posts
+    each loan's proceeds at its ACTUAL funding month, netting only
+    day-one proceeds against t0 equity."""
+
+    def test_closing_costs_enter_t0_and_lower_unleveraged_irr(self):
+        """#2: with $50,000 closing costs the t0 outlay is price + 50,000,
+        so the unleveraged IRR is below the no-cost case. unleveraged_t0
+        exposes the total outlay."""
+        no_cost = run_property(flat_noi_model(price=1_250_000.0)).valuation
+        with_cost = run_property(flat_noi_model(
+            price=1_250_000.0,
+            closing_costs=[ClosingCost(name="Legal", amount=50_000.0)],
+        )).valuation
+        assert no_cost.unleveraged_t0 == pytest.approx(1_250_000.0)
+        assert with_cost.unleveraged_t0 == pytest.approx(1_300_000.0)
+        assert with_cost.unleveraged_irr < no_cost.unleveraged_irr
+
+    def test_self_consistency_holds_net_of_costs(self):
+        """The restated invariant: set price so that price + closing = the
+        computed unleveraged PV; the unleveraged IRR then equals the
+        discount rate within 1bp. Probe once for the PV, then set
+        price = PV − closing."""
+        closing = [ClosingCost(name="Legal", amount=40_000.0)]
+        probe = run_property(flat_noi_model(price=1.0,
+                                            closing_costs=closing)).valuation
+        pv = probe.unleveraged_pv
+        result = run_property(flat_noi_model(
+            price=pv - 40_000.0, closing_costs=closing)).valuation
+        assert result.unleveraged_t0 == pytest.approx(pv, abs=1e-6)
+        assert result.unleveraged_irr == pytest.approx(8.0, abs=0.01)
+
+    def test_financing_costs_enter_t0(self):
+        """#2: upfront loan costs (points/fees at funding) join the t0
+        outflow. A $1M loan with 1% points ($10,000) adds $10,000 to the
+        t0 outlay."""
+        loan = Loan(name="M", amount=LoanAmount(value=1_000_000.0),
+                    term_months=360, rate=6.0, amortization="fully_amortizing",
+                    loan_costs=LoanCosts(points_pct=1.0, fees=0.0))
+        v = run_property(flat_noi_model(price=1_250_000.0,
+                                        loans=[loan])).valuation
+        # unleveraged_t0 = price + financing (no closing) = 1,250,000 +
+        # 10,000
+        assert v.unleveraged_t0 == pytest.approx(1_260_000.0)
+
+    def test_day_one_loan_nets_against_equity(self):
+        """#1: a loan funding at t0 (default funding = analysis begin =
+        pv_start) nets its full proceeds against equity: equity = price +
+        costs − proceeds = 1,250,000 − 600,000 = 650,000."""
+        loan = Loan(name="M", amount=LoanAmount(value=600_000.0),
+                    term_months=360, rate=6.0, amortization="fully_amortizing")
+        v = run_property(flat_noi_model(price=1_250_000.0,
+                                        loans=[loan])).valuation
+        assert v.leveraged_equity == pytest.approx(650_000.0)
+
+    def test_later_funding_proceeds_do_not_net_at_t0(self):
+        """#1 core fix: a loan funding 12 months after acquisition must NOT
+        net against day-one equity — its proceeds arrive later. Equity =
+        price (no proceeds netted at t0); the leveraged IRR is far lower
+        than if the $600k were treated as received at t0."""
+        base = Loan(name="AtClose", amount=LoanAmount(value=600_000.0),
+                    term_months=360, rate=6.0, amortization="fully_amortizing")
+        later = Loan(name="Staged", amount=LoanAmount(value=600_000.0),
+                     term_months=360, rate=6.0,
+                     amortization="fully_amortizing",
+                     funding_date=dt.date(2027, 1, 1))  # 12 months post-close
+        at_close = run_property(flat_noi_model(price=1_250_000.0,
+                                               loans=[base])).valuation
+        staged = run_property(flat_noi_model(price=1_250_000.0,
+                                             loans=[later])).valuation
+        # day-one loan nets: equity 650,000; staged loan does not: 1,250,000
+        assert at_close.leveraged_equity == pytest.approx(650_000.0)
+        assert staged.leveraged_equity == pytest.approx(1_250_000.0)
+        # treating the staged draw as day-one financing would overstate
+        # the return; the correct (later) treatment yields a lower IRR
+        assert staged.leveraged_irr < at_close.leveraged_irr

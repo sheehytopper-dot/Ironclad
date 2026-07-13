@@ -53,10 +53,12 @@ Conventions (Part A adjudications — DEVIATIONS.md §18):
 - **Loan costs** [AE pp. 445-446]: ``points_pct`` × loan amount +
   ``fees``, posting to the Loan Costs line **in the financing section**
   ("These costs will appear on the Cash Flow report in the Financing
-  section" [AE p. 446]) — not with Step 2's acquisition lines.
-  ``expense`` = lump sum at funding (or ``timing``); ``amortize`` =
-  straight-line over the loan term (manual silent on the schedule;
-  spec §3.17's amortize-or-expense toggle).
+  section" [AE p. 446]) — not with Step 2's acquisition lines. The fee is
+  a lump sum paid at funding (or at ``timing``). The ``handling``
+  toggle (``amortize`` vs ``expense``) is an ACCOUNTING (tax-basis)
+  distinction with no effect on pre-tax cash timing, so it is currently a
+  no-op — both post the full cost at funding; the field is retained for a
+  future tax module (Codex #3 fix, DEVIATIONS.md §24).
 - **Debt Funding is a display line outside the CFADS rollup:** ARGUS's
   "Show Loan Proceeds" defaults to No [AE p. 447], and spec §4.1 pass
   14 builds leveraged IRR from "CFADS + equity at t0" — proceeds inside
@@ -80,7 +82,6 @@ from engine.models import Inflation, Loan, Purchase, TimingBasis
 from engine.models.investment import (
     FloatingRate,
     LoanAmountBasis,
-    LoanCostHandling,
 )
 
 from .inflation import rate_for_year
@@ -306,14 +307,15 @@ def build_loan_schedule(loan: Loan, months: pd.PeriodIndex,
         if cost:
             start = (_month(loan.loan_costs.timing)
                      if loan.loan_costs.timing is not None else funding)
-            if loan.loan_costs.handling == LoanCostHandling.expense:
-                if months[0] <= start <= months[-1]:
-                    costs_series[start] -= cost
-            else:  # amortize: straight-line over the loan term
-                monthly = cost / term
-                for m in pd.period_range(start + 1, start + term, freq="M"):
-                    if months[0] <= m <= months[-1]:
-                        costs_series[m] -= monthly
+            # Cash timing is the same for both handling values: the fee is
+            # paid in full when the loan closes (or at ``timing``).
+            # ``amortize`` vs ``expense`` is an ACCOUNTING (tax-basis)
+            # distinction this pre-tax cash-flow model does not apply, so
+            # amortize is currently a no-op vs expense for cash purposes —
+            # the schema field is retained for a future tax module (Codex
+            # #3 fix, DEVIATIONS.md §18/§24).
+            if months[0] <= start <= months[-1]:
+                costs_series[start] -= cost
 
     return LoanSchedule(
         loan=loan, principal0=principal0, funding_month=funding,

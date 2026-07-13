@@ -206,11 +206,15 @@ class TestFixedAndInflated:
 
 
 class TestNOIAdjustments:
-    def test_exclude_capital_false_includes_window_capital_costs(self):
-        """[AE pp. 470-471] Deductions: with a 1,200/yr capital reserve,
-        exclude_capital=False bases the value on 112,000 − 1,200 =
-        110,800 (the ledger NOI already excludes capital, so True is the
-        as-is default)."""
+    def test_exclude_capital_false_deducts_capital_from_value_once(self):
+        """[AE p. 471] Deductions: exclude_capital=False deducts the
+        window's capital costs from the sale VALUE once (a one-time dollar
+        deduction), NOT from the NOI basis before capitalizing (the Codex
+        #5 fix, DEVIATIONS.md §24). With a 1,200/yr capital reserve the
+        basis stays 112,000 → value 1,400,000, then a flat 1,200 is
+        deducted → 1,398,800. The OLD (buggy) code put 1,200 in the basis
+        (110,800) and divided by the cap, over-deducting to 1,385,000
+        (a 15,000 reduction — 1,200 capitalized at 8%)."""
         expenses = [
             ExpenseItem(name="OpEx", amount=20_000.0,
                         unit=ExpenseUnit.dollars_per_year,
@@ -226,10 +230,47 @@ class TestNOIAdjustments:
         with_cap = run_property(build_model(base, expenses=expenses))
         without = run_property(build_model(included, expenses=expenses))
         assert with_cap.resale.adjusted_basis == pytest.approx(112_000.0)
+        assert with_cap.resale.gross_sale_price == pytest.approx(1_400_000.0)
         assert without.resale.capital_adjustment == pytest.approx(-1_200.0)
-        assert without.resale.adjusted_basis == pytest.approx(110_800.0)
-        assert without.resale.gross_sale_price == pytest.approx(
-            110_800.0 / 0.08)
+        # basis no longer folds in capital — it stays the NOI
+        assert without.resale.adjusted_basis == pytest.approx(112_000.0)
+        assert without.resale.base_value == pytest.approx(1_400_000.0)
+        # one-time deduction: value − 1,200, NOT − 1,200/0.08
+        assert without.resale.gross_sale_price == pytest.approx(1_398_800.0)
+        # the deduction equals exactly the one-time cost
+        assert (with_cap.resale.gross_sale_price
+                - without.resale.gross_sale_price) == pytest.approx(1_200.0)
+
+    def test_capital_deduction_is_dollar_for_dollar_500k(self):
+        """§24 #5 worked example: a $500,000 one-time capital cost in the
+        resale window at an 8% exit cap reduces the sale value by exactly
+        $500,000 — not $6.25M ($500k ÷ 0.08, the old capitalized bug.
+        Selling costs 0 to isolate the deduction."""
+        expenses = [
+            ExpenseItem(name="OpEx", amount=20_000.0,
+                        unit=ExpenseUnit.dollars_per_year,
+                        recoverable=False),
+            # a ONE-TIME $500,000 capital expense landing only in the
+            # forward-12 resale window (2031, the look-forward year, which
+            # is post-resale so it does not touch the operating hold) — a
+            # flat $500k/yr would tank operating CFBDS and is not the
+            # §24 #5 scenario
+            ExpenseItem(name="Big TI", amount=0.0,
+                        unit=ExpenseUnit.dollars_per_year, category="capital",
+                        annual_overrides=[{"year": 2031,
+                                           "amount": 500_000.0}]),
+        ]
+        base = Resale(method="cap_noi_forward_12", exit_cap_rate=8.0,
+                      selling_costs_pct=0.0)
+        incl = Resale(method="cap_noi_forward_12", exit_cap_rate=8.0,
+                      selling_costs_pct=0.0,
+                      noi_adjustments=NOIAdjustments(exclude_capital=False))
+        with_cap = run_property(build_model(base, expenses=expenses))
+        without = run_property(build_model(incl, expenses=expenses))
+        assert without.resale.capital_adjustment == pytest.approx(-500_000.0)
+        reduction = (with_cap.resale.gross_sale_price
+                     - without.resale.gross_sale_price)
+        assert reduction == pytest.approx(500_000.0)     # NOT 6,250,000
 
     def test_stabilize_occupancy_ratio(self):
         """The printed formula 'NOI × Gross Up % / Average Occupancy %'

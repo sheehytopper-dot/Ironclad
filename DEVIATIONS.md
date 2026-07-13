@@ -657,11 +657,14 @@ Part A adjudications (citation or manual-silent reasoning per item):
   "Yes" drives a schema field.
 - **Loan costs post to the financing section** ("These costs will appear
   on the Cash Flow report in the Financing section" [AE p. 446]) — not
-  with Step 2's acquisition lines. `expense` = lump at funding (or
-  `timing` date); `amortize` = straight-line over the loan term (manual
-  silent on the schedule; spec §3.17's toggle). The manual's
-  Include-in-Loan financing, fee-frequency grid, and
-  %-of-drawn/undrawn/max fee bases [AE pp. 445-446] are schema-absent.
+  with Step 2's acquisition lines. The fee is a lump sum at funding (or
+  the `timing` date). _**Superseded 2026-07-13 by §24 #3:**_ ~~`amortize`
+  = straight-line over the loan term.~~ **Now:** `amortize` and `expense`
+  post identically (the full cost at funding) — the distinction is an
+  accounting (tax-basis) treatment this pre-tax cash model does not
+  apply, so it is currently a no-op; the field is retained for a future
+  tax module. The manual's Include-in-Loan financing, fee-frequency grid,
+  and %-of-drawn/undrawn/max fee bases [AE pp. 445-446] are schema-absent.
 - **"Other Debt" [AE pp. 448-449] is NOT modeled, and the Loan
   docstring's "modeled as fixed-payment loans" suggestion is
   insufficient:** the manual's Other Debt is recurring amount ×
@@ -751,12 +754,17 @@ Part A adjudications (citation or manual-silent reasoning per item):
    here, by construction:** the ledger's NOI line already excludes TI/LC/
    capex (Step 1: CFBDS = NOI + Total Capital Costs, so capital sits
    *below* NOI). Using the NOI line as-is is exactly "exclude capital."
-   `False` **adds** the window's Total Capital Costs back into the basis
-   — the all-or-nothing form of the manual's per-line Deductions grid
-   [AE pp. 470-471], which the schema (a single bool, no per-line #Months)
-   cannot express in full. The manual's warning that TIs/LCs treated as
-   operating expenses double-count [AE p. 471] does not apply — the
-   engine never posts them as operating.
+   `False` deducts the window's Total Capital Costs. _**Superseded
+   2026-07-13 by §24 #5:**_ ~~`False` **adds** the window's Total Capital
+   Costs back into the basis (then divides by the cap) — the all-or-
+   nothing Deductions grid.~~ **Now:** `False` subtracts the window's
+   Total Capital Costs from the sale VALUE **once**, after capitalization
+   (not from the NOI basis) — a one-time deduction per [AE p. 471], not a
+   perpetual capitalization (§24 #5). The schema (a single bool, no
+   per-line #Months) still cannot express the per-line grid in full. The
+   manual's warning that TIs/LCs treated as operating expenses
+   double-count [AE p. 471] does not apply — the engine never posts them
+   as operating.
 5. **`stabilize_occupancy` uses the printed ratio "NOI × Gross Up % /
    Average Occupancy %" [AE p. 469]** (the "% of Occupancy" gross-up
    basis), where Average Occupancy % is the mean of the run's occupancy
@@ -766,7 +774,12 @@ Part A adjudications (citation or manual-silent reasoning per item):
    "Lag Vacancy" basis [AE p. 470] (market value of downtime + vacant
    space + GV add-back) is schema-absent; `StabilizedOccupancy` carries
    only a target percent, so the simple % of Occupancy ratio is the
-   correct match.
+   correct match. **Scaling the WHOLE NOI — including fixed,
+   non-occupancy-sensitive expenses — is the inherent behavior of the
+   "% of Occupancy" formula [AE p. 469], not a defect; the more granular
+   Lag Vacancy method [AE p. 470], which grosses up only the
+   occupancy-sensitive tenant revenue, is the schema-absent alternative
+   (Codex #6, ANSWERED — DEVIATIONS.md §24).**
 6. **`adjustment_amounts` apply to the capitalized value BEFORE selling
    costs [AE pp. 465, 471]:** the manual's Capitalization Valuation
    Results pane subtracts adjustments to reach "the gross sale price",
@@ -779,6 +792,14 @@ Part A adjudications (citation or manual-silent reasoning per item):
    indexes the schedule (payments run funding+1..maturity; the balance
    series holds each month's ending balance). Leveraged net = unleveraged
    net − Σ payoffs.
+8. **End-of-month sale convention (Codex #10, ANSWERED — DEVIATIONS.md
+   §24):** the model is monthly-granularity, so a resale date snaps to
+   its month (`_resale_month`) and the sale is treated as occurring at
+   that month-end — the investor owns the property through the resale
+   month (its operating CFBDS/CFADS is included in the holding stream),
+   collects the sale proceeds, and pays off each loan at the month-end
+   balance (item 7). This is internally coherent; intra-month timing is
+   not representable and is not modeled.
 
 Other narrowings / decisions:
 
@@ -830,14 +851,19 @@ Headline hand-check: the par stream −1,000,000 then 80,000 × 4 and
 
 Part A adjudications:
 
-1. **Cash-flow basis (spec §4.1 pass 14, confirmed):** unleveraged =
+1. **Cash-flow basis (spec §4.1 pass 14).** _**Partly superseded
+   2026-07-13 by §24 #1/#2** — the t0 construction below changed; the
+   stream basis (CFBDS/CFADS + resale) did not._ ~~unleveraged =
    ledger CFBDS per month + Net Resale Proceeds (unleveraged) in the
    resale month, t0 = purchase price; leveraged = CFADS + leveraged net
    resale (Net Resale Proceeds + Loan Payoff at Resale), t0 = equity =
    price − loan funding proceeds. Below-the-line items (closing costs,
-   deposits) are NOT in the stream — the spec basis is CFBDS/CFADS +
-   resale, and folding closing costs into t0 would break the §9.3
-   identity.
+   deposits) are NOT in the stream ... folding closing costs into t0
+   would break the §9.3 identity.~~ **Now:** t0 (both streams) = price +
+   t0 closing/financing costs; leveraged equity nets only day-one-funded
+   loan proceeds, with later draws posting at their funding month; the
+   §9.3 identity is restated around "value net of costs" (§24 #1/#2).
+   The stream basis is still CFBDS/CFADS + resale.
 2. **Six conventions:** {annual, quarterly, monthly} × {end_of_period,
    mid_period}. The rate is an APR [AE p. 472]; periodic = APR/p. The
    monthly stream aggregates into p-per-year buckets from pv_start, each
@@ -1298,3 +1324,80 @@ clear manual guidance), then #1 and #2 (return accuracy on leveraged and
 closing-cost deals), then #3 / #7 / #8 (smaller or lower-frequency), with #6
 and #10 as documentation touch-ups. Each has a specific proposed fix above;
 none is implemented pending owner decision.
+
+---
+
+### Owner adjudication (2026-07-13) — six FIX, two ANSWERED
+
+Topper adjudicated all eight items 2026-07-13. Six are fixed (with tests);
+two are answered as documentation-only. No golden populates `loans` or
+`valuation`, so the four pre-existing golden reds (137/47 Gate 2; 33/12
+Gate 3 capital) are unchanged.
+
+- **#5 — CLOSED (fixed 2026-07-13).** `resale.py` now deducts the resale
+  window's Total Capital Costs from the sale VALUE once, after
+  capitalization, instead of adding them to the NOI basis (which
+  capitalized a one-time cost). §20 item 4 superseded. Tests:
+  `test_resale.py::TestNOIAdjustments::test_exclude_capital_false_deducts_capital_from_value_once`
+  and `::test_capital_deduction_is_dollar_for_dollar_500k` ($500k cost →
+  $500k value reduction, not $6.25M). The audit report shows the deduction
+  as "Capital costs deducted".
+- **#3 — CLOSED (fixed 2026-07-13).** `debt.py`: `amortize` and `expense`
+  loan-cost handling now post identically — the full cost at funding. The
+  amortize/expense distinction is a tax-basis accounting treatment this
+  pre-tax model does not apply, so it is a no-op for cash; the schema field
+  is retained for a future tax module. §18 amortize line superseded.
+  Tests: `test_debt.py::TestLoanCosts::test_amortize_posts_full_cost_at_funding_like_expense`
+  and `::test_amortize_and_expense_have_identical_cash_timing`.
+- **#1 + #2 — CLOSED (fixed together 2026-07-13, coupled).** `valuation.py`:
+  the t0 outflow (both unleveraged and leveraged) now includes price + t0
+  closing/financing costs, not price alone (owner reframe: "the numbers LP
+  cares about is the actual return including closing costs"); each loan's
+  proceeds post at its ACTUAL funding month, and leveraged equity nets only
+  day-one-funded proceeds (plus any assumed pre-window balance), with later
+  draws posting as stream inflows. `assert_pv_irr_self_consistency` restated
+  around the total t0 outlay ("value net of costs = PV ⟹ IRR = discount
+  rate"); the identity logic is unchanged. §20 item 1 superseded.
+  `ValuationResult` gains `unleveraged_t0` and `leveraged_equity`. Tests:
+  `test_valuation.py::TestT0Reframe` (closing/financing costs in t0;
+  self-consistency net of costs; day-one nets, later-funding does not).
+  No prior test encoded the old t0-is-price-alone convention (every
+  existing valuation test used cost-free, t0-funded models where old and
+  new t0 coincide); only the manual `ValuationResult` construction in
+  `test_invariant_raises_on_inconsistent_irr` was updated for the two new
+  fields, with a comment noting why.
+- **#8 — CLOSED (fixed 2026-07-13).** `valuation.py` `_solve_irr`: the
+  bisection floor is now convention-aware — a periodic floor of −99% × p
+  (−1188% annual for monthly), so valid deeply-negative (large-loss) IRRs
+  are reachable. Test:
+  `test_valuation.py::TestIRR::test_large_loss_below_minus_99pct_now_solves`
+  (0.5% returned over 5 years, monthly → IRR ≈ −101.42%, not None).
+- **#7 — CLOSED (fixed 2026-07-13).** `valuation.py` `_solve_irr` counts
+  sign changes on the input stream and RAISES when there is more than one
+  (multiple IRRs may exist) rather than returning one arbitrary root or
+  None (no silent numbers). Tests:
+  `test_valuation.py::TestIRR::test_multiple_sign_changes_raises` and
+  `::test_single_sign_change_still_solves`.
+- **#6 — ANSWERED (documentation, 2026-07-13).** Whole-NOI scaling is the
+  inherent behavior of the manual's "% of Occupancy" formula [AE p. 469],
+  not a defect; the granular Lag Vacancy method [AE p. 470] is
+  schema-absent. One sentence added to §19 item 5. No code change.
+- **#10 — ANSWERED (documentation, 2026-07-13).** The end-of-month sale
+  convention (monthly granularity; own through month-end; loan payoff at
+  the month-end balance) is now stated explicitly in §19 item 8. No code
+  change.
+
+**Sensitivity-module follow-ups surfaced by these fixes (flagged, NOT
+changed — out of the owner's valuation.py scope):**
+1. `sensitivity.py`'s leveraged IRR matrix still uses the OLD t0
+   convention (`−(price − all_proceeds)`, no closing/financing costs, all
+   proceeds netted at t0), so it is now inconsistent with the corrected
+   `valuation.py` leveraged IRR. It should be reframed the same way (#1/#2)
+   for consistency — recommended as a follow-up.
+2. The #7 sign-change guard now propagates into `sensitivity.py`'s IRR
+   matrices: a cash-negative property (e.g. a large recurring capital
+   drain) makes some price-row cells non-conventional, so the whole matrix
+   computation raises rather than marking those cells NaN. Consider
+   catching the guard per-cell in the matrix builder (NaN the ambiguous
+   cell) as a follow-up. Neither is a golden concern (no golden populates
+   valuation).
