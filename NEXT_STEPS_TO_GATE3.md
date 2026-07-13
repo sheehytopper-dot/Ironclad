@@ -1,7 +1,6 @@
 # NEXT STEPS TO GATE 3
 
-**DRAFT — awaiting owner review. No Phase 3 engine code is written until
-Topper has seen this plan (Iron Rule 2 applies to session planning too).**
+**Closed 2026-07-12 — Gate 3 passed.**
 
 The concrete path from Gate 2 (**passed 2026-07-10**) through Phase 3 —
 capital & valuation (spec §10; BUILD_SCHEDULE.md Week 7) — to **Gate 3**.
@@ -300,39 +299,44 @@ resale month — DEVIATIONS.md §21) are recorded. 11 tests
 populates valuation. Hand-check: flat NOI 100,000 → any diagonal value
 cell where discount == cap equals 100,000 / cap (value = NOI/cap).
 
-## Step 7 — Gate 3 review (owner) — **NEXT AND FINAL Phase 3 item (a review session, not a build session)**
+## Step 7 — Gate 3 review (owner) — **PASSED (owner declaration 2026-07-12)**
 
-All six build steps (1-6) are CLOSED. Step 7 is Topper's review; there is
-no more engine code to write for Gate 3 (Iron Rule 2 — do not invent
-any). **For Topper to declare Gate 3 passed, these must all hold in one
-pytest run and by owner sign-off:**
+All six build steps (1-6) are CLOSED, and all four pass-conditions below
+are satisfied. **Owner declared Gate 3 passed 2026-07-12.** The evidence:
 
-1. **Criteria 1-5 evidenced (checklist above):** golden capital lines
-   within tolerance or their misses adjudicated; the §9.3 invariants
-   green on every run (debt balance roll, payoff-at-resale, PV/IRR
-   1bp self-consistency — all three now standing); manual worked-example
-   tests green (resale methods, PV conventions, loan math, security
-   deposits); sensitivity matrices self-consistent (the cross-check
-   test); owner hand-checks done.
-2. **The six DISCREPANCY_LOG-documented golden misses stay as-is by
-   design** — not fixed, not tuned: Freeport Gate 2 (137, deferred-B
-   general-vacancy basis), Cedar Alt Gate 2 (47, deferred-B rollover
-   recovery timing), Freeport Gate 3 capital (33, root cause E — LC
-   base, deferred to beta-stage GUI testing), Cedar Alt Gate 3 capital
-   (12, root cause D — C's sibling, closed). All red **by design**; none
-   is a Gate 3 blocker.
-3. **The three owner hand-checks from Steps 3/4/5 run and confirmed:**
+1. **Criteria 1-5 evidenced — CONFIRMED.** The current suite runs
+   **392 passed, 4 failed** (the four by-design golden reds in #2); the
+   §9.3 invariants are green and standing on every run (debt balance
+   roll, payoff-at-resale, PV/IRR 1bp self-consistency); the manual
+   worked-example tests are green (resale methods, PV conventions, loan
+   math, security deposits); the sensitivity cross-check is green (every
+   matrix cell equals a direct single-point Step 4/5 call).
+2. **The six DISCREPANCY_LOG-documented golden misses stay red by
+   design — CONFIRMED, none a blocker:** Freeport Gate 2 (137,
+   deferred-B general-vacancy basis), Cedar Alt Gate 2 (47, deferred-B
+   rollover recovery timing), Freeport Gate 3 capital (33, root cause E —
+   LC base, deferred to beta-stage GUI testing), Cedar Alt Gate 3 capital
+   (12, root cause D — C's sibling, closed). Not fixed, not tuned.
+3. **The three owner hand-checks from Steps 3/4/5 — CONFIRMED:**
    (a) Step 3 amort — $1,000,000 / 6.00% / 30yr → payment $5,995.51,
    balance@12 $987,719.88, balloon@120 $836,857.25; (b) Step 4 resale —
    current-year NOI $100,000 at 8.00% exit cap → $1,250,000 gross, 3%
    selling $37,500, net $1,212,500; (c) Step 5 PV/IRR — par stream
    −1,000,000 then 80,000×4 and 1,080,000, annual end-of-period at 8% →
    PV $1,000,000, IRR 8.00% (Excel NPV()/IRR()).
-4. **The Step 5 price-derivation scope decision (DEVIATIONS.md §20 #6)
-   is resolved OR explicitly deferred again** — build the clean no-loan
-   derived-price subset, or leave the derivations permanently refusing.
+4. **The Step 5 price-derivation scope decision (DEVIATIONS.md §20 #6) —
+   RESOLVED (owner decision 2026-07-12):** leave
+   `Purchase.derivation != fixed` and `LoanAmountBasis.pct_of_value`
+   permanently refusing. Rationale: no current deal backs out price from
+   valuation or sizes a loan as a percentage of it; building the clean
+   no-loan subset now (deferring Step 2's acquisition posting past
+   valuation, reassembling the below-the-line columns) is real
+   architecture for a capability with zero current pull. Revisit only if
+   a deal needs it — **this is a permanent boundary, not an open gap.**
 
-Then — and only then — Phase 4 (Iron Rule 2).
+Gate 3 is passed; Phase 4 (full §7 report catalog + Excel export) is the
+next phase — and per Iron Rule 2, no Phase 4 code is written until
+NEXT_STEPS_TO_PHASE4.md is drafted and reviewed.
 
 ---
 
@@ -343,6 +347,6 @@ decision 2026-07-10), joined by **Freeport E** (owner decision
 2026-07-12); no ARGUS access — the Benchmark Comparison report
 (spec §7 report 24) remains the future-deal validation path.
 
-**Status:** drafted 2026-07-11 on Gate 2 pass, per the Phase 3 opening
-prompt. **Awaiting owner review — engine work does not start until Topper
-has seen this plan and resolved Step 0's decisions.**
+**Status:** drafted 2026-07-11 on Gate 2 pass; all six build steps shipped
+2026-07-11/07-12; **Gate 3 passed by owner declaration 2026-07-12.** This
+document is closed — the Phase 4 path lives in NEXT_STEPS_TO_PHASE4.md.

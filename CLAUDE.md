@@ -161,8 +161,8 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 2 PASSED
-  (owner declaration 2026-07-10); Phase 3 begins.** Phase 1 shipped 2026-07-05:
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 3 PASSED
+  (owner declaration 2026-07-12); Phase 4 begins.** Phase 1 shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -490,31 +490,55 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   100,000 → any diagonal value cell where discount == cap equals
   100,000/cap. Suite: 392 passed + the same 4 golden reds (137/47,
   33/12).
-- **Next session's first prompt:** "Phase 3 Steps 1-6 are ALL CLOSED —
-  every build step is done; only the Gate 3 owner review (Step 7)
-  remains before Phase 4. This is a REVIEW session, not a build session:
-  there is NO more engine code to write for Gate 3 (Iron Rule 2 — do not
-  invent any; do not scaffold cancelled 'Phase 7' intake). Walk Topper
-  through NEXT_STEPS_TO_GATE3.md Step 7's four pass-conditions and help
-  him decide: (1) confirm criteria 1-5 are evidenced in one pytest run
-  (`.venv\\Scripts\\python -m pytest` → 392 passed + exactly the 4
-  by-design golden reds); (2) confirm the six DISCREPANCY_LOG misses
-  stay as-is by design (Freeport Gate 2 137 deferred-B; Cedar Gate 2 47
-  deferred-B; Freeport Gate 3 capital 33 root cause E deferred; Cedar
-  Gate 3 capital 12 root cause D closed as C's sibling) — none is a
-  blocker; (3) the three owner hand-checks from Steps 3/4/5 (amort:
-  $1M/6%/30yr → pmt $5,995.51, bal@12 $987,719.88, balloon@120
-  $836,857.25; resale: NOI $100,000 at 8% cap → net $1,212,500 at 3%
-  selling; PV/IRR: par stream −1,000,000 then 80,000×4 and 1,080,000
-  annual EoP at 8% → PV $1,000,000, IRR 8.00%); (4) the Step 5
-  price-derivation scope decision (DEVIATIONS.md §20 #6) — resolve
-  (build the clean no-loan derived-price subset) or defer again. Also
-  still open from earlier Step 0: valuation assumption sets for the
-  goldens (no OM publishes one) and pct_of_account (stays guarded). If
-  Topper declares Gate 3 passed, update BUILD_SCHEDULE.md + CLAUDE.md
-  status and the plan doc, then Phase 4 begins (full §7 report catalog +
-  Excel export — Iron Rule 2). REMEMBER the standing gaps: percentage
-  rent + tenant misc items + purchase/deposits/debt/resale/valuation/
-  sensitivity externally unvalidated (goldens can't exercise them);
-  Freeport B, Cedar Alt B, Freeport E parked for beta-stage GUI testing.
-  Commit, push, update the progress note and this prompt."
+  **GATE 3 PASSED (owner declaration 2026-07-12).** All six Phase 3 build
+  steps shipped 2026-07-11/07-12, one line each: (1) TI/LC posting —
+  golden #1 capital lines green within $0.50/cell (DEVIATIONS.md §16);
+  (2) purchase / closing costs / security deposits (§17); (3) debt engine
+  — fixed/floating, IO, balloon, additional principal, loan costs;
+  "Other Debt" deliberately excluded (§18); (4) property resale — all
+  five methods + Property Resale Audit reconciling to 1e-9 (§19); (5)
+  PV / IRR / direct cap — all six discount conventions, nominal IRR
+  annualization, plus the holding-stream truncation fix (§20, §21); (6)
+  sensitivity matrices — value + unleveraged/leveraged IRR grids,
+  cross-checked cell-by-cell (§21). §9.3 invariant set extended and
+  standing (debt balance roll, payoff-at-resale, PV/IRR 1bp
+  self-consistency). Suite 392 passed / 4 by-design golden reds
+  (Freeport Gate 2 137 deferred-B; Cedar Gate 2 47 deferred-B; Freeport
+  Gate 3 capital 33 root cause E deferred; Cedar Gate 3 capital 12 root
+  cause D closed as C's sibling) — none a blocker; the three owner
+  hand-checks (amort, resale, PV/IRR) confirmed.
+  **Price-derivation scope decision (owner decision 2026-07-12,
+  DEVIATIONS.md §20 #6): `Purchase.derivation != fixed` and
+  `LoanAmountBasis.pct_of_value` refuse permanently — no current deal
+  backs out price from valuation or sizes a loan off it, and building it
+  now is real architecture with zero current pull; a permanent boundary,
+  not an open gap.** **Phase 4 begins** (spec §10: full §7 report catalog
+  + Excel export).
+- **Next session's first prompt:** "GATE 3 PASSED (owner declaration
+  2026-07-12) — Phase 3 is complete; Phase 4 begins. **This is a PLANNING
+  session, not a build session.** Mirror exactly how Phase 3 opened:
+  NEXT_STEPS_TO_GATE3.md was drafted and owner-reviewed BEFORE any Phase
+  3 engine code was written (Iron Rule 2 applied to planning). Do the
+  same for Phase 4: **draft NEXT_STEPS_TO_PHASE4.md** — no report/UI/
+  export code, no scaffolding, until that plan exists and Topper has seen
+  it. Read spec §10 (Phase 4 row), §7 (full report catalog), and §8
+  (Excel export package) first. The plan must cover: the full spec §7
+  report catalog as DataFrame builders (the Cash Flow, Lease Audit,
+  Recovery Audit, and Property Resale Audit already exist — enumerate
+  what remains and sequence it); the Total $ / $ per SF / per-month /
+  per-occupied-SF toggles and period (annual/quarterly/fiscal) views on
+  every monetary report (spec §4.3, Conventions); the formatted Excel
+  export package (spec §8) with side-by-side-vs-ARGUS-print review as the
+  Phase 4 gate; and the rent roll import template round-trip (spec §5.2 —
+  one of the two intake surfaces; the other, PropertyModel JSON, already
+  round-trips). Flag owner-gated items the way Phase 3's Step 0 did.
+  REMEMBER the standing gaps, all carried forward unchanged: percentage
+  rent externally unvalidated pending golden #3 (opportunistic intake);
+  tenant misc items externally unvalidated; Freeport B, Cedar Alt B, and
+  Freeport E parked for beta-stage GUI testing (their Gate 2/3 assertions
+  stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D
+  closed as C's sibling, not open; price derivation permanently refusing
+  per the Gate 3 declaration (DEVIATIONS.md §20 #6), not an open gap. Do
+  NOT scaffold cancelled in-app OM ingestion ('Phase 7'). When the plan
+  is drafted, commit it, push, and update this prompt to point at Phase 4
+  Step 1."
