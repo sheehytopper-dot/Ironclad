@@ -1113,3 +1113,188 @@ strings and compared them against the `tenants` dict, which is keyed by
   exists.
 
 **Revisit when:** n/a — these are corrections, not deferrals.
+
+## 24. Codex-review debt/resale/valuation findings — NEEDS-SCOPE-DECISION hand-off (2026-07-12)
+
+The debt/resale/valuation Codex review (§22) produced 12 findings. Four
+were validation/guard fixes with no design ambiguity and were implemented
+(§22: #4 loan-name uniqueness, #9 pv_start-vs-disposition, #11
+additional-principal window, #12 loan input bounds). The remaining **eight**
+touch an already-adjudicated cash-flow-basis, numerical-method, or resale
+convention (DEVIATIONS §18/§19/§20) and were reported for owner decision
+rather than implemented. §22 pointed at a "review hand-off" for them; that
+hand-off was never committed (it existed only in session terminal output).
+This section is that write-up, recovered verbatim from the session report
+and preserved here. **Nothing below is implemented — each item is OPEN for
+owner adjudication before Phase 4.** No golden populates `loans` or
+`valuation`, so none of these affects a golden number.
+
+Per item: (a) file/function, (b) what the review flagged, (c) the existing
+DEVIATIONS convention that governs it, (d) recommendation — real bug to fix,
+or convention already answers it.
+
+---
+
+### #1 — Leveraged IRR treats all loan proceeds as day-one financing
+- **(a)** `engine/calc/run.py:672` (`loan_proceeds = sum(s.funding.sum())`)
+  and `engine/calc/valuation.py:257` (`equity = price - loan_funding_proceeds`,
+  applied at t0 exponent 0).
+- **(b)** The leveraged IRR nets *all* loan proceeds against the day-one
+  equity, even for a loan scheduled to fund later (a construction/earn-out
+  draw). The loan's monthly service is timed correctly in CFADS, but its
+  cash proceeds are pulled forward to t0.
+- **(c)** DEVIATIONS §20 item 1: "t0 outflow = equity = purchase price −
+  loan funding proceeds" — this baked in the all-loans-fund-at-t0 assumption.
+- **(d) REAL BUG for deferred/staged (and pre-window/assumed) funding.**
+  Proposed fix: add each loan's proceeds as a positive cash inflow at its
+  actual funding month; net only day-one-funded proceeds against t0 equity
+  (fold in the assumed-existing-loan case in the same change). The common
+  "loan funds at closing" case is already correct. **Dollar impact:** a $7M
+  loan on a $10M deal funding 12 months post-close makes the engine report
+  $3M day-one equity when the investor really puts in $10M and draws $7M a
+  year later — understating the equity base enough to **overstate leveraged
+  IRR by 10+ percentage points.**
+
+### #2 — Closing costs (and upfront financing costs) excluded from returns
+- **(a)** `engine/calc/valuation.py` `compute_valuation` / `holding_stream`
+  (`holding_stream` line 134): the unleveraged t0 outflow is the purchase
+  price alone; the stream is CFBDS/CFADS + resale only.
+- **(b)** A real investor's day-one outlay is price + closing costs (+ any
+  upfront financing costs), not price alone, so reported returns are
+  overstated.
+- **(c)** DEVIATIONS §20 item 1: "Below-the-line items (closing costs,
+  deposits) are NOT in the stream ... folding closing costs into t0 would
+  break the §9.3 identity." (Deliberate and documented — the owner asked
+  that the *decision itself* be re-examined, not just noted.)
+- **(d) DELIBERATE, but the decision is worth revisiting — the finding is
+  economically right.** Why it's excluded: the §9.3 self-consistency check
+  ("the value that makes IRR = the discount rate") is defined around price
+  alone; adding closing costs to t0 breaks that identity as written.
+  Proposed fix: include price + closing (+ upfront financing) in t0 and
+  restate the self-consistency identity around "value net of costs" — which
+  is what ARGUS's "PV Net of Costs" actually means. This redefines a shipped
+  invariant, so it is the owner's call. **Dollar impact:** on a $10M deal
+  with 2% closing costs ($200k), unleveraged IRR is overstated by roughly
+  **0.3–0.5 percentage points** over a 5-year hold; leveraged IRR is more
+  sensitive (smaller equity base) — often **0.5–1.0+ points.**
+
+### #3 — "Amortized" loan costs modeled as monthly cash installments
+- **(a)** `engine/calc/debt.py:312-313` (the `amortize` branch:
+  `monthly = cost / term`, spread as negative cash over the loan term).
+- **(b)** Amortization is an accounting treatment — the cash is paid upfront
+  at funding; the spreading is a non-cash bookkeeping entry (relevant only
+  to taxable income, which this pre-tax model does not track). Posting the
+  amortized amount as monthly cash misstates CFADS and leveraged IRR.
+- **(c)** DEVIATIONS §18: "`amortize` = straight-line over the loan term
+  (manual silent on the schedule)."
+- **(d) REAL issue for a pre-tax cash model.** Proposed fix: in a pre-tax
+  cash model both `expense` and `amortize` should post the cash at funding
+  (they would behave identically), or the amortized amount should be
+  excluded from cash flow entirely. **Dollar impact:** modest — $100k of
+  loan costs on a 10-year loan defers ~$833/month of cash that was really
+  spent on day one, shifting leveraged IRR by a few tenths of a point.
+
+### #5 — One-time capital costs capitalized as perpetual NOI reductions
+- **(a)** `engine/calc/resale.py:175` (`capital_adjustment` = the window's
+  Total Capital Costs) and `:186` (`adjusted_basis = income_basis ×
+  occupancy_factor + capital_adjustment`, then `/ exit_cap_rate`), on the
+  `exclude_capital=False` path.
+- **(b)** The capital spend in the resale window is added to the annual NOI
+  basis and then divided by the exit cap rate — capitalizing a one-time cost
+  into perpetuity, treating it as if it recurs every year forever.
+- **(c)** DEVIATIONS §20 item 4: "`exclude_capital=False` adds the window's
+  Total Capital Costs into the basis."
+- **(d) REAL BUG, and it contradicts the manual — NOT the same as any §22
+  direct fix.** (Explicit check per the owner's note: this is the
+  `exclude_capital=False` path, and it was classified NEEDS-SCOPE-DECISION,
+  *not* one of the four implemented direct fixes (§22: #4/#9/#11/#12); it
+  remains open.) The manual (AE p. 471) deducts these costs from the resale
+  *value* once, not from the income basis. Proposed fix: subtract the
+  capital costs from the gross sale value directly (one-time), not from the
+  NOI basis before capitalizing. **Dollar impact (highest of the eight):** a
+  $500,000 one-time TI/LC in the resale window at an 8% exit cap currently
+  reduces the sale value by **$6.25M** ($500k ÷ 0.08) instead of the correct
+  **$500,000** — a ~$5.75M error per deal, in the conservative direction
+  (it understates the sale price).
+
+### #6 — Occupancy stabilization scales all NOI, including fixed expenses
+- **(a)** `engine/calc/resale.py:185` (`occupancy_factor` = target ÷ average
+  occupancy) applied to the whole `income_basis` at `:186`.
+- **(b)** The gross-up scales the entire NOI — including fixed,
+  non-occupancy-sensitive expenses — not just the occupancy-sensitive
+  revenue.
+- **(c)** DEVIATIONS §19 item 5: `stabilize_occupancy` implements the
+  manual's "% of Occupancy" formula, NOI × Gross-Up% ÷ Average-Occupancy%
+  [AE p. 469]; the granular "Lag Vacancy" basis [AE p. 470] is schema-absent.
+- **(d) NOT a bug — the convention already answers it; ANSWERED, not open.**
+  The engine implements the manual's "% of Occupancy" formula literally, and
+  that formula by definition scales the whole NOI. The more granular "Lag
+  Vacancy" method (which grosses up only tenant revenue) is the alternative,
+  is schema-absent, and is already documented in §19 item 5. Recommendation:
+  sharpen §19 item 5 with one line stating explicitly that whole-NOI scaling
+  is the inherent crudeness of "% of Occupancy" versus Lag Vacancy — a
+  documentation tweak, no code change. **Dollar impact:** n/a (faithful to
+  the chosen method).
+
+### #7 — IRR solver can miss or mishandle multiple IRRs
+- **(a)** `engine/calc/valuation.py:149` (`_solve_irr`): bisection on a fixed
+  bracket, returns `None` when the endpoints do not bracket a sign change.
+- **(b)** The solver assumes a conventional cash-flow pattern (money out
+  once, money in thereafter). Deals with interim negative cash flows (a large
+  mid-hold capital event, or the deferred-funding case #1) can have zero,
+  one, or several valid IRRs; the solver may return one arbitrary root or
+  return `None` even when IRRs exist, without flagging the ambiguity.
+- **(c)** DEVIATIONS §20 (IRR method): "one sign change → a unique root,
+  bisection" — assumes conventionality.
+- **(d) REAL robustness gap.** Proposed fix: count sign changes in the
+  stream; if more than one, flag the result as potentially non-unique or
+  refuse with an explanation, rather than silently returning one root or
+  `None`. **Dollar impact:** not a single number — when it bites, the
+  reported IRR could be a misleading single value or an unexplained `None`.
+
+### #8 — The IRR bracket's negative-rate floor excludes valid large-loss IRRs
+- **(a)** `engine/calc/valuation.py:85` (`_IRR_LOW_PCT = -99.0`, an annual
+  percent) used by `_solve_irr`.
+- **(b)** The search floor of −99% annual is far above the mathematically
+  valid floor for the monthly/quarterly conventions (the periodic rate need
+  only exceed −100%, so annual nominal extends to −1200% monthly). Valid
+  very-negative IRRs below −99% annual are excluded — the solver returns
+  `None` for a catastrophic-loss deal that does have an IRR.
+- **(c)** DEVIATIONS §20 item 3 (nominal IRR annualization; the bracket is
+  not convention-aware).
+- **(d) REAL, low practical impact, and the cleanest of the eight to fix.**
+  Confirmed with a worked example: a deal returning 0.5% of the investment
+  over 5 years (monthly convention) has a valid IRR of **−101.42%**, but the
+  solver returns `None`. Proposed fix: make the bracket floor convention-aware
+  (just above −100 × periods-per-year %). **Dollar impact:** none directly —
+  it is "no answer" vs. "correct very-negative answer," and few real deals
+  lose >99%/year. This one could reasonably be applied as a direct fix; it
+  was held here only because it is entangled with #7 and both are
+  numerical-method changes.
+
+### #10 — End-of-month sale timing assumed but not enforced
+- **(a)** `engine/calc/resale.py` (`_resale_month`, which snaps the resale
+  date to a month) and `engine/calc/valuation.py` `holding_stream` (the
+  resale month keeps its operating CFBDS/CFADS, plus the sale proceeds, plus
+  the loan payoff at the month-end balance).
+- **(b)** The model assumes the sale happens at month-end (collect the resale
+  month's income, sell at the month-end balance) without enforcing it; a
+  mid-month sale date just snaps to the whole month.
+- **(c)** Not explicitly documented — implicit in "resale posts in the resale
+  month" (§19/§20).
+- **(d) PARTIALLY accurate but NOT a bug — ANSWERED (documentation).** The
+  model is monthly, so intra-month timing is not representable, and the
+  convention (own the property through month-end, collect that month's
+  income, sell at the month-end balance) is internally coherent.
+  Recommendation: document the end-of-month convention explicitly (a doc
+  note); no code change, and no scope decision unless intra-month timing is
+  wanted (a large change with no current demand). **Dollar impact:** none for
+  a monthly model.
+
+---
+
+**Adjudication priority (recommended):** #5 first (largest dollar error,
+clear manual guidance), then #1 and #2 (return accuracy on leveraged and
+closing-cost deals), then #3 / #7 / #8 (smaller or lower-frequency), with #6
+and #10 as documentation touch-ups. Each has a specific proposed fix above;
+none is implemented pending owner decision.
