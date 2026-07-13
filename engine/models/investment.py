@@ -95,8 +95,8 @@ class LoanCostHandling(str, Enum):
 class LoanCosts(StrictModel):
     """Points and fees [AE pp. 445-446]."""
 
-    points_pct: float = 0.0
-    fees: float = 0.0
+    points_pct: float = Field(default=0.0, ge=0.0, le=100.0)
+    fees: float = Field(default=0.0, ge=0.0)
     timing: Optional[dt.date] = None  # None = funding date
     handling: LoanCostHandling = LoanCostHandling.expense
 
@@ -133,4 +133,26 @@ class Loan(StrictModel):
             raise ValueError("fixed loans require a numeric rate")
         if self.type == LoanType.floating and not isinstance(self.rate, FloatingRate):
             raise ValueError("floating loans require a FloatingRate rate")
+        # Economic sanity bounds (Codex finding #12): a fixed rate is an
+        # annual percent in [0, 100]; a floating spread is a percent in
+        # [-100, 100] (the index carries the base rate); an int
+        # amortization is a positive number of years. These catch obvious
+        # input errors (e.g. a rate typed as a decimal, a zero
+        # amortization term) rather than computing silent nonsense.
+        if isinstance(self.rate, (int, float)) and not 0.0 <= self.rate <= 100.0:
+            raise ValueError(
+                f"fixed loan rate {self.rate} is outside the sane range "
+                "0-100 (enter an annual percent, e.g. 6.5 for 6.5%)"
+            )
+        if isinstance(self.rate, FloatingRate) and not -100.0 <= self.rate.spread <= 100.0:
+            raise ValueError(
+                f"floating loan spread {self.rate.spread} is outside the "
+                "sane range -100 to 100 percent"
+            )
+        if isinstance(self.amortization, int) and self.amortization < 1:
+            raise ValueError(
+                f"integer amortization must be a positive number of years, "
+                f"got {self.amortization} (use 'interest_only' or "
+                "'fully_amortizing' for the non-amortizing / term cases)"
+            )
         return self

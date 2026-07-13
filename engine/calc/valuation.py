@@ -220,6 +220,15 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
     convention = valuation.period_convention
     rate = valuation.discount_rate
     resale_month = resale.resale_month
+    # No silent numbers: a valuation date after disposition leaves no
+    # holding period — the truncated stream would be empty and PV/IRR
+    # meaningless. Refuse rather than return a zero (Codex finding #9).
+    if pv_start > resale_month:
+        raise ValueError(
+            f"pv_start {pv_start} is after the resale month "
+            f"{resale_month}; there is no holding period to value. The "
+            "valuation date must be at or before disposition."
+        )
 
     price = (model.purchase.price
              if model.purchase is not None and model.purchase.price is not None

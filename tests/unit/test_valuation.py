@@ -272,6 +272,25 @@ class TestLeveraged:
         assert result.valuation.leveraged_pv is None
         assert result.valuation.leveraged_irr is None
 
+
+class TestPvStartAfterDisposition:
+    """Codex finding #9 (DEVIATIONS.md §22): a valuation date after the
+    resale month leaves no holding period — refuse, don't return zero."""
+
+    def test_pv_start_after_resale_refused(self):
+        # resale defaults to analysis end 2030-12; pv_start 2031-06 (a
+        # look-forward month, within the timeline) is after it.
+        model = flat_noi_model(pv_start=dt.date(2031, 6, 1))
+        with pytest.raises(ValueError, match="after the resale month"):
+            run_property(model)
+
+    def test_pv_start_at_resale_month_allowed(self):
+        """A same-month buy/sell is degenerate but valid — pv_start ==
+        resale month must not raise (the guard is strict `>`)."""
+        model = flat_noi_model(pv_start=dt.date(2030, 12, 1))
+        result = run_property(model)
+        assert result.valuation.unleveraged_pv is not None
+
     def test_unleveraged_irr_none_without_price(self):
         result = run_property(flat_noi_model())
         assert result.valuation.unleveraged_pv is not None

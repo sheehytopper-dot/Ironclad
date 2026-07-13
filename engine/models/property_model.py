@@ -225,6 +225,7 @@ class PropertyModel(StrictModel):
             "expenses": [e.name for e in self.expenses],
             "expense_groups": [g.name for g in self.expense_groups],
             "custom_indices": [i.name for i in self.inflation.custom_indices],
+            "loans": [ln.name for ln in self.loans],
         }
         for coll, names in collections.items():
             dupes = {n for n in names if names.count(n) > 1}

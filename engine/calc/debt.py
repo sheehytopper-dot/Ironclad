@@ -212,9 +212,19 @@ def build_loan_schedule(loan: Loan, months: pd.PeriodIndex,
 
     timing_basis = (inflation.timing_basis if inflation is not None
                     else TimingBasis.analysis_year)
+    # Additional principal only applies during the loan's payment window
+    # (funding+1 .. maturity). A payment dated outside it would be
+    # silently dropped by the schedule loop, so refuse loudly instead
+    # (no silent numbers — Codex finding #11).
     additional = {}
     for extra in loan.additional_principal:
         month = _month(extra.date)
+        if month < funding + 1 or month > maturity:
+            raise ValueError(
+                f"loan {loan.name!r}: additional principal dated {month} "
+                f"is outside the loan's active window "
+                f"({funding + 1}..{maturity}); it would never be applied"
+            )
         additional[month] = additional.get(month, 0.0) + extra.amount
 
     loan_months = pd.period_range(funding + 1, maturity, freq="M")

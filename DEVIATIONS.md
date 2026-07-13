@@ -991,3 +991,50 @@ seller never had). No golden is affected (none set `valuation`).
   sensitivity here).
 - **Revisit when:** Phase 4 renders these as the §7 report 5-6 grids; a
   deal needs a price-step or GIM-interval axis.
+
+## 22. Codex-review direct fixes (2026-07-12): loan-name uniqueness, additional-principal window, pv_start-vs-disposition, loan input bounds
+
+An independent Codex review of `engine/calc/{debt,resale,valuation}.py`
+surfaced 12 findings. Four are validation/guard fixes with no design
+ambiguity — applied 2026-07-12 (tests in `tests/unit/test_debt.py`
+::TestValidationFixes and `test_valuation.py`::TestPvStartAfterDisposition).
+The other eight touch already-adjudicated cash-flow-basis or
+numerical-method definitions and were written up for owner decision
+(not implemented) — see the review hand-off, not this section.
+
+- **#4 Duplicate loan names (`engine/models/property_model.py`
+  `_check_unique_names`).** `resale.py` keys loan payoffs by
+  `loan.name`; two loans sharing a name silently collapsed to one
+  payoff entry, understating total debt payoff and overstating leveraged
+  proceeds (the §9.3 payoff invariant caught it only when the two
+  balances differed). `loans` now joins the other named collections in
+  the uniqueness validator — duplicate loan names are refused at model
+  load.
+- **#11 Additional principal outside the loan's active window
+  (`engine/calc/debt.py` `build_loan_schedule`).** An
+  `additional_principal` dated before the first payment month
+  (`funding + 1`) or after `maturity` never occurred in the schedule
+  loop and was silently dropped. It now raises, naming the valid window
+  — no silent numbers.
+- **#9 `pv_start` after disposition (`engine/calc/valuation.py`
+  `compute_valuation`).** `pv_start` was validated only against the full
+  timeline (which includes the 12-month resale look-forward), not
+  against the resale month. A `pv_start` after the resale month left the
+  truncated holding stream empty, yielding a meaningless PV of 0. It now
+  raises when `pv_start > resale_month`; `pv_start == resale_month` (a
+  degenerate one-month hold) is still allowed. This also prevents the
+  direct-cap `forward_12` window from overflowing the timeline.
+- **#12 Economic sanity bounds on loan inputs
+  (`engine/models/investment.py`).** A fixed rate is now constrained to
+  0-100 percent (catching a rate typed as a decimal or as 650 for 6.5%);
+  a floating spread to ±100; an integer amortization to ≥ 1 year; and
+  `LoanCosts.points_pct`/`fees` to ≥ 0 (points ≤ 100). These reject
+  obvious input errors rather than computing silent nonsense. The JSON
+  Schema was regenerated (`scripts/export_json_schema.py`).
+
+**Revisit when:** the eight scope-decision findings (leveraged-IRR
+funding timing, closing costs in returns, amortized-loan-cost cash
+timing, capital-cost capitalization in resale, multiple-IRR handling,
+the IRR bracket's negative-rate floor, the end-of-month sale convention,
+and the stabilize-occupancy whole-NOI scaling) are adjudicated by the
+owner.

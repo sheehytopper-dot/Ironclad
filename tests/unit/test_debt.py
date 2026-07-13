@@ -368,3 +368,75 @@ class TestLedgerWiring:
         bare = run_property(self.build_model([]))
         levered = run_property(self.build_model([thirty_year()]))
         assert levered.ledger.frame[CFBDS].equals(bare.ledger.frame[CFBDS])
+
+
+class TestValidationFixes:
+    """Regression tests for the 2026-07-12 Codex-review direct fixes
+    (DEVIATIONS.md §22): loan-name uniqueness (#4), additional-principal
+    window (#11), economic sanity bounds (#12)."""
+
+    def model_with_loans(self, loans):
+        lease = Lease(
+            tenant_name="T", area=12_000, lease_type="industrial",
+            start_date=BEGIN, term_months=60,
+            base_rent=MoneyRate(
+                amount=10.0, unit=MoneyUnit.dollars_per_area_per_year),
+            upon_expiration=UponExpiration.vacate)
+        return PropertyModel(
+            property=PropertyInfo(name="Debt", property_type="industrial",
+                                  analysis_begin=BEGIN, analysis_term_years=5),
+            area_measures=AreaMeasures(
+                property_size=12_000,
+                rentable_area_mode=RentableAreaMode.fixed,
+                rentable_area_fixed=12_000),
+            inflation=FLAT, rent_roll=[lease], loans=list(loans))
+
+    def test_duplicate_loan_names_refused(self):
+        """#4: two loans with the same name would collapse in the
+        payoff dict, understating debt payoff. Refuse at model
+        validation, like every other named collection."""
+        with pytest.raises(ValueError, match="duplicate names in loans"):
+            self.model_with_loans([thirty_year(name="Senior"),
+                                   thirty_year(name="Senior")])
+
+    def test_additional_principal_before_window_refused(self):
+        """#11: an additional-principal date before the first payment
+        month would be silently dropped — refuse loudly instead."""
+        loan = thirty_year(additional_principal=[AdditionalPrincipal(
+            date=dt.date(2025, 6, 1), amount=100_000.0)])  # before funding
+        with pytest.raises(ValueError, match="outside the loan's active window"):
+            build(loan)
+
+    def test_additional_principal_after_maturity_refused(self):
+        loan = thirty_year(term_months=60, additional_principal=[
+            AdditionalPrincipal(date=dt.date(2040, 1, 1), amount=100_000.0)])
+        with pytest.raises(ValueError, match="outside the loan's active window"):
+            build(loan)
+
+    def test_additional_principal_inside_window_still_works(self):
+        """The guard doesn't reject valid in-window paydowns."""
+        loan = thirty_year(additional_principal=[AdditionalPrincipal(
+            date=dt.date(2027, 1, 1), amount=100_000.0)])
+        schedule = build(loan)
+        assert schedule.frame.loc[month("2027-01"),
+                                  "additional_principal"] == pytest.approx(
+            100_000.0)
+
+    def test_negative_fixed_rate_refused(self):
+        with pytest.raises(ValueError, match="outside the sane range 0-100"):
+            thirty_year(rate=-1.0)
+
+    def test_absurd_fixed_rate_refused(self):
+        """A rate typed as 650 (meaning 6.5%) is caught."""
+        with pytest.raises(ValueError, match="outside the sane range 0-100"):
+            thirty_year(rate=650.0)
+
+    def test_zero_amortization_years_refused(self):
+        with pytest.raises(ValueError, match="positive number of years"):
+            thirty_year(amortization=0, term_months=60)
+
+    def test_negative_loan_cost_fields_refused(self):
+        with pytest.raises(ValueError):
+            LoanCosts(points_pct=-1.0)
+        with pytest.raises(ValueError):
+            LoanCosts(fees=-500.0)
