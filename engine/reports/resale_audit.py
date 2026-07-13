@@ -60,6 +60,21 @@ def resale_audit(result) -> pd.DataFrame:
     return frame
 
 
+def resale_audit_report(result):
+    """The Property Resale Audit as a :class:`~engine.reports.base.Report`
+    (spec §7 report 21), conforming to the Phase 4 builder contract. A
+    line/amount cascade — not an account-tree ledger view — so ``monetary``
+    is False and the unit/period toggles pass it through untouched; the
+    frame and :func:`reconcile_to_ledger` are unchanged."""
+    from engine.reports.base import Report, ReportMeta
+
+    frame = resale_audit(result)
+    meta = ReportMeta(name="Property Resale Audit", number=21, monetary=False,
+                      citation="[AE pp. 464-471]",
+                      extra=dict(frame.attrs))
+    return Report(frame=frame, meta=meta)
+
+
 def reconcile_to_ledger(audit: pd.DataFrame, result) -> pd.Series:
     """Differences between the audit's proceeds/payoff lines and the
     ledger's posted columns (exactly zero when reconciled). When the

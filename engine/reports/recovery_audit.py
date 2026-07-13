@@ -58,6 +58,20 @@ def recovery_audit(result) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COLUMNS)
 
 
+def recovery_audit_report(result):
+    """The Recovery Audit as a :class:`~engine.reports.base.Report` (spec §7
+    report 18), conforming to the Phase 4 builder contract. Per-tenant
+    per-pool per-month detail — not an account-tree ledger view — so
+    ``monetary`` is False and the unit/period toggles pass it through
+    untouched; the frame and :func:`reconcile_to_ledger` are unchanged."""
+    from engine.reports.base import Report, ReportMeta
+
+    frame = recovery_audit(result)
+    meta = ReportMeta(name="Recovery Audit", number=18, monetary=False,
+                      citation="[AE pp. 585-604]")
+    return Report(frame=frame, meta=meta)
+
+
 def reconcile_to_ledger(report: pd.DataFrame, result) -> pd.Series:
     """The report's recovery total per month minus the ledger's Expense
     Recovery Revenue — exactly zero everywhere when the report reconciles

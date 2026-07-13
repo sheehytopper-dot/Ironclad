@@ -150,7 +150,46 @@ builder.
 
 ---
 
-## Step 0 — Owner-gated inputs & decisions (runs in parallel; gates completion, not start)
+## Step 0 — Owner-gated inputs & decisions — **RESOLVED 2026-07-13**
+
+**Resolved 2026-07-13 (advisor-recommended, owner-confirmed by
+proceeding).** The four decisions below are now settled; the original
+open questions are preserved beneath each for the record.
+
+1. **Report-scope trim — build the priority set now, defer the tail.**
+   Deferred to a later pass (six reports, not the plan's original five):
+   #10 Returns Over Time, #13 Leasing Activity, #14 Tenant Cash Flow /
+   Lease PV, #17 Percentage Rent Audit, #19 Expense Group Audit, #22 Rent
+   Schedule Audit. (#17 was added to the deferral because percentage rent
+   itself is still externally unvalidated pending golden #3, so its audit
+   report is low-value to build now.) Everything else in the 24-report
+   catalog is in scope for Phase 4, gated on the default §8 export set at
+   minimum.
+2. **§8 export-gate comparison source — confirmed as written.** Owner
+   spot-check of the formatted workbook + exact reconciliation to the
+   engine's source of truth + the golden CSVs as the external ARGUS-based
+   anchor for Cash Flow / Benchmark Comparison. No real ARGUS print is
+   available to diff against; this is the same evidentiary standard that
+   passed Gates 1-3.
+3. **ModelingPolicies rounding defaults (§4.3) — set to ARGUS's stated
+   defaults from [AE pp. 504-527], read directly.** The manual's Rounding
+   section [AE p. 508] states every rounding option (Vendor's Cost Net,
+   AREA ERV, 'Say' Value) defaults to **None** — so the report-level
+   rounding default is **none / full precision** (`Rounding.none`), which
+   is also what the golden reconciliation tests require. Adjacent policy
+   defaults recorded from the same section for owner visibility (all
+   already the engine's fixed behavior, cited in `engine/reports/base.py`):
+   general vacancy & credit-loss Calculation Frequency = **Monthly**
+   [AE p. 506]; Apply Admin Fees As = **% of Recoverable Expenses**
+   [AE p. 520]; Monthly Detail Inflation = **Nominal Growth Factors**
+   [AE p. 507]; Rent for CPI Increases = **Rent in Prior 12 Months**
+   [AE p. 514]. `ModelingPolicies` this step carries the one report-layer
+   toggle that actually varies (rounding); the others are documented, not
+   re-plumbed (they have no separate consumer — no silent inputs).
+4. **Tenant discount rate for #14 — moot.** #14 is deferred per decision
+   1, so no schema field is needed yet.
+
+<details><summary>Original open questions (for the record)</summary>
 
 **Owner: Topper (human). Not a Claude task — future sessions must not act
 on these without his sign-off.** Flagged the way Phase 3's Step 0 was:
@@ -175,6 +214,8 @@ on these without his sign-off.** Flagged the way Phase 3's Step 0 was:
   default set (or defers policies to their own mini-step).
 - **Tenant discount rate for report #14** (Tenant Cash Flow / Lease PV) —
   no schema field today; owner decides whether to add one or drop #14.
+
+</details>
 
 ## Step 1 — Report infrastructure: the builder contract + toggle/period engine (session 1)
 

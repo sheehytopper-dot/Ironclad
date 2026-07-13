@@ -120,6 +120,20 @@ def lease_audit(result) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=COLUMNS)
 
 
+def lease_audit_report(result):
+    """The Lease Audit as a :class:`~engine.reports.base.Report` (spec §7
+    report 16), conforming to the Phase 4 builder contract. Per-tenant
+    per-month detail — not an account-tree ledger view — so ``monetary``
+    is False and the unit/period toggles pass it through untouched; the
+    frame and :func:`reconcile_to_ledger` are unchanged."""
+    from engine.reports.base import Report, ReportMeta
+
+    frame = lease_audit(result)
+    meta = ReportMeta(name="Lease Audit", number=16, monetary=False,
+                      citation="[AE pp. 535, 538]")
+    return Report(frame=frame, meta=meta)
+
+
 def reconcile_to_ledger(report: pd.DataFrame, result) -> pd.DataFrame:
     """Per-month report totals minus the ledger's revenue lines — a frame
     of exact zeros when the report reconciles (the Gate 2 requirement).

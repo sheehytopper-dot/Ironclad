@@ -161,8 +161,9 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 3 PASSED
-  (owner declaration 2026-07-12); Phase 4 begins.** Phase 1 shipped 2026-07-05:
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
+  IN PROGRESS — Step 1 shipped 2026-07-13 (report-builder contract + toggle/period
+  engine); Gate 3 passed 2026-07-12.** Phase 1 shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -525,28 +526,64 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   shared `valuation._t0_costs`/`_apply_loan_proceeds`; per-cell NaN on
   ambiguous IRR) are **also CLOSED** (commit 5268c64). Suite 425 passed +
   the same 4 by-design golden reds (137/47, 33/12).
-- **Next session's first prompt:** "Phase 4 is OPEN (GATE 3 passed
-  2026-07-12; DEVIATIONS §24 fully closed and owner-verified 2026-07-13).
-  **NEXT_STEPS_TO_PHASE4.md was drafted 2026-07-13 and is awaiting owner
-  review** — per Iron Rule 2 applied to planning, NO Phase 4
-  engine/report/UI/export code is written until Topper has reviewed and
-  approved that plan. First task: check with the owner whether he has
-  reviewed NEXT_STEPS_TO_PHASE4.md and resolved its Step 0 owner-gated
-  decisions (report-scope trims, the ARGUS-print comparison source for
-  the §8 export gate, ModelingPolicies rounding defaults). If approved,
-  begin Phase 4 Step 1 per that plan (the report-builder contract +
-  toggle/period infrastructure — spec §7 intro, §4.3), each report's
-  acceptance check being ledger/audit reconciliation, never input tuning.
-  If NOT yet reviewed, there is NO Phase 4 code to invent — do not
-  scaffold reports, the Excel exporter, or the cancelled in-app OM
-  ingestion ('Phase 7'). REMEMBER the standing gaps, all carried forward
-  unchanged and none a Phase 4 blocker: percentage rent externally
-  unvalidated pending golden #3; tenant misc items + purchase/deposits/
-  debt/resale/valuation/sensitivity externally unvalidated (no golden
-  exercises them); Freeport B, Cedar Alt B, and Freeport E parked for
-  beta-stage GUI testing (their Gate 2/3 assertions stay red by design —
-  137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's
-  sibling, not open; live price derivation permanently refusing
-  (DEVIATIONS §20 #6), not an open gap. When the plan is approved and a
-  step lands, commit, push, and update this prompt to point at the next
-  Phase 4 step."
+  **NEXT_STEPS_TO_PHASE4.md Step 0 RESOLVED (owner-confirmed 2026-07-13)**
+  and recorded in-line in that file: (1) build the priority report set
+  now, defer six low-frequency reports (#10 Returns Over Time, #13 Leasing
+  Activity, #14 Tenant Cash Flow/Lease PV, #17 Percentage Rent Audit, #19
+  Expense Group Audit, #22 Rent Schedule Audit); (2) §8 export gate =
+  owner workbook spot-check + exact reconciliation + golden-CSV anchor (no
+  ARGUS print available); (3) ModelingPolicies rounding default = **none**
+  ([AE p. 508] — every Rounding option defaults to None), adjacent ARGUS
+  policy defaults documented in `engine/reports/base.py` (monthly GV/CL
+  [AE p. 506], % of Recoverable Expenses admin fee [AE p. 520], nominal
+  growth inflation [AE p. 507], Rent-in-Prior-12-Months CPI [AE p. 514]);
+  (4) tenant discount rate moot (#14 deferred).
+  **Phase 4 Step 1 complete 2026-07-13:** the report-builder contract +
+  toggle/period engine (`engine/reports/base.py`; spec §7 intro, §4.3).
+  `Report(frame, meta)` dataclass (unpackable as the spec's `(DataFrame,
+  metadata)` tuple); `Unit` toggle (Total $ / $ per SF / per-month /
+  per-occupied-SF), `Period` toggle (monthly/quarterly/annual/fiscal) as
+  reusable transforms over a monthly Total-$ frame — `aggregate_period`
+  delegates to the ledger's own `to_annual`/`to_quarterly`/
+  `to_fiscal_annual` (never separately computed, spec §2.3); `apply_unit`
+  divides by the period's **mean rentable/occupied area** (per-SF /
+  per-occupied) or **month count** (per-month), zero-area → NaN not a
+  silent zero; `apply_rounding` report-level only. `ModelingPolicies`
+  (rounding default none). `build_monetary_report` ties them together for
+  §7 monetary reports. The three existing audits (Lease/Recovery/Resale)
+  harmonized via additive `*_report` wrappers returning `Report`
+  (monetary=False, unit/period pass-through) — the bare builders and
+  `reconcile_*` helpers are UNCHANGED, their tests green. 24 new tests
+  (tests/unit/test_report_base.py): aggregate matches the ledger exactly,
+  sum(monthly)=annual=quarterly=fiscal (§9.3), correct PSF/per-occupied/
+  per-month denominators, audits still reconcile to 1e-9. Suite: **449
+  passed + the same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3
+  capital)** — counts unchanged.
+- **Next session's first prompt:** "Phase 4 Step 1 is DONE (report-builder
+  contract + toggle/period engine in engine/reports/base.py, shipped
+  2026-07-13; Step 0 resolved and recorded in NEXT_STEPS_TO_PHASE4.md).
+  Begin **Phase 4 Step 2: the Cash Flow report (#1) + Benchmark Comparison
+  report (#24)** per NEXT_STEPS_TO_PHASE4.md Step 2 (spec §7 reports 1 and
+  24; [AE pp. 535-539]). Build the Cash Flow builder as a `Report` over
+  `ledger.frame` in §2.3 account-tree order (monthly/annual/fiscal views,
+  the unit toggle) that reconciles to the ledger exactly; refactor the
+  golden tests' `_collect_misses` into a reusable Benchmark Comparison
+  builder that loads a golden's `expected_annual_cash_flow.csv`, runs the
+  engine, and emits a per-line diff with the §9.1 $500/line tolerance
+  flags. Acceptance: Cash Flow reproduces each golden's fiscal cash flow
+  (Clorox green; Freeport/Cedar within the documented deferred-B/E deltas)
+  and Benchmark reproduces the current pass/fail line counts EXACTLY — the
+  four by-design reds stay red, never tune inputs to close them. Use the
+  Step 1 primitives (`build_monetary_report`, `aggregate_period`,
+  `assert_period_consistency`); do NOT scaffold the Excel exporter (Step
+  6), the deferred six reports, or the cancelled in-app OM ingestion
+  ('Phase 7'). REMEMBER the standing gaps, all carried forward unchanged
+  and none a Phase 4 blocker: percentage rent externally unvalidated
+  pending golden #3; tenant misc items + purchase/deposits/debt/resale/
+  valuation/sensitivity externally unvalidated (no golden exercises them);
+  Freeport B, Cedar Alt B, and Freeport E parked for beta-stage GUI
+  testing (their Gate 2/3 assertions stay red by design — 137/47 Gate 2,
+  33/12 Gate 3 capital); Cedar Alt D closed as C's sibling, not open; live
+  price derivation permanently refusing (DEVIATIONS §20 #6), not an open
+  gap. When Step 2 lands, commit, push, and update this prompt to point at
+  Phase 4 Step 3 (the valuation report family #5/#6/#8/#9/#20)."
