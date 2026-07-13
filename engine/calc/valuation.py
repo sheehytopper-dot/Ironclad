@@ -234,6 +234,42 @@ def _direct_cap_value(valuation: ValuationInputs, frame: pd.DataFrame,
     return noi / (direct.cap_rate / 100.0)
 
 
+def _t0_costs(frame: pd.DataFrame, pv_start: pd.Period) -> float:
+    """Closing + financing costs the investor pays at or before the
+    valuation date (below-the-line — closing costs and loan costs posted
+    at/before pv_start). The #2 reframe (DEVIATIONS.md §24) counts returns
+    net of these. Ledger columns are negative (report sign); returned
+    positive. Shared by compute_valuation and compute_sensitivity."""
+    closing = -float(frame[CLOSING_COSTS][frame.index <= pv_start].sum())
+    financing = -float(frame[LOAN_COSTS][frame.index <= pv_start].sum())
+    return closing + financing
+
+
+def _apply_loan_proceeds(stream: pd.Series, loan_schedules: list,
+                         pv_start: pd.Period, resale_month: pd.Period,
+                         ) -> tuple[pd.Series, float]:
+    """Post staged (post-pv_start) loan draws as positive inflows at their
+    funding month on a copy of ``stream``, and return
+    ``(stream, day_one_proceeds)`` where ``day_one_proceeds`` sums the
+    proceeds available at t0: loans funding at pv_start contribute their
+    full principal; loans funded before pv_start contribute the assumed
+    outstanding balance at pv_start (the #1 funding-timing fix,
+    DEVIATIONS.md §24). Shared by compute_valuation and
+    compute_sensitivity so the two never drift apart."""
+    out = stream.copy()
+    day_one_proceeds = 0.0
+    for s in loan_schedules:
+        if s.funding_month == pv_start:
+            day_one_proceeds += s.principal0
+        elif s.funding_month < pv_start:
+            # assumed existing loan: the buyer takes on its balance
+            day_one_proceeds += float(s.balance[pv_start])
+        elif s.funding_month <= resale_month:
+            # staged/construction draw: a positive inflow at its month
+            out.loc[s.funding_month] += s.principal0
+    return out, day_one_proceeds
+
+
 def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
                       months: pd.PeriodIndex, analysis_begin: dt.date,
                       model: PropertyModel,
@@ -265,16 +301,10 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
              else None)
 
     # t0 acquisition/financing costs the investor pays at the valuation
-    # date — closing costs and loan costs posted at or before pv_start.
-    # These are below-the-line (not in CFBDS/CFADS), and the owner-approved
-    # reframe (#2, DEVIATIONS.md §24) counts returns net of them: the t0
-    # outflow is price + these costs, not price alone ("the numbers LP
-    # cares about is the actual return including closing costs"). Costs
-    # dated AFTER pv_start are a known residual gap (still below the line).
-    # Ledger columns are negative (report sign); flip to positive outflows.
-    closing_at_t0 = -float(frame[CLOSING_COSTS][frame.index <= pv_start].sum())
-    financing_at_t0 = -float(frame[LOAN_COSTS][frame.index <= pv_start].sum())
-    t0_costs = closing_at_t0 + financing_at_t0
+    # date (owner-approved reframe #2, DEVIATIONS.md §24; :func:`_t0_costs`).
+    # Costs dated AFTER pv_start are a known residual gap (still below the
+    # line).
+    t0_costs = _t0_costs(frame, pv_start)
 
     # Unleveraged: CFBDS over the hold + the unleveraged net resale;
     # t0 = price + t0 closing/financing costs.
@@ -289,27 +319,17 @@ def compute_valuation(valuation: ValuationInputs, ledger: MonthlyLedger,
     )
 
     # Leveraged: CFADS over the hold + the leveraged net resale, plus each
-    # loan's proceeds posted at its ACTUAL funding month (#1). t0 equity =
-    # price + t0 costs − only the proceeds available at t0 (loans funding
-    # at pv_start, plus the assumed outstanding balance of any loan funded
-    # before pv_start); later-funding draws post as stream inflows, not
-    # netted at t0. Computable only with loans.
+    # loan's proceeds posted at its ACTUAL funding month (#1;
+    # :func:`_apply_loan_proceeds`). t0 equity = price + t0 costs − only the
+    # proceeds available at t0. Computable only with loans.
     leveraged_pv = None
     leveraged_irr = None
     leveraged_equity = None
     if model.loans:
         lev_stream = holding_stream(frame[CFADS], resale.net_leveraged,
                                     resale_month)
-        day_one_proceeds = 0.0
-        for s in loan_schedules:
-            if s.funding_month == pv_start:
-                day_one_proceeds += s.principal0
-            elif s.funding_month < pv_start:
-                # assumed existing loan: the buyer takes on its balance
-                day_one_proceeds += float(s.balance[pv_start])
-            elif s.funding_month <= resale_month:
-                # staged/construction draw: a positive inflow at its month
-                lev_stream.loc[s.funding_month] += s.principal0
+        lev_stream, day_one_proceeds = _apply_loan_proceeds(
+            lev_stream, loan_schedules, pv_start, resale_month)
         lev_buckets = _period_buckets(lev_stream, pv_start, method, convention)
         leveraged_pv = _present_value(lev_buckets, rate, method)
         if price is not None:

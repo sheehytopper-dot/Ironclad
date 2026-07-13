@@ -47,10 +47,12 @@ from engine.models.valuation import Resale, ResaleMethod
 from .ledger import CFADS, CFBDS
 from .resale import ResaleResult, compute_resale
 from .valuation import (
+    _apply_loan_proceeds,
     _period_buckets,
     _pv_start_month,
     _present_value,
     _solve_irr,
+    _t0_costs,
     holding_stream,
 )
 
@@ -104,6 +106,18 @@ def _lev_stream(result, resale: ResaleResult) -> pd.Series:
                           resale.resale_month)
 
 
+def _safe_irr(buckets, t0, method):
+    """`_solve_irr` for one matrix cell, catching the #7 multiple-IRR
+    guard: a non-conventional stream (more than one sign change) NaNs that
+    one cell rather than raising and killing the whole matrix (§24
+    sensitivity follow-up). `_solve_irr` also returns None (→ NaN) when no
+    real IRR brackets."""
+    try:
+        return _solve_irr(buckets, t0, method)
+    except ValueError:
+        return float("nan")
+
+
 def compute_sensitivity(model: PropertyModel, result,
                         ) -> Optional[SensitivityMatrices]:
     """Build the value and IRR matrices from the assembled ``RunResult``
@@ -127,22 +141,33 @@ def compute_sensitivity(model: PropertyModel, result,
                                    intervals.count)
     cap_axis = _centered_axis(base_resale.exit_cap_rate,
                               intervals.cap_rate_step, intervals.count)
-    loan_proceeds = sum(float(s.funding.sum()) for s in result.loan_schedules)
     has_loans = bool(result.loan_schedules)
+    frame = result.ledger.frame
 
     # One resale per exit cap (columns share it) — read the NOI window once.
     resale_by_cap = {cap: _resale_at_cap(base_resale, cap, result, model)
                      for cap in cap_axis}
+    resale_month = next(iter(resale_by_cap.values())).resale_month
+
+    # t0 costs and the day-one/staged split reuse the SAME valuation.py
+    # helpers as compute_valuation, so the sensitivity grids can't drift
+    # from the single-point IRR (#1/#2, §24 follow-up). t0 costs and
+    # day-one proceeds are cap-independent; the staged-draw inflows are
+    # applied to each cap's leveraged stream.
+    t0_costs = _t0_costs(frame, pv_start)
     unlev_buckets = {
         cap: _period_buckets(_unlev_stream(result, resale_by_cap[cap]),
                              pv_start, method, convention)
         for cap in cap_axis
     }
-    lev_buckets = {
-        cap: _period_buckets(_lev_stream(result, resale_by_cap[cap]),
-                             pv_start, method, convention)
-        for cap in cap_axis
-    }
+    lev_buckets = {}
+    day_one_proceeds = 0.0
+    for cap in cap_axis:
+        stream, day_one_proceeds = _apply_loan_proceeds(
+            _lev_stream(result, resale_by_cap[cap]),
+            result.loan_schedules, pv_start, resale_month)
+        lev_buckets[cap] = _period_buckets(stream, pv_start, method,
+                                           convention)
 
     # Value matrix: unleveraged PV over discount × cap.
     value = pd.DataFrame(
@@ -158,18 +183,21 @@ def compute_sensitivity(model: PropertyModel, result,
     base_cap = base_resale.exit_cap_rate
     price_axis = [float(value.loc[rate, base_cap]) for rate in discount_axis]
 
-    def irr_grid(buckets_by_cap, equity_offset):
+    def irr_grid(buckets_by_cap, t0_adjustment):
+        # t0 = −(price + t0_adjustment): unleveraged adds the t0 costs;
+        # leveraged adds (t0 costs − day-one proceeds) = the equity offset,
+        # matching compute_valuation exactly. Ambiguous cells NaN (#7).
         return pd.DataFrame(
-            {cap: {price: _solve_irr(buckets_by_cap[cap],
-                                     -(price - equity_offset), method)
+            {cap: {price: _safe_irr(buckets_by_cap[cap],
+                                    -(price + t0_adjustment), method)
                    for price in price_axis}
              for cap in cap_axis},
             index=price_axis, columns=cap_axis,
         )
 
-    unleveraged_irr = irr_grid(unlev_buckets, 0.0)
+    unleveraged_irr = irr_grid(unlev_buckets, t0_costs)
     if has_loans:
-        leveraged_irr = irr_grid(lev_buckets, loan_proceeds)
+        leveraged_irr = irr_grid(lev_buckets, t0_costs - day_one_proceeds)
     else:
         leveraged_irr = pd.DataFrame(float("nan"), index=price_axis,
                                      columns=cap_axis)

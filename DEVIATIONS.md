@@ -1387,17 +1387,28 @@ Gate 3 capital) are unchanged.
   the month-end balance) is now stated explicitly in §19 item 8. No code
   change.
 
-**Sensitivity-module follow-ups surfaced by these fixes (flagged, NOT
-changed — out of the owner's valuation.py scope):**
-1. `sensitivity.py`'s leveraged IRR matrix still uses the OLD t0
-   convention (`−(price − all_proceeds)`, no closing/financing costs, all
-   proceeds netted at t0), so it is now inconsistent with the corrected
-   `valuation.py` leveraged IRR. It should be reframed the same way (#1/#2)
-   for consistency — recommended as a follow-up.
-2. The #7 sign-change guard now propagates into `sensitivity.py`'s IRR
-   matrices: a cash-negative property (e.g. a large recurring capital
-   drain) makes some price-row cells non-conventional, so the whole matrix
-   computation raises rather than marking those cells NaN. Consider
-   catching the guard per-cell in the matrix builder (NaN the ambiguous
-   cell) as a follow-up. Neither is a golden concern (no golden populates
-   valuation).
+**Sensitivity-module follow-ups surfaced by these fixes — BOTH CLOSED
+(fixed 2026-07-13):**
+1. **CLOSED.** `sensitivity.py`'s IRR grids were reframed to match the
+   corrected `valuation.py` t0 construction. The t0-cost and
+   day-one-vs-staged-draw logic was extracted into two shared helpers,
+   `valuation._t0_costs` and `valuation._apply_loan_proceeds`, which BOTH
+   `compute_valuation` and `compute_sensitivity` now call (so they cannot
+   drift again). The unleveraged IRR grid's t0 is now `−(price + t0
+   costs)`; the leveraged grid's is `−(price + t0 costs − day-one
+   proceeds)` with staged draws added as inflows per cap — identical to
+   `compute_valuation`. Tests:
+   `test_sensitivity.py::TestT0ReframeMirrorsValuation`
+   (closing costs lower the unleveraged grid; the leveraged base cell
+   equals `compute_valuation`'s own leveraged IRR — the §21 cross-check
+   pattern; a staged draw is not netted at t0). Cost-free, t0-funded
+   models are byte-identical to the prior behavior (existing grid tests
+   unchanged).
+2. **CLOSED.** The #7 multiple-IRR guard is now caught per cell in the
+   grid builder (`sensitivity._safe_irr` wraps `_solve_irr`): a
+   non-conventional stream NaNs that one cell instead of raising and
+   killing the whole matrix. Test:
+   `test_sensitivity.py::TestAmbiguousIrrCellNaN::test_mid_hold_capital_event_nans_cells_without_raising`
+   (a $2M mid-hold capital event drives an interior-negative stream; the
+   matrix computes with NaN cells, no exception). Neither item was a
+   golden concern (no golden populates valuation).
