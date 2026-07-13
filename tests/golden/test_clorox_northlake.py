@@ -34,6 +34,7 @@ import pytest
 from engine.calc.ledger import to_fiscal_annual
 from engine.calc.run import run_property
 from engine.models.io import load_property
+from engine.reports import benchmark_comparison, miss_lines
 
 FIXTURE_DIR = Path(__file__).parent / "clorox_northlake"
 GATE1_FISCAL_YEARS = [2027, 2028]
@@ -70,21 +71,20 @@ def expected():
 
 
 def _collect_misses(fiscal, expected, years, skip_accounts=frozenset()):
-    misses = []
-    for account, row in expected.items():
-        if account in skip_accounts:
-            continue
-        column = ACCOUNT_TO_COLUMN.get(account, account)
-        assert column in fiscal.columns, f"ledger is missing line {column!r}"
-        for year in years:
-            published = float(row[f"FY{year}"])
-            engine = float(fiscal.loc[year, column])
-            if abs(engine - published) > TOLERANCE:
-                misses.append(
-                    f"  {account} FY{year}: engine {engine:,.0f} vs "
-                    f"OM {published:,.0f} (diff {engine - published:+,.0f})"
-                )
-    return misses
+    """The per-line diff, delegated to the reusable Benchmark Comparison
+    builder (spec §7 report 24; engine/reports/benchmark.py). Identical
+    comparison and miss-line formatting as before the Phase 4 Step 2
+    refactor. ``expected`` here is ``{account: csv_row}`` (this file's
+    fixture shape), reshaped to the builder's ``{account: {year: $}}``; the
+    ``ACCOUNT_TO_COLUMN`` bridge (Capital Expenses → Capital Reserves) is
+    passed through unchanged."""
+    by_account = {account: {year: float(row[f"FY{year}"]) for year in years}
+                  for account, row in expected.items()}
+    report = benchmark_comparison(fiscal, by_account, fiscal_years=years,
+                                  tolerance=TOLERANCE,
+                                  account_to_column=ACCOUNT_TO_COLUMN,
+                                  skip_accounts=skip_accounts)
+    return miss_lines(report)
 
 
 def test_gate1_every_line_within_tolerance(fiscal, expected):

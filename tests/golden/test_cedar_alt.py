@@ -36,6 +36,7 @@ import pytest
 from engine.calc.ledger import to_fiscal_annual
 from engine.calc.run import run_property
 from engine.models.io import load_property
+from engine.reports import benchmark_comparison, miss_lines
 
 FIXTURE_DIR = Path(__file__).parent / "cedar_alt"
 FISCAL_YEARS = list(range(2027, 2038))  # FY2027-FY2037 (11 published columns)
@@ -82,20 +83,14 @@ def expected():
 
 
 def _collect_misses(fiscal, expected, years, skip_accounts=frozenset()):
-    misses = []
-    for account, by_year in expected.items():
-        if account in skip_accounts:
-            continue
-        assert account in fiscal.columns, f"ledger is missing line {account!r}"
-        for year in years:
-            published = by_year[year]
-            engine = float(fiscal.loc[year, account])
-            if abs(engine - published) > TOLERANCE:
-                misses.append(
-                    f"  {account} FY{year}: engine {engine:,.0f} vs "
-                    f"OM {published:,.0f} (diff {engine - published:+,.0f})"
-                )
-    return misses
+    """The per-line diff, delegated to the reusable Benchmark Comparison
+    builder (spec §7 report 24; engine/reports/benchmark.py). Identical
+    comparison and miss-line formatting as before the Phase 4 Step 2
+    refactor — the by-design red counts are unchanged."""
+    report = benchmark_comparison(fiscal, expected, fiscal_years=years,
+                                  tolerance=TOLERANCE,
+                                  skip_accounts=skip_accounts)
+    return miss_lines(report)
 
 
 def test_gate2_revenue_vacancy_expense_noi_within_tolerance(fiscal, expected):

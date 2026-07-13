@@ -6,11 +6,13 @@ Total $ / per-SF / per-month / per-occupied-SF unit toggle, the
 monthly/quarterly/annual/fiscal period views, and :class:`
 ~engine.reports.base.ModelingPolicies` (report-level rounding, §4.3).
 
-The Recovery Audit (report 18) and Lease Audit (report 16) arrived in
-Phase 2 Steps 5-6 as Gate 2 debugging tools; the Property Resale Audit
-(report 21) in Phase 3 Step 4. Each keeps its original bare-DataFrame
-builder and reconciliation helper, plus a ``*_report`` wrapper conforming
-to the Phase 4 contract. The full catalog is built out across Phase 4.
+The Cash Flow report (report 1) and Benchmark Comparison report (report
+24) arrive in Phase 4 Step 2. The Recovery Audit (report 18) and Lease
+Audit (report 16) arrived in Phase 2 Steps 5-6 as Gate 2 debugging tools;
+the Property Resale Audit (report 21) in Phase 3 Step 4. Each audit keeps
+its original bare-DataFrame builder and reconciliation helper, plus a
+``*_report`` wrapper conforming to the Phase 4 contract. The full catalog
+is built out across Phase 4.
 """
 from .base import (
     ModelingPolicies,
@@ -27,6 +29,13 @@ from .base import (
     period_mean_area,
     period_month_counts,
 )
+from .benchmark import (
+    benchmark_comparison,
+    load_expected_cash_flow,
+    miss_lines,
+)
+from .cash_flow import cash_flow
+from .cash_flow import reconcile_to_ledger as reconcile_cash_flow
 from .lease_audit import lease_audit, lease_audit_report
 from .lease_audit import reconcile_to_ledger as reconcile_lease_audit
 from .recovery_audit import recovery_audit, recovery_audit_report
@@ -41,6 +50,9 @@ __all__ = [
     "Report", "ReportMeta", "ModelingPolicies", "Unit", "Period", "Rounding",
     "aggregate_period", "apply_unit", "apply_rounding", "build_monetary_report",
     "period_month_counts", "period_mean_area", "assert_period_consistency",
+    # Cash Flow (#1) + Benchmark Comparison (#24)
+    "cash_flow", "reconcile_cash_flow",
+    "benchmark_comparison", "load_expected_cash_flow", "miss_lines",
     # audit builders (bare frame + reconciliation + contract wrapper)
     "lease_audit", "lease_audit_report", "reconcile_lease_audit",
     "recovery_audit", "recovery_audit_report", "reconcile_recovery_audit",
