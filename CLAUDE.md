@@ -162,9 +162,10 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
-  IN PROGRESS — Steps 1-2 shipped 2026-07-13 (Step 1 report-builder contract +
-  toggle/period engine; Step 2 Cash Flow report #1 + Benchmark Comparison #24);
-  Gate 3 passed 2026-07-12.** Phase 1 shipped 2026-07-05:
+  IN PROGRESS — Steps 1-3 shipped 2026-07-13 (Step 1 report-builder contract +
+  toggle/period engine; Step 2 Cash Flow report #1 + Benchmark Comparison #24;
+  Step 3 valuation report family #5/#6/#8/#9 + Loan Amortization #20); Gate 3
+  passed 2026-07-12.** Phase 1 shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -587,37 +588,63 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   the same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**
   — counts unchanged. No engine/calc code touched; no Excel exporter, no
   deferred reports, no UI scaffolded.
-- **Next session's first prompt:** "Phase 4 Steps 1-2 are DONE (Step 1
+  **Phase 4 Step 3 complete 2026-07-13:** the valuation report family
+  (`engine/reports/valuation_reports.py`: #5 IRR Matrix, #6 Value Matrix,
+  #8 Valuation & Return Summary, #9 Present Value) + Loan Amortization
+  (`engine/reports/loan_amortization.py`: #20); spec §7 reports 5-6/8-9/20,
+  [AE pp. 550-572, 593]. All **thin views over data already on
+  `RunResult`** — no calculation added, ledger never recomputed. `value_
+  matrix(result)` / `irr_matrix(result, *, leveraged)` view
+  `result.sensitivity` (NaN cells render blank; `reconcile_matrix_to_
+  source` ties to 1e-9, NaN↔NaN matches); `valuation_summary(result)` is
+  the ValuationResult metrics as a (metric, value, detail) cascade with
+  None→NaN so no-loan/no-price/no-direct-cap metrics render blank not zero
+  (`reconcile_valuation_summary` to 1e-9); `present_value(result, *,
+  leveraged)` exposes per-period cash flow / discount factor / PV via the
+  valuation helpers (`_period_buckets`/`holding_stream`/`_apply_loan_
+  proceeds`) and its `present_value` column **sums to the ValuationResult
+  PV** (`reconcile_present_value` ~0, unlev + lev); `loan_amortization(
+  result, loan_index)` is a loan's schedule frame, and `reconcile_loan_
+  amortization` proves the schedules SUMMED over all loans tie to the
+  ledger's Interest Expense / Principal Payments / Loan Costs exactly. §21
+  cross-check surfaced in the report: the IRR-matrix center cell equals the
+  ValuationResult IRR for a model priced at the grid's base (both 8% on the
+  flat 100k-NOI property). 20 new tests (tests/unit/test_valuation_reports.
+  py). **EXTERNALLY UNVALIDATED** — no golden populates valuation (none
+  will); validated by RunResult reconciliation + the §21 cross-check +
+  owner Excel hand-checks (DEVIATIONS §20/§21). Suite: **489 passed + the
+  same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)** —
+  counts unchanged. No engine/calc code touched; no Excel exporter, no
+  deferred reports, no UI scaffolded.
+- **Next session's first prompt:** "Phase 4 Steps 1-3 are DONE (Step 1
   report-builder contract + toggle/period engine in engine/reports/base.py;
-  Step 2 Cash Flow report #1 in engine/reports/cash_flow.py + Benchmark
-  Comparison #24 in engine/reports/benchmark.py — all shipped 2026-07-13).
-  Begin **Phase 4 Step 3: the valuation report family (#5 IRR Matrix, #6
-  Value Matrix, #8 Valuation & Return Summary, #9 Present Value, #20 Loan
-  Amortization)** per NEXT_STEPS_TO_PHASE4.md Step 3 (spec §7 reports 5-6,
-  8-9, 20; [AE pp. 550-572, 593]). The data already lives on `RunResult`
-  (`sensitivity` — value/IRR matrices; `valuation` — ValuationResult PVs/
-  IRRs; `loan_schedules[i].frame` — per-loan amortization), so these are
-  thin `Report` builders over that detail, each reconciling to its
-  RunResult source: IRR Matrix (#5) and Value Matrix (#6) over
-  `sensitivity` (NaN cells render blank); Valuation & Return Summary (#8)
-  over `valuation`; Present Value (#9) exposing the per-period discount
-  factors from the valuation helpers; Loan Amortization (#20) from each
-  loan schedule, reconciling to the ledger's financing lines. Acceptance
-  (NEXT_STEPS_TO_PHASE4.md Step 3): each reconciles to its RunResult
-  source; the IRR-matrix center cell equals the ValuationResult IRR (the
-  §21 cross-check); the Loan Amort schedule ties to the ledger's Interest/
-  Principal/Loan Costs. Use the Step 1 primitives where monetary; do NOT
-  scaffold the Excel exporter (Step 6), the deferred six reports (#10/#13/
-  #14/#17/#19/#22), or the cancelled in-app OM ingestion ('Phase 7').
-  REMEMBER the standing gaps, all carried forward unchanged and none a
-  Phase 4 blocker: percentage rent externally unvalidated pending golden
-  #3; tenant misc items + purchase/deposits/debt/resale/valuation/
-  sensitivity externally unvalidated (no golden exercises them — the
-  valuation reports are validated by RunResult reconciliation + the §21
-  cross-check + owner hand-checks, not a golden); Freeport B, Cedar Alt B,
-  and Freeport E parked for beta-stage GUI testing (their Gate 2/3
-  assertions stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital);
-  Cedar Alt D closed as C's sibling, not open; live price derivation
-  permanently refusing (DEVIATIONS §20 #6), not an open gap. When Step 3
-  lands, commit, push, and update this prompt to point at Phase 4 Step 4
-  (Occupancy #15 + Lease Summary #11 + Lease Expiration #12)."
+  Step 2 Cash Flow #1 in engine/reports/cash_flow.py + Benchmark Comparison
+  #24 in engine/reports/benchmark.py; Step 3 valuation family #5/#6/#8/#9 in
+  engine/reports/valuation_reports.py + Loan Amortization #20 in
+  engine/reports/loan_amortization.py — all shipped 2026-07-13). Begin
+  **Phase 4 Step 4: Occupancy (#15) + Lease Summary (#11) + Lease
+  Expiration (#12)** per NEXT_STEPS_TO_PHASE4.md Step 4 (spec §7 reports
+  11-12, 15; [AE pp. 573-604]). Occupancy (#15) from the occupancy series
+  (`result.occupied_area` / `result.rentable_area` / `result.occupancy`),
+  satisfying occupied ≤ rentable every month; Lease Summary (#11) and Lease
+  Expiration (#12) from the resolved chains (`result.segments`) — expiration
+  by year: count, SF, % of building, expiring rent, its SF summing to
+  rentable. (Step 4's plan also lists the audit tail #17/#19/#22, but those
+  are in the Step-0-deferred six — build ONLY #15/#11/#12 this step.)
+  Acceptance (NEXT_STEPS_TO_PHASE4.md Step 4): Occupancy satisfies occupied
+  ≤ rentable; Lease Expiration SF sums to rentable; each reconciles to its
+  RunResult source. Occupancy is a count/percent report (period toggle but
+  NOT the $ unit toggle — `monetary=False`); use the Step 1 primitives
+  where monetary. Do NOT scaffold the Excel exporter (Step 6), the deferred
+  six reports (#10/#13/#14/#17/#19/#22), or the cancelled in-app OM
+  ingestion ('Phase 7'). REMEMBER the standing gaps, all carried forward
+  unchanged and none a Phase 4 blocker: percentage rent externally
+  unvalidated pending golden #3; tenant misc items + purchase/deposits/
+  debt/resale/valuation/sensitivity externally unvalidated (no golden
+  exercises them); Freeport B, Cedar Alt B, and Freeport E parked for
+  beta-stage GUI testing (their Gate 2/3 assertions stay red by design —
+  137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's sibling,
+  not open; live price derivation permanently refusing (DEVIATIONS §20 #6),
+  not an open gap. When Step 4 lands, commit, push, and update this prompt
+  to point at Phase 4 Step 5 (summary/echo + remaining reports #2/#3/#4/#7/
+  #23 — the Step-0-deferred #10/#13/#14 stay deferred)."

@@ -36,6 +36,17 @@ from .benchmark import (
 )
 from .cash_flow import cash_flow
 from .cash_flow import reconcile_to_ledger as reconcile_cash_flow
+from .loan_amortization import loan_amortization
+from .loan_amortization import reconcile_to_ledger as reconcile_loan_amortization
+from .valuation_reports import (
+    irr_matrix,
+    present_value,
+    reconcile_matrix_to_source,
+    reconcile_present_value,
+    reconcile_valuation_summary,
+    valuation_summary,
+    value_matrix,
+)
 from .lease_audit import lease_audit, lease_audit_report
 from .lease_audit import reconcile_to_ledger as reconcile_lease_audit
 from .recovery_audit import recovery_audit, recovery_audit_report
@@ -53,6 +64,11 @@ __all__ = [
     # Cash Flow (#1) + Benchmark Comparison (#24)
     "cash_flow", "reconcile_cash_flow",
     "benchmark_comparison", "load_expected_cash_flow", "miss_lines",
+    # Valuation family (#5, #6, #8, #9) + Loan Amortization (#20)
+    "irr_matrix", "value_matrix", "reconcile_matrix_to_source",
+    "valuation_summary", "reconcile_valuation_summary",
+    "present_value", "reconcile_present_value",
+    "loan_amortization", "reconcile_loan_amortization",
     # audit builders (bare frame + reconciliation + contract wrapper)
     "lease_audit", "lease_audit_report", "reconcile_lease_audit",
     "recovery_audit", "recovery_audit_report", "reconcile_recovery_audit",
