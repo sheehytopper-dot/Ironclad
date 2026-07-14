@@ -162,12 +162,13 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
-  IN PROGRESS — Steps 1-5 shipped (Step 1 report-builder contract + toggle/period
+  IN PROGRESS — Steps 1-6 shipped (Step 1 report-builder contract + toggle/period
   engine; Step 2 Cash Flow #1 + Benchmark Comparison #24; Step 3 valuation family
   #5/#6/#8/#9 + Loan Amortization #20; Step 4 Occupancy #15 + Lease Summary #11 +
   Lease Expiration #12, with a #12 correction — DEVIATIONS §25 — approved &
   pushed; Step 5 Executive Summary #2 + Assumptions #3 + Sources & Uses #4 +
-  Resale Matrix #7 + Input Assumptions #23); Gate 3 passed 2026-07-12.** Phase 1
+  Resale Matrix #7 + Input Assumptions #23; Step 6 Excel export package §8 +
+  rent-roll export §5.2); Gate 3 passed 2026-07-12.** Phase 1
   shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
@@ -696,43 +697,82 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   **EXTERNALLY UNVALIDATED** — valuation/resale reports have no golden;
   validated by RunResult/ledger reconciliation + the §21 cross-check. Suite:
   **532 passed + the same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate
-  3 capital)** — counts unchanged. No engine/calc touched; no Excel exporter/
-  deferred reports/UI scaffolded.
-- **Next session's first prompt:** "Phase 4 Steps 1-5 are DONE (Step 1
+  3 capital)** — counts unchanged. No engine/calc touched.
+  **Step 5 test-defect fix 2026-07-14 (DEVIATIONS §25, owner-approved &
+  pushed b3496b8):** the building-area regression test ran on a synthetic
+  12,000/12,000 fixture where rentable == summed-contract, so it could not
+  detect the §25 regression; it now runs on **Freeport** (123,099 vs 128,087)
+  and fails if switched to summed-contract-area. DEVIATIONS §25 also records
+  a failability audit of the three Step 5 reconcilers (all failable; two
+  named coverage gaps: `reconcile_sources_and_uses` shares `_SU_LEDGER_ROWS`
+  with its builder, `reconcile_resale_matrix` misses monotonicity-preserving
+  non-anchor corruption — the §21 cross-check covers it) and the **STANDING
+  RULE: a regression test must run on a fixture where the WRONG answer
+  differs from the RIGHT answer** (applies through Phase 6).
+  **Phase 4 Step 6 complete 2026-07-14:** the Excel export package
+  (`engine/export/package_builder.py` + `engine/export/rent_roll_export.py`;
+  spec §8, §5.2). `build_package(result, model, *, path, reports?, scenario,
+  timestamp)` writes one workbook, a tab per applicable report (the §8
+  11-report default: Executive Summary / Annual + Monthly Cash Flow / Lease
+  Summary / Lease Expiration / IRR + Value Matrix / Present Value / Recovery
+  Audit / Loan Amortization / Assumptions), values-only, §8 formatting
+  (indigo title band, Cash-Flow tree indentation + bold subtotals, negatives
+  in red parens via `#,##0;[Red](#,##0)`, frozen panes, auto widths, footer
+  with property/scenario/timestamp, unit/period noted under the title).
+  Reports needing valuation / sensitivity / loans are **skipped when
+  inapplicable, never fabricated**. `export_report` does single-report
+  export; `export_rent_roll(model, *, path)` writes the §5.2 template (Rent
+  Roll + Rent Steps + Misc Items sheets) for the Step 7 round-trip. **The
+  exporter formats already-built Report DataFrames — it recomputes NOTHING**
+  (no ledger/valuation/area recomputation; building area is the run's
+  rentable area, never a summed-contract-area — verified on Freeport at the
+  export layer). `report_cell_grid(report)` is the single source of the grid
+  written; `_cellify` normalizes cells (NaN→blank, Period→str). 7 new tests
+  (tests/unit/test_export.py): every default tab's cells equal its builder
+  DataFrame (openpyxl read-back, cell-by-cell); a **corrupt-a-written-cell
+  discrimination test** proves the diff can fail (DEVIATIONS §25 rule);
+  applicability (bare model omits loan/valuation tabs); the Freeport
+  Executive-Summary tab surfaces 123,099 not 128,087; single-report export;
+  rent-roll template layout + a step round-trips to the companion sheet.
+  Suite: **539 passed + the same 4 by-design golden reds (137/47 Gate 2,
+  33/12 Gate 3 capital)** — counts unchanged. No engine/calc touched.
+- **Next session's first prompt:** "Phase 4 Steps 1-6 are DONE (Step 1
   report-builder contract + toggle/period engine, engine/reports/base.py;
-  Step 2 Cash Flow #1 + Benchmark Comparison #24, cash_flow.py/benchmark.py;
-  Step 3 valuation family #5/#6/#8/#9 + Loan Amortization #20,
-  valuation_reports.py/loan_amortization.py; Step 4 Occupancy #15 + Lease
-  Summary #11 + Lease Expiration #12, occupancy.py/lease_reports.py (with the
-  DEVIATIONS §25 #12 correction, approved & pushed); Step 5 Executive Summary
-  #2 + Assumptions #3 + Sources & Uses #4 + Resale Matrix #7 + Input
-  Assumptions #23, summary_reports.py + valuation_reports.py — all shipped).
-  All 24 v1 report builders now exist EXCEPT the Step-0-deferred six (#10
-  Returns Over Time, #13 Leasing Activity, #14 Tenant Cash Flow/Lease PV, #17
-  Percentage Rent Audit, #19 Expense Group Audit, #22 Rent Schedule Audit),
-  which stay deferred. Begin **Phase 4 Step 6: the Excel export package
-  (§8)** per NEXT_STEPS_TO_PHASE4.md Step 6 — `engine/reports/export/` (or
-  `engine/export/`): one workbook per property/scenario, a tab per selected
-  report (the §8 default set), the §8 formatting standard (indigo header
-  band, tree indentation, negatives in red parens, $/% formats, frozen
-  panes, auto widths, footer, unit noted in header), **values-only (no
-  formulas) in v1**; single-report export; the rent-roll export matching the
-  §5.2 import template (which round-trips in Step 7). Acceptance
-  (NEXT_STEPS_TO_PHASE4.md Step 6): each tab's cell values equal the report
-  builder's DataFrame exactly — an engineered test opens the written workbook
-  (openpyxl) and diffs it against the builders. Reuse every Step 1-5 builder;
-  do NOT recompute anything in the exporter, do NOT build the Step-0-deferred
-  six, and do NOT build the cancelled in-app OM ingestion ('Phase 7'). Any
-  BUILDING AREA / occupancy / expiration figure a tab surfaces must use the
-  Step 4-fix quantities (rentable area as the building size, distinct_demised
-  _area, status-filtered chains) — never a summed-contract-area. REMEMBER the
-  standing gaps, all carried forward unchanged and none a Phase 4 blocker:
-  percentage rent externally unvalidated pending golden #3; tenant misc items
-  + purchase/deposits/debt/resale/valuation/sensitivity externally
+  Step 2 Cash Flow #1 + Benchmark #24, cash_flow.py/benchmark.py; Step 3
+  valuation family #5/#6/#8/#9 + Loan Amort #20, valuation_reports.py/
+  loan_amortization.py; Step 4 Occupancy #15 + Lease Summary #11 + Lease
+  Expiration #12, occupancy.py/lease_reports.py, with the DEVIATIONS §25 #12
+  correction + test-defect fix, approved & pushed; Step 5 Exec Summary #2 +
+  Assumptions #3 + Sources & Uses #4 + Resale Matrix #7 + Input Assumptions
+  #23, summary_reports.py + valuation_reports.py; Step 6 Excel export package
+  §8 + rent-roll export §5.2, engine/export/package_builder.py +
+  rent_roll_export.py — all shipped). Begin **Phase 4 Step 7: the rent-roll
+  import template round-trip (§5.2)** per NEXT_STEPS_TO_PHASE4.md Step 7 —
+  build the importer that reads `templates/rent_roll_template.xlsx` (the
+  layout `engine/export/rent_roll_export.py` already writes: Rent Roll + Rent
+  Steps + Misc Items sheets; also support CSV), validates through the §3
+  pydantic models, and returns **row-level errors readable by a
+  non-programmer** (plain language, field path, offending value, what a valid
+  value looks like — spec §5.2/§5.4 [AE pp. 62, 171]). Acceptance
+  (NEXT_STEPS_TO_PHASE4.md Step 7): a property's rent roll exported (Step 6)
+  then re-imported reproduces the same `PropertyModel` rent roll (the flat
+  §3.12 fields the template carries — nested free-rent/recovery/pct-rent/
+  deposit structures live in the JSON and are out of the flat template's
+  scope, §5.2); a malformed row yields a readable error, not a stack trace.
+  Per the DEVIATIONS §25 standing rule, the round-trip test must discriminate
+  (a corrupted/dropped field must fail it) and the error test must assert the
+  MESSAGE is readable, not just that it raised. Do NOT build the in-app OM
+  ingestion ('Phase 7', cancelled) — the importer reads only the §5.2 rent-
+  roll template / CSV, never an OM. Do NOT build the Step-0-deferred six.
+  REMEMBER the standing gaps, all carried forward unchanged and none a Phase
+  4 blocker: percentage rent externally unvalidated pending golden #3; tenant
+  misc items + purchase/deposits/debt/resale/valuation/sensitivity externally
   unvalidated (no golden exercises them); Freeport B, Cedar Alt B, and
   Freeport E parked for beta-stage GUI testing (Gate 2/3 assertions stay red
   by design — 137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's
   sibling, not open; live price derivation permanently refusing (DEVIATIONS
-  §20 #6), not an open gap. When Step 6 lands, commit, push, and update this
-  prompt to point at Phase 4 Step 7 (the rent-roll import template
-  round-trip, §5.2)."
+  §20 #6), not an open gap; the two named reconciler blind spots
+  (_SU_LEDGER_ROWS shared mapping; resale-matrix monotonicity-preserving
+  non-anchor corruption) stay named. When Step 7 lands — the last Phase 4
+  build step — commit, push, run the Gate 4 review (NEXT_STEPS_TO_PHASE4.md
+  Step 8), and update this prompt."
