@@ -1412,3 +1412,190 @@ Gate 3 capital) are unchanged.
    (a $2M mid-hold capital event drives an interior-negative stream; the
    matrix computes with NaN cells, no exception). Neither item was a
    golden concern (no golden populates valuation).
+## 25. Lease Expiration report (#12): the "SF sums to rentable" acceptance criterion was WRONG — diagnosis & correction (Phase 4 Step 4; spec §7 report 12) — DIAGNOSIS APPROVED 2026-07-13, CORRECTION IMPLEMENTED, AWAITING OWNER REVIEW OF THE FIX
+
+**Status: diagnosis owner-approved 2026-07-13 with two amendments (folded
+in below); the correction is implemented in one commit; no `engine/calc`
+touched; no inputs tuned; the four by-design golden reds stay red (137/47
+Gate 2, 33/12 Gate 3 capital).**
+
+**The plan's acceptance criterion itself was defective — not the engine.**
+Phase 4 Step 4 (commit 7796eb9) shipped the Lease Expiration report with
+the acceptance criterion "Lease Expiration SF sums to rentable." That
+criterion is **wrong**: a suite can turn over more than once over the
+analysis term (legitimate turnover → cumulative expiring SF legitimately
+exceeds 100% of the building), and a stated (fixed) rentable area need not
+equal the sum of demised suite areas. The reconciler that "verified" it
+(`reconcile_expiration_area`) was **tautological** — it subtracted the sum
+of the contract-segment areas from the sum of the same contract-segment
+areas, returning 0.0 on every input, incapable of failing. The defect was
+in the plan's criterion (NEXT_STEPS_TO_PHASE4.md Step 4), which is hereby
+withdrawn; the engine's numbers were never wrong.
+
+**Owner verification (2026-07-13):** the [AE p. 818] Lease Status filter
+quote is accurate (printed p. 818 = **PDF p. 819**); the suite-100 OKI
+double-entry, the 123,193 distinct demised area (all 29 rent-roll chains),
+and the 94 SF fixed-rentable gap all reproduce exactly.
+
+### The observed fact (tests/golden/freeport/freeport.icprop.json)
+
+`lease_expiration()` totals **128,087 expiring SF** against **123,099**
+rentable — 104.1% of the building; the `pct_of_building` column sums to
+1.041. The overage decomposes **exactly**:
+
+| source | SF | nature |
+|---|---:|---|
+| suite 100 double-entry (OKI Data current + OKI Data (Renewal)) | +2,584 | legitimate turnover (two sequential contract leases, one suite) |
+| absorption chain "Suite 395 remainder lease-up" (status speculative) | +2,310 | wrong status bucket — should not be lumped with contract |
+| fixed-rentable vs summed-distinct-demised-area gap | +94 | OM load-factor/rounding; rentable is an independent input |
+| **total overage (128,087 − 123,099)** | **+4,988** | |
+
+### Q1 — why the 29 real chains sum to 125,777 vs 123,099 rentable
+
+Two independent causes; the "derived rentable understating the building"
+hypothesis is **false** — `area_measures.rentable_area_mode` is **`fixed`**
+at 123,099 (freeport.icprop.json), an independent stated building metric,
+not a sum of chains.
+
+1. **A physical space is represented by two chains.** Suite 100 appears
+   twice on the rent roll: `"OKI Data Americas Inc."` (suite 100, 2,584 SF,
+   `upon_expiration=vacate`, contract 2016-08..**2027-01**) and `"OKI Data
+   Americas Inc. (Renewal)"` (suite 100, 2,584 SF, contract
+   **2027-02**..2032-06). These are the same physical 2,584 SF suite,
+   re-leased back-to-back — a pre-signed second-generation lease entered as
+   its own rent-roll row. Summing all contract-chain areas double-counts
+   suite 100 (+2,584). Verified: both rows carry `suite='100'`, both
+   `status=contract`, and their contract terms are exactly sequential
+   (vacate 2027-01 -> renewal 2027-02).
+2. **Fixed rentable != summed demised area.** After de-duping suite 100 the
+   29 chains' distinct demised area is 123,193 SF — still **94 SF over**
+   the stated fixed rentable (123,099). Rentable is an input, not the sum
+   of suite areas, so a small load-factor/rounding gap across 29 suites is
+   normal and expected in a real OM. (Suites 390 "Texian Operating" and
+   390E "Texian Operating (Expansion)" are **distinct** physical spaces —
+   not a duplicate.)
+
+Evidence: `freeport.icprop.json` rent roll (the two suite-100 rows;
+`rentable_area_mode: "fixed"`, `rentable_area_fixed: 123099`); confirmed by
+loading the model and resolving the chains.
+
+### Q2 — does ARGUS Lease Expiration include speculative / absorption leases?
+
+**The manual treats lease status as a first-class, filterable dimension —
+speculative is a separate, selectable category, not lumped into contract.**
+[AE p. 818] Lease Expiration report parameters include an explicit **Lease
+Status** filter: "Select the lease status categories you want to include in
+the report. Choose from: **Contract, Speculative, Contract Renewal, Option,
+Month-to-Month, Holdover**," plus a **Lease Period** filter ("Base Only /
+Base and Options Only / All Leases"). [AE p. 574] (single-property report)
+presents expirations by year with per-period sub-totals and per-lease
+metrics; it does not lump statuses together. [AE p. 817] (WALE) further
+shows the analysis is anchored on leases *in place* — "only leases
+currently in place as of the PV/IRR date are included; leases that start in
+the future are not included."
+
+Consequence for our report: the current builder's `_contract_segment`
+treats an absorption lease's own first term as a **contract** segment
+(because the chain-resolution `speculative` flag is False on a lease's own
+term), so the speculative-status absorption chain "Suite 395 remainder
+lease-up" is mislabeled and summed with contract. This is **the opposite of
+the Lease Audit's deliberate [AE p. 398] labeling**, where an absorption
+lease's first generation is labeled **speculative** by reading
+`segment.lease.status.value == "speculative"` (`engine/reports/
+lease_audit.py::_phase`). The two reports must be consistent: **Lease
+Expiration should read `lease.status`**, carry it as a column, and by
+default separate/exclude speculative (matching [AE p. 818] and the Lease
+Audit), not treat absorption first terms as contract. Note the OKI
+double-entry is NOT fixed by this — both OKI rows are `status=contract`; a
+signed renewal on an occupied suite is a legitimate second contract lease.
+
+### Q3 — is >100% of the building expiring over the term legitimate?
+
+**Yes — cumulative expiring SF over a multi-year term legitimately exceeds
+100% of the building whenever a suite turns over more than once.** Suite
+100 is exactly this case: OKI's current lease expires FY2027 and its
+renewal expires FY2032 — two genuine expiration events for one physical
+suite, and ARGUS's Lease Expiration presents expirations "by fiscal or
+calendar year ... as well as sub-totals for the lease expiration period"
+[AE p. 574], per year, never claiming the grand total equals the building.
+Therefore **"total expiring SF == rentable" is fundamentally the wrong
+invariant** — it contradicts legitimate turnover. (The current report only
+counts one contract expiration per chain, so its 104.1% is the
+data-structure artifact decomposed above, not yet even the rollover
+turnover ARGUS would additionally show — reinforcing that a grand-total
+identity is meaningless here.)
+
+### The correction as implemented (2026-07-13)
+
+The tautological `reconcile_expiration_area` is **removed** and replaced by
+**two** checks, each capable of failing on a real bug; the report now keys
+on `lease.status` with an explicit inclusion filter. All in
+`engine/reports/lease_reports.py` (+ tests); no `engine/calc` touched.
+
+1. **`statuses` inclusion filter — [AE p. 818].** Both `lease_expiration()`
+   and `lease_summary()` take a `statuses` parameter mirroring ARGUS's
+   Lease Status checkboxes (Contract / Speculative / Contract Renewal /
+   Option / Month-to-Month / Holdover). The §3 schema narrows status to
+   `contract` / `speculative` / `mtm`, so the mapping is: Contract /
+   Contract Renewal / Option → `contract`; Month-to-Month → `mtm`;
+   Speculative → `speculative`; Holdover not modeled. **Default =
+   `(LeaseStatus.contract,)`** — speculative and MTM excluded by default,
+   selectable. The filter keys on `lease.status`, so it **agrees with the
+   Lease Audit's [AE p. 398] speculative labeling** (`lease_audit._phase`
+   reads the same `lease.status`): an absorption lease's own first term is
+   *speculative* and is excluded from the default contract view, not
+   mislabeled as contract. Verified on Freeport: default = 28 contract
+   chains (the MTM AT&T antenna and the speculative absorption chain
+   excluded).
+2. **Structural report↔model-input reconciliation
+   (`reconcile_lease_expiration(report, model, *, statuses,
+   fiscal_year_end_month)`).** Rebuilds the expected expiration table
+   independently from `model.rent_roll` (+ `model.absorption` expanded via
+   `generate_absorption_leases` when speculative is included) using
+   `lease_term_periods` + `fiscal_year_of` — **a source the builder never
+   reads** (it builds from `result.segments`). Diffs overall lease count,
+   overall SF, and per-fiscal-year count and SF; all ~0 when the builder
+   emits each included lease once at the right area and year. **Capable of
+   failing** on a dropped / duplicated / mis-aread / mis-bucketed lease —
+   not a self-subtraction.
+3. **Per-year SANITY BOUND (`assert_expiration_within_building`), labelled
+   as a bound, not an invariant.** Asserts no single fiscal year's expiring
+   SF exceeds rentable. A building with heavy short-term turnover could
+   legitimately roll >100% in one year and trip it, so it is a smoke check
+   for gross within-year double-counting, **not** a guaranteed identity.
+   The figure is **fiscal-year-end dependent** and is asserted across FYE ∈
+   {3, 6, 9, 12}; the §25 draft's "35,544 / 28.9%" is the **FYE = 6** view
+   and its predecessor did not name the convention. Freeport's contract-only
+   worst single year, by convention: **FYE = 3 → 28.9%; FYE = 6 → 28.9%;
+   FYE = 9 → 39.9%; FYE = 12 → 31.9%** (all well under 100%). The **grand
+   total across years is deliberately NOT bounded by rentable** (legitimate
+   turnover — suite 100 expires twice over the term).
+
+### Lease Summary (#11) area fix
+
+`meta.extra["total_area"]` previously summed the double-counted chains
+(128,087 on Freeport, overstating the 123,099 building by 4,988). It is
+**removed** and replaced by `distinct_demised_area` — the sum of demised
+area deduped by suite (a physical space entered as two sequential leases,
+e.g. the suite-100 signed renewal, is counted once). On Freeport contract-
+only this is **122,870 SF**, honestly **under** the 123,099 building; it is
+labelled demised area, never "building" or "rentable." `meta.extra` also
+carries `lease_count` and `included_statuses`.
+
+### Narrowing recorded
+
+- The Phase 4 Step 4 acceptance criterion "Lease Expiration SF sums to
+  rentable" is **withdrawn as invalid** (the plan's criterion was
+  defective, not the engine); the tautological `reconcile_expiration_area`
+  is deleted.
+- `lease_expiration` / `lease_summary` default to **contract-only**
+  (`statuses=(LeaseStatus.contract,)`); MTM and speculative are excluded by
+  default but selectable, keyed on `lease.status` consistent with the Lease
+  Audit [AE p. 398] and [AE p. 818].
+- The report remains **externally unvalidated** (no golden publishes a
+  Lease Expiration schedule) — validation is the structural report↔input
+  reconciliation plus the FYE-spanning sanity bound on engineered + golden
+  fixtures, never input tuning.
+- **Step 5 has NOT been started.** This commit is the §12 correction only;
+  it stops for owner review of the fix (Iron Rule 2 applied to a
+  correction).

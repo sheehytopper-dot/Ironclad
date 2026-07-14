@@ -165,7 +165,9 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   IN PROGRESS — Steps 1-4 shipped 2026-07-13 (Step 1 report-builder contract +
   toggle/period engine; Step 2 Cash Flow #1 + Benchmark Comparison #24; Step 3
   valuation family #5/#6/#8/#9 + Loan Amortization #20; Step 4 Occupancy #15 +
-  Lease Summary #11 + Lease Expiration #12); Gate 3 passed 2026-07-12.** Phase 1
+  Lease Summary #11 + Lease Expiration #12, with a #12 correction 2026-07-13 —
+  DEVIATIONS §25 — awaiting owner review of the fix); Gate 3 passed 2026-07-12.**
+  Phase 1
   shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
@@ -632,21 +634,41 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   is one row per chain from its single contract segment (tenant / suite /
   status / type / area / term / contractual base rent monthly-annual-PSF),
   `reconcile_lease_summary` checks area+dates vs the segments.
-  `lease_expiration(result, *, fiscal_year_end_month)` buckets each chain's
-  contract-term end by fiscal year → count / SF / % of building (SF ÷
-  rentable) / expiring annual rent; each chain counted once, so **expiring
-  SF sums to the total contract area = rentable when there are no
-  absorption/reabsorption phantom leases** (`reconcile_expiration_area`
-  ties to the summed contract area exactly — Clorox & a clean 2-tenant
-  property sum to rentable; Freeport's phantoms make SF exceed rentable
-  while the reconcile still holds). 17 new tests
-  (tests/unit/test_occupancy_lease_reports.py). **EXTERNALLY UNVALIDATED**
-  — occupancy/lease reports have no golden CSV anchor; validated by
-  RunResult reconciliation + the occupied≤rentable / SF-sums-to-rentable
-  invariants on engineered properties. Suite: **506 passed + the same 4
-  by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)** — counts
-  unchanged. No engine/calc code touched; no Excel exporter, no deferred
-  reports, no UI scaffolded.
+  `lease_expiration(result, *, fiscal_year_end_month, statuses)` buckets
+  each included chain's contract-term end by fiscal year → count / SF / %
+  of building / expiring annual rent. **Its original "SF sums to rentable"
+  acceptance was WRONG and is corrected (see the §25 note below).**
+  17 → 27 tests (tests/unit/test_occupancy_lease_reports.py). **EXTERNALLY
+  UNVALIDATED** — occupancy/lease reports have no golden CSV anchor;
+  validated by RunResult reconciliation + occupied≤rentable + the corrected
+  Lease-Expiration checks. Suite: **506 passed + the same 4 by-design golden
+  reds** — counts unchanged. No engine/calc code touched.
+  **Phase 4 Step 4 §12 CORRECTION 2026-07-13 (owner-directed; DEVIATIONS
+  §25, diagnosis approved with amendments):** the shipped Lease Expiration
+  criterion "SF sums to rentable" was **defective — the plan's criterion,
+  not the engine** (a suite legitimately turns over more than once →
+  cumulative expiring SF exceeds 100% of the building; a fixed rentable need
+  not equal summed demised area — Freeport 128,087 vs 123,099). The
+  tautological `reconcile_expiration_area` (subtracted the contract areas
+  from themselves; never failed) is **deleted** and replaced: (1) a
+  `statuses` inclusion filter on `lease_expiration`/`lease_summary` mirroring
+  [AE p. 818]'s Lease Status checkboxes, keyed on `lease.status`, default
+  contract-only (speculative + MTM excluded but selectable), agreeing with
+  the Lease Audit's [AE p. 398] speculative labeling; (2)
+  `reconcile_lease_expiration(report, model, …)` — a structural tie to the
+  MODEL INPUT (`model.rent_roll` + `model.absorption`, rebuilt via
+  `lease_term_periods`/`fiscal_year_of` — a source the builder never reads),
+  diffing count + total SF + per-year count/SF, **capable of failing**; (3)
+  `assert_expiration_within_building` — a per-year SANITY BOUND (labelled,
+  not an invariant) asserted across FYE ∈ {3,6,9,12} (Freeport contract-only
+  worst single year 28.9% at FYE=6, 39.9% at FYE=9 — conventions always
+  named). Lease Summary's double-counting `total_area` is replaced by
+  `distinct_demised_area` (deduped by suite; Freeport contract-only 122,870,
+  honestly under the 123,099 building). Suite: **516 passed + the same 4
+  by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**. No
+  engine/calc code touched; no inputs tuned; no Excel exporter/deferred
+  reports/UI scaffolded. **STOPPED for owner review of the fix — Step 5 not
+  started.**
 - **Next session's first prompt:** "Phase 4 Steps 1-4 are DONE (Step 1
   report-builder contract + toggle/period engine in engine/reports/base.py;
   Step 2 Cash Flow #1 in engine/reports/cash_flow.py + Benchmark Comparison
@@ -654,7 +676,12 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   engine/reports/valuation_reports.py + Loan Amortization #20 in
   engine/reports/loan_amortization.py; Step 4 Occupancy #15 in
   engine/reports/occupancy.py + Lease Summary #11 & Lease Expiration #12 in
-  engine/reports/lease_reports.py — all shipped 2026-07-13). Begin **Phase 4
+  engine/reports/lease_reports.py — all shipped 2026-07-13). **FIRST: a #12
+  Lease Expiration correction shipped 2026-07-13 (DEVIATIONS §25) — its
+  original 'SF sums to rentable' acceptance was defective and was replaced
+  by a status filter, a structural report↔model-input reconciliation, and a
+  per-year sanity bound; confirm the owner has reviewed that fix before
+  proceeding. Do NOT re-open it or re-tune anything.** Then begin **Phase 4
   Step 5: the summary / echo + remaining reports (#2 Executive Summary, #3
   Assumptions Report, #4 Sources & Uses, #7 Resale Matrix, #23 Input
   Assumptions listing)** per NEXT_STEPS_TO_PHASE4.md Step 5 (spec §7 reports
