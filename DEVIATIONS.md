@@ -1599,3 +1599,86 @@ carries `lease_count` and `included_statuses`.
 - **Step 5 has NOT been started.** This commit is the §12 correction only;
   it stops for owner review of the fix (Iron Rule 2 applied to a
   correction).
+
+### STANDING RULE — a regression test must discriminate (owner-directed 2026-07-14)
+
+**A regression test MUST run on a fixture where the WRONG answer differs
+from the RIGHT answer. A check that passes under both the correct and the
+defective implementation is not a check.** This applies to every test
+written from here through Phase 6.
+
+This rule generalizes the two "cannot fail" defects this section already
+records: the tautological `reconcile_expiration_area` (subtracted a sum
+from itself), and — found on the Step 5 review — the building-area
+regression test `test_building_area_is_rentable_not_summed_contract`, which
+ran on a synthetic fixture with a 12,000 SF building and a single 12,000 SF
+lease. There the rentable area and the summed contract area are the SAME
+number (12,000), so the assertion `reported == rentable` passed identically
+whether `executive_summary` read `result.rentable_area` (correct) or summed
+the contract-segment areas (the §25 regression). The test named after §25
+could not detect the §25 regression.
+
+**Fix (2026-07-14):** the building-area test now runs on the **Freeport
+golden**, where rentable (123,099, fixed) ≠ summed contract area (128,087)
+— a 4,988 SF gap (the suite-100 OKI double-entry + the fixed-rentable
+gap). It asserts the fixture genuinely discriminates
+(`rentable != summed_contract`), then that `executive_summary` surfaces
+123,099 **and NOT** 128,087. Switching the implementation to sum contract
+areas now fails the test (verified: the reported value becomes 128,087).
+
+### Step 5 reconciler failability audit (2026-07-14)
+
+Every Step 5 reconciler was audited by **corrupting the built report and
+confirming the reconciler returns a non-zero diff**. All three are capable
+of failing (none is a tautology like the deleted `reconcile_expiration_
+area`), but two have coverage gaps stated plainly below.
+
+- **`reconcile_sources_and_uses` — FAILABLE, full coverage.** Compares each
+  report row to an independent recomputation of its below-the-line ledger
+  column (`result.ledger.frame`), plus an acquisition sources-equal-uses
+  balance. Verified: corrupting `Purchase Price` by +1,000 → `Purchase
+  Price` diff +1,000 and `acquisition_balance` −1,000; corrupting the
+  `Equity` plug by +1,000 → `acquisition_balance` +1,000. Every dollar row
+  is ledger-backed and the equity plug is caught by the balance check.
+  Residual caveat (not a report-corruption gap): the row→column→sign map
+  `_SU_LEDGER_ROWS` is shared by builder and reconciler, so a wrong entry
+  there would be invisible to *both* — that is a shared-constant risk, not
+  a stored-value check gap.
+
+- **`reconcile_executive_summary` — FAILABLE, partial coverage.** Ties four
+  metrics — rentable area, year-1 NOI, year-1 EGR, unleveraged PV — to
+  independent sources (`result.rentable_area`, the ledger's annual view via
+  `to_annual`, `result.valuation`). Verified: corrupting `Rentable Area` by
+  +1,000 → `rentable_area` diff +1,000; corrupting `Year-1 NOI` by +500 →
+  `year1_noi` diff +500. **Gap:** the other displayed rows (Year-1
+  Occupancy, Year-1 CFBDS, Going-in Cap Rate, the leveraged/IRR/direct-cap
+  figures, Net Resale, Exit Cap) are **not** independently reconciled — a
+  corruption of those rows passes the reconciler. The building-area row
+  specifically is now covered by the discriminating Freeport regression
+  test above; the remaining rows are display-only echoes of already-tested
+  RunResult fields. Acceptable for v1; a future pass may widen the tie.
+
+- **`reconcile_resale_matrix` — FAILABLE, partial coverage; the §21
+  cross-check test carries full cell coverage.** Two non-tautological
+  checks: (a) an **independent anchor** — the base-cap / run-resale-year
+  cell equals `result.resale.net_unleveraged` (the RunResult's own resale,
+  not produced by the matrix builder); (b) cap **monotonicity** per row.
+  Verified: corrupting the anchor cell by +1,000 → `anchor_diff` +1,000;
+  corrupting a cell to break a row's monotonicity → `monotonicity_
+  violations` 1. **Gap:** a small, monotonicity-preserving corruption of a
+  **non-anchor** cell is NOT caught by the reconciler (verified: +0.01 on a
+  non-anchor cell → both diffs 0.0). That gap is closed by the **§21
+  cross-check test** (`test_cross_check_each_cell_is_direct_single_point`),
+  which verifies **every** cell equals a direct single-point
+  `compute_resale` (verified: it catches the +0.01 non-anchor corruption,
+  max diff 0.01). The reconciler is the fast in-report anchor; the
+  cross-check test is the exhaustive per-cell verification — together they
+  are sound. (The cross-check recomputes via the same `compute_resale`, so
+  it validates matrix *assembly / indexing* and stored-value integrity, not
+  a shared-function bug; the anchor's tie to `result.resale` is the
+  independent leg.)
+
+**Conclusion:** no Step 5 reconciler needs replacement — each fails under a
+report corruption. The one genuinely non-failing check found on review was
+the building-area *test* (not a reconciler), now fixed. The coverage gaps
+above are recorded, not papered over.

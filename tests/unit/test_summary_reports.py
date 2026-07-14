@@ -157,13 +157,33 @@ class TestExecutiveSummary:
         assert frame.loc["Going-in Cap Rate (%)", "value"] == pytest.approx(8.0)
         assert frame.loc["Year-1 Occupancy (%)", "value"] == pytest.approx(100.0)
 
-    def test_building_area_is_rentable_not_summed_contract(self, result, model):
-        """DEVIATIONS §25: the surfaced building area is the run's rentable
-        area (12,000), never a summed contract area."""
-        frame = executive_summary(result, model).frame.set_index("metric")
-        assert frame.loc["Rentable Area (SF)", "value"] == pytest.approx(
-            float(result.rentable_area.iloc[0]))
-        assert frame.loc["Rentable Area (SF)", "value"] == pytest.approx(12_000.0)
+    def test_building_area_is_rentable_not_summed_contract(self):
+        """DEVIATIONS §25 regression — run on a fixture where the RIGHT
+        answer differs from the WRONG one, so the test can actually fail.
+        Freeport's rentable area (123,099, fixed) ≠ its summed contract area
+        (128,087) — a 4,988 SF gap (suite-100 OKI double-entry + the fixed-
+        rentable gap). The synthetic 12,000/12,000 fixture cannot detect a
+        switch to summed-contract-area (both numbers are 12,000); Freeport
+        can. The assertions below FAIL if executive_summary is changed to sum
+        the contract-segment areas."""
+        from pathlib import Path
+        from engine.models.io import load_property
+        fixture = (Path(__file__).resolve().parents[1] / "golden" /
+                   "freeport" / "freeport.icprop.json")
+        fp_model = load_property(fixture)
+        res = run_property(fp_model)
+        rentable = float(res.rentable_area.iloc[0])
+        summed_contract = sum(
+            next(s for s in segs if not s.speculative).area
+            for segs in res.segments.values())
+        # the fixture MUST discriminate — the two answers genuinely differ
+        assert rentable == pytest.approx(123_099.0)
+        assert summed_contract == pytest.approx(128_087.0)
+        assert rentable != pytest.approx(summed_contract)
+        reported = float(executive_summary(res, fp_model).frame
+                         .set_index("metric").loc["Rentable Area (SF)", "value"])
+        assert reported == pytest.approx(rentable)          # the right answer
+        assert reported != pytest.approx(summed_contract)   # NOT the wrong one
 
     def test_none_valuation_metrics_are_nan(self, result, model):
         """direct_cap present here → a number; but a no-direct-cap /
