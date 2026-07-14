@@ -162,12 +162,12 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
-  IN PROGRESS — Steps 1-4 shipped 2026-07-13 (Step 1 report-builder contract +
-  toggle/period engine; Step 2 Cash Flow #1 + Benchmark Comparison #24; Step 3
-  valuation family #5/#6/#8/#9 + Loan Amortization #20; Step 4 Occupancy #15 +
-  Lease Summary #11 + Lease Expiration #12, with a #12 correction 2026-07-13 —
-  DEVIATIONS §25 — awaiting owner review of the fix); Gate 3 passed 2026-07-12.**
-  Phase 1
+  IN PROGRESS — Steps 1-5 shipped (Step 1 report-builder contract + toggle/period
+  engine; Step 2 Cash Flow #1 + Benchmark Comparison #24; Step 3 valuation family
+  #5/#6/#8/#9 + Loan Amortization #20; Step 4 Occupancy #15 + Lease Summary #11 +
+  Lease Expiration #12, with a #12 correction — DEVIATIONS §25 — approved &
+  pushed; Step 5 Executive Summary #2 + Assumptions #3 + Sources & Uses #4 +
+  Resale Matrix #7 + Input Assumptions #23); Gate 3 passed 2026-07-12.** Phase 1
   shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
@@ -666,47 +666,73 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   `distinct_demised_area` (deduped by suite; Freeport contract-only 122,870,
   honestly under the 123,099 building). Suite: **516 passed + the same 4
   by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**. No
-  engine/calc code touched; no inputs tuned; no Excel exporter/deferred
-  reports/UI scaffolded. **STOPPED for owner review of the fix — Step 5 not
-  started.**
-- **Next session's first prompt:** "Phase 4 Steps 1-4 are DONE (Step 1
-  report-builder contract + toggle/period engine in engine/reports/base.py;
-  Step 2 Cash Flow #1 in engine/reports/cash_flow.py + Benchmark Comparison
-  #24 in engine/reports/benchmark.py; Step 3 valuation family #5/#6/#8/#9 in
-  engine/reports/valuation_reports.py + Loan Amortization #20 in
-  engine/reports/loan_amortization.py; Step 4 Occupancy #15 in
-  engine/reports/occupancy.py + Lease Summary #11 & Lease Expiration #12 in
-  engine/reports/lease_reports.py — all shipped 2026-07-13). **FIRST: a #12
-  Lease Expiration correction shipped 2026-07-13 (DEVIATIONS §25) — its
-  original 'SF sums to rentable' acceptance was defective and was replaced
-  by a status filter, a structural report↔model-input reconciliation, and a
-  per-year sanity bound; confirm the owner has reviewed that fix before
-  proceeding. Do NOT re-open it or re-tune anything.** Then begin **Phase 4
-  Step 5: the summary / echo + remaining reports (#2 Executive Summary, #3
-  Assumptions Report, #4 Sources & Uses, #7 Resale Matrix, #23 Input
-  Assumptions listing)** per NEXT_STEPS_TO_PHASE4.md Step 5 (spec §7 reports
-  2-4, 7, 23; [AE pp. 535-549, 550-572]). Executive Summary (#2) = key
-  assumptions + year-1 metrics + valuation results (ledger + valuation +
-  model echo); Assumptions Report (#3) / Input Assumptions listing (#23) =
-  the `model` input echo (they overlap — see docs/SCHEMA_GUIDE); Sources &
-  Uses (#4) ties to the below-the-line ledger columns (purchase / closing /
-  debt funding / resale); Resale Matrix (#7) = net resale over exit cap ×
-  resale year, a NEW resale-year axis (re-run `compute_resale` per candidate
-  resale year, the §21 cross-check pattern — each cell equals a direct
-  single-point Step 4 call). Acceptance (NEXT_STEPS_TO_PHASE4.md Step 5):
-  each reconciles to its source; Sources & Uses ties to the below-the-line
-  ledger columns; Resale Matrix each cell equals a direct single-point
-  resale. **The Step-0-deferred six stay deferred — do NOT build #10 Returns
-  Over Time, #13 Leasing Activity, or #14 Tenant Cash Flow/Lease PV** (nor
-  the already-deferred #17/#19/#22). Use the Step 1 primitives where
-  monetary. Do NOT scaffold the Excel exporter (Step 6) or the cancelled
-  in-app OM ingestion ('Phase 7'). REMEMBER the standing gaps, all carried
-  forward unchanged and none a Phase 4 blocker: percentage rent externally
-  unvalidated pending golden #3; tenant misc items + purchase/deposits/
-  debt/resale/valuation/sensitivity externally unvalidated (no golden
-  exercises them); Freeport B, Cedar Alt B, and Freeport E parked for
-  beta-stage GUI testing (their Gate 2/3 assertions stay red by design —
-  137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's sibling,
-  not open; live price derivation permanently refusing (DEVIATIONS §20 #6),
-  not an open gap. When Step 5 lands, commit, push, and update this prompt
-  to point at Phase 4 Step 6 (the Excel export package, §8)."
+  engine/calc code touched. **Fix reviewed & APPROVED by owner 2026-07-14,
+  pushed (69b3d45).**
+  **Phase 4 Step 5 complete 2026-07-14:** summary / echo + Resale Matrix
+  (`engine/reports/summary_reports.py`: #2 Executive Summary, #3 Assumptions
+  Report, #4 Sources & Uses, #23 Input Assumptions; `engine/reports/
+  valuation_reports.py`: #7 Resale Matrix); spec §7 reports 2-4/7/23,
+  [AE pp. 535-549, 550-572]. All views over RunResult + the input model — no
+  new calculation. `sources_and_uses(result)` ties each dollar line to a
+  below-the-line ledger column (purchase / closing / financing / debt
+  funding / net resale / loan payoff) with **Equity** the balancing plug
+  (acquisition sources = uses); `reconcile_sources_and_uses` ties to the
+  ledger columns to 1e-6. `executive_summary(result, model)` = property +
+  year-1 metrics (NOI/EGR/CFBDS from the ledger annual view, occupancy from
+  the corrected series) + valuation results (None→NaN blanks); building area
+  is the run's **rentable area, never a summed-contract-area** (DEVIATIONS
+  §25); `reconcile_executive_summary` ties year-1 NOI/EGR + PV + rentable to
+  their independent sources. `assumptions_report(model)` (#3, sectioned) /
+  `input_assumptions_listing(model)` (#23, flat) echo the model's scalar
+  inputs (collections summarized by count — detail lives in Lease Summary
+  #11 / Loan Amort #20). `resale_matrix(result, model)` (#7) = net
+  unleveraged resale over **resale year × exit cap** — a NEW resale-year
+  axis re-running `compute_resale` per analysis-year-end and cap against the
+  existing ledger (no recompute); `reconcile_resale_matrix` is
+  non-tautological (independent anchor = the base-cap/run-resale-year cell
+  equals `result.resale.net_unleveraged`; + cap-monotonicity), and the §21
+  cross-check (each cell == a direct single-point `compute_resale`) is the
+  test's acceptance. 16 new tests (tests/unit/test_summary_reports.py).
+  **EXTERNALLY UNVALIDATED** — valuation/resale reports have no golden;
+  validated by RunResult/ledger reconciliation + the §21 cross-check. Suite:
+  **532 passed + the same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate
+  3 capital)** — counts unchanged. No engine/calc touched; no Excel exporter/
+  deferred reports/UI scaffolded.
+- **Next session's first prompt:** "Phase 4 Steps 1-5 are DONE (Step 1
+  report-builder contract + toggle/period engine, engine/reports/base.py;
+  Step 2 Cash Flow #1 + Benchmark Comparison #24, cash_flow.py/benchmark.py;
+  Step 3 valuation family #5/#6/#8/#9 + Loan Amortization #20,
+  valuation_reports.py/loan_amortization.py; Step 4 Occupancy #15 + Lease
+  Summary #11 + Lease Expiration #12, occupancy.py/lease_reports.py (with the
+  DEVIATIONS §25 #12 correction, approved & pushed); Step 5 Executive Summary
+  #2 + Assumptions #3 + Sources & Uses #4 + Resale Matrix #7 + Input
+  Assumptions #23, summary_reports.py + valuation_reports.py — all shipped).
+  All 24 v1 report builders now exist EXCEPT the Step-0-deferred six (#10
+  Returns Over Time, #13 Leasing Activity, #14 Tenant Cash Flow/Lease PV, #17
+  Percentage Rent Audit, #19 Expense Group Audit, #22 Rent Schedule Audit),
+  which stay deferred. Begin **Phase 4 Step 6: the Excel export package
+  (§8)** per NEXT_STEPS_TO_PHASE4.md Step 6 — `engine/reports/export/` (or
+  `engine/export/`): one workbook per property/scenario, a tab per selected
+  report (the §8 default set), the §8 formatting standard (indigo header
+  band, tree indentation, negatives in red parens, $/% formats, frozen
+  panes, auto widths, footer, unit noted in header), **values-only (no
+  formulas) in v1**; single-report export; the rent-roll export matching the
+  §5.2 import template (which round-trips in Step 7). Acceptance
+  (NEXT_STEPS_TO_PHASE4.md Step 6): each tab's cell values equal the report
+  builder's DataFrame exactly — an engineered test opens the written workbook
+  (openpyxl) and diffs it against the builders. Reuse every Step 1-5 builder;
+  do NOT recompute anything in the exporter, do NOT build the Step-0-deferred
+  six, and do NOT build the cancelled in-app OM ingestion ('Phase 7'). Any
+  BUILDING AREA / occupancy / expiration figure a tab surfaces must use the
+  Step 4-fix quantities (rentable area as the building size, distinct_demised
+  _area, status-filtered chains) — never a summed-contract-area. REMEMBER the
+  standing gaps, all carried forward unchanged and none a Phase 4 blocker:
+  percentage rent externally unvalidated pending golden #3; tenant misc items
+  + purchase/deposits/debt/resale/valuation/sensitivity externally
+  unvalidated (no golden exercises them); Freeport B, Cedar Alt B, and
+  Freeport E parked for beta-stage GUI testing (Gate 2/3 assertions stay red
+  by design — 137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's
+  sibling, not open; live price derivation permanently refusing (DEVIATIONS
+  §20 #6), not an open gap. When Step 6 lands, commit, push, and update this
+  prompt to point at Phase 4 Step 7 (the rent-roll import template
+  round-trip, §5.2)."

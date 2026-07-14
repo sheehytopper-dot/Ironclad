@@ -32,6 +32,8 @@ from __future__ import annotations
 import pandas as pd
 
 from engine.calc.ledger import CFADS, CFBDS
+from engine.calc.resale import compute_resale
+from engine.calc.sensitivity import _CAP_METHODS, _centered_axis
 from engine.calc.valuation import (
     _PERIODS_PER_YEAR,
     _apply_loan_proceeds,
@@ -252,3 +254,96 @@ def reconcile_present_value(report: Report, result) -> float:
     if target is None:
         raise ValueError("the ValuationResult has no PV for this report")
     return float(report.frame["present_value"].sum()) - float(target)
+
+
+# ------------------------------------------------------------------ #
+# #7 Resale Matrix — net resale over exit cap × resale year           #
+# ------------------------------------------------------------------ #
+
+def _resale_year_ends(result, model) -> list[tuple[int, "pd.Period"]]:
+    """``(analysis_year, year-end month)`` for each analysis year — the
+    candidate resale dates (each year's end is a valid saleable month; year
+    N's end is the analysis end, spec §2.3). The resale-year axis of the
+    Resale Matrix."""
+    begin = result.months[0]
+    n = model.property.analysis_term_years
+    return [(k, begin + 12 * k - 1) for k in range(1, n + 1)]
+
+
+def resale_matrix(result, model) -> Report:
+    """Resale Matrix (#7): net (unleveraged) resale proceeds over **resale
+    year (rows) × exit cap (columns)** [AE pp. 550-572]. A NEW resale-year
+    axis — each cell re-runs Step 4's :func:`compute_resale` at that year's
+    end and that exit cap against the existing ledger (the ledger is never
+    recomputed, spec §4.1; the §21 cross-check pattern — each cell equals a
+    direct single-point resale). The cap axis is centered on the base exit
+    cap with the sensitivity intervals, matching the Value/IRR matrices.
+
+    Needs a cap-rate resale method (the exit-cap axis is meaningless for
+    ``fixed_amount`` / ``pct_increase_over_price``); raises otherwise."""
+    if model.valuation is None:
+        raise ValueError(
+            "this run has no valuation (model.valuation is unset); the Resale "
+            "Matrix has nothing to sweep")
+    valuation = model.valuation
+    base = valuation.resale
+    if base.method not in _CAP_METHODS:
+        raise ValueError(
+            "the Resale Matrix sweeps exit cap × resale year, so it needs a "
+            f"cap-rate resale method; method {base.method.value!r} has no "
+            "exit cap (fixed_amount / pct_increase_over_price)")
+    year_ends = _resale_year_ends(result, model)
+    intervals = valuation.sensitivity_intervals
+    cap_axis = _centered_axis(base.exit_cap_rate, intervals.cap_rate_step,
+                              intervals.count)
+    data = {}
+    for cap in cap_axis:
+        column = {}
+        for year, end in year_ends:
+            substituted = base.model_copy(update={
+                "exit_cap_rate": cap,
+                "resale_date": end.to_timestamp().date(),
+            })
+            resale = compute_resale(substituted, result.ledger, result.months,
+                                    result.occupancy, model,
+                                    result.loan_schedules)
+            column[year] = resale.net_unleveraged
+        data[cap] = column
+    frame = pd.DataFrame(data, index=[y for y, _ in year_ends], columns=cap_axis)
+    frame.index.name = "resale_year"
+    frame.columns.name = "exit_cap_pct"
+    meta = ReportMeta(
+        name="Resale Matrix", number=7, monetary=False,
+        citation="[AE pp. 550-572]",
+        extra={"axes": "resale_year × exit_cap",
+               "values": "net_unleveraged_resale",
+               "base_exit_cap": base.exit_cap_rate,
+               "resale_months": {y: str(e) for y, e in year_ends}})
+    return Report(frame=frame, meta=meta)
+
+
+def reconcile_resale_matrix(report: Report, result, model) -> pd.Series:
+    """Two failable checks (not a self-subtraction): (a) an **independent
+    anchor** — the cell at the base exit cap and the resale year matching
+    the run's own resale month equals ``result.resale.net_unleveraged`` (the
+    already-computed RunResult resale the matrix did not produce); (b)
+    **monotonicity** — within every resale-year row, net resale strictly
+    decreases as the exit cap rises (value = income / cap). Returns the
+    anchor diff and a count of monotonicity violations."""
+    base_cap = model.valuation.resale.exit_cap_rate
+    resale_month = str(result.resale.resale_month)
+    anchor_year = next(
+        (y for y, m in report.meta.extra["resale_months"].items()
+         if m == resale_month), None)
+    if anchor_year is None:
+        anchor_diff = float("nan")  # custom resale date not on a year-end
+    else:
+        anchor_diff = (float(report.frame.loc[anchor_year, base_cap])
+                       - float(result.resale.net_unleveraged))
+    violations = 0
+    for _year, row in report.frame.iterrows():
+        values = list(row.values)
+        if any(b >= a for a, b in zip(values, values[1:])):
+            violations += 1
+    return pd.Series({"anchor_diff": anchor_diff,
+                      "monotonicity_violations": float(violations)})
