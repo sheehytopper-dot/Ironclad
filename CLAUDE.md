@@ -162,10 +162,11 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
-  IN PROGRESS — Steps 1-3 shipped 2026-07-13 (Step 1 report-builder contract +
-  toggle/period engine; Step 2 Cash Flow report #1 + Benchmark Comparison #24;
-  Step 3 valuation report family #5/#6/#8/#9 + Loan Amortization #20); Gate 3
-  passed 2026-07-12.** Phase 1 shipped 2026-07-05:
+  IN PROGRESS — Steps 1-4 shipped 2026-07-13 (Step 1 report-builder contract +
+  toggle/period engine; Step 2 Cash Flow #1 + Benchmark Comparison #24; Step 3
+  valuation family #5/#6/#8/#9 + Loan Amortization #20; Step 4 Occupancy #15 +
+  Lease Summary #11 + Lease Expiration #12); Gate 3 passed 2026-07-12.** Phase 1
+  shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -616,35 +617,69 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)** —
   counts unchanged. No engine/calc code touched; no Excel exporter, no
   deferred reports, no UI scaffolded.
-- **Next session's first prompt:** "Phase 4 Steps 1-3 are DONE (Step 1
+  **Phase 4 Step 4 complete 2026-07-13:** Occupancy #15
+  (`engine/reports/occupancy.py`) + Lease Summary #11 & Lease Expiration
+  #12 (`engine/reports/lease_reports.py`); spec §7 reports 11-12/15,
+  [AE pp. 573-604]. All views over the run's occupancy series / resolved
+  chains — count/area/percent reports, so `monetary=False` (no $ unit
+  toggle). `occupancy(result, *, period, fiscal_year_end_month)` gives
+  occupied / rentable / available SF + occupancy fraction per period;
+  areas are stock quantities so a period figure is the **mean** over its
+  months (via Step 1's `period_mean_area`), occupancy = mean-occupied ÷
+  mean-rentable; `reconcile_occupancy` ties the monthly view to the run's
+  series exactly (non-monthly raises), `assert_occupied_within_rentable`
+  re-checks the §9.3 occupied ≤ rentable invariant. `lease_summary(result)`
+  is one row per chain from its single contract segment (tenant / suite /
+  status / type / area / term / contractual base rent monthly-annual-PSF),
+  `reconcile_lease_summary` checks area+dates vs the segments.
+  `lease_expiration(result, *, fiscal_year_end_month)` buckets each chain's
+  contract-term end by fiscal year → count / SF / % of building (SF ÷
+  rentable) / expiring annual rent; each chain counted once, so **expiring
+  SF sums to the total contract area = rentable when there are no
+  absorption/reabsorption phantom leases** (`reconcile_expiration_area`
+  ties to the summed contract area exactly — Clorox & a clean 2-tenant
+  property sum to rentable; Freeport's phantoms make SF exceed rentable
+  while the reconcile still holds). 17 new tests
+  (tests/unit/test_occupancy_lease_reports.py). **EXTERNALLY UNVALIDATED**
+  — occupancy/lease reports have no golden CSV anchor; validated by
+  RunResult reconciliation + the occupied≤rentable / SF-sums-to-rentable
+  invariants on engineered properties. Suite: **506 passed + the same 4
+  by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)** — counts
+  unchanged. No engine/calc code touched; no Excel exporter, no deferred
+  reports, no UI scaffolded.
+- **Next session's first prompt:** "Phase 4 Steps 1-4 are DONE (Step 1
   report-builder contract + toggle/period engine in engine/reports/base.py;
   Step 2 Cash Flow #1 in engine/reports/cash_flow.py + Benchmark Comparison
   #24 in engine/reports/benchmark.py; Step 3 valuation family #5/#6/#8/#9 in
   engine/reports/valuation_reports.py + Loan Amortization #20 in
-  engine/reports/loan_amortization.py — all shipped 2026-07-13). Begin
-  **Phase 4 Step 4: Occupancy (#15) + Lease Summary (#11) + Lease
-  Expiration (#12)** per NEXT_STEPS_TO_PHASE4.md Step 4 (spec §7 reports
-  11-12, 15; [AE pp. 573-604]). Occupancy (#15) from the occupancy series
-  (`result.occupied_area` / `result.rentable_area` / `result.occupancy`),
-  satisfying occupied ≤ rentable every month; Lease Summary (#11) and Lease
-  Expiration (#12) from the resolved chains (`result.segments`) — expiration
-  by year: count, SF, % of building, expiring rent, its SF summing to
-  rentable. (Step 4's plan also lists the audit tail #17/#19/#22, but those
-  are in the Step-0-deferred six — build ONLY #15/#11/#12 this step.)
-  Acceptance (NEXT_STEPS_TO_PHASE4.md Step 4): Occupancy satisfies occupied
-  ≤ rentable; Lease Expiration SF sums to rentable; each reconciles to its
-  RunResult source. Occupancy is a count/percent report (period toggle but
-  NOT the $ unit toggle — `monetary=False`); use the Step 1 primitives
-  where monetary. Do NOT scaffold the Excel exporter (Step 6), the deferred
-  six reports (#10/#13/#14/#17/#19/#22), or the cancelled in-app OM
-  ingestion ('Phase 7'). REMEMBER the standing gaps, all carried forward
-  unchanged and none a Phase 4 blocker: percentage rent externally
+  engine/reports/loan_amortization.py; Step 4 Occupancy #15 in
+  engine/reports/occupancy.py + Lease Summary #11 & Lease Expiration #12 in
+  engine/reports/lease_reports.py — all shipped 2026-07-13). Begin **Phase 4
+  Step 5: the summary / echo + remaining reports (#2 Executive Summary, #3
+  Assumptions Report, #4 Sources & Uses, #7 Resale Matrix, #23 Input
+  Assumptions listing)** per NEXT_STEPS_TO_PHASE4.md Step 5 (spec §7 reports
+  2-4, 7, 23; [AE pp. 535-549, 550-572]). Executive Summary (#2) = key
+  assumptions + year-1 metrics + valuation results (ledger + valuation +
+  model echo); Assumptions Report (#3) / Input Assumptions listing (#23) =
+  the `model` input echo (they overlap — see docs/SCHEMA_GUIDE); Sources &
+  Uses (#4) ties to the below-the-line ledger columns (purchase / closing /
+  debt funding / resale); Resale Matrix (#7) = net resale over exit cap ×
+  resale year, a NEW resale-year axis (re-run `compute_resale` per candidate
+  resale year, the §21 cross-check pattern — each cell equals a direct
+  single-point Step 4 call). Acceptance (NEXT_STEPS_TO_PHASE4.md Step 5):
+  each reconciles to its source; Sources & Uses ties to the below-the-line
+  ledger columns; Resale Matrix each cell equals a direct single-point
+  resale. **The Step-0-deferred six stay deferred — do NOT build #10 Returns
+  Over Time, #13 Leasing Activity, or #14 Tenant Cash Flow/Lease PV** (nor
+  the already-deferred #17/#19/#22). Use the Step 1 primitives where
+  monetary. Do NOT scaffold the Excel exporter (Step 6) or the cancelled
+  in-app OM ingestion ('Phase 7'). REMEMBER the standing gaps, all carried
+  forward unchanged and none a Phase 4 blocker: percentage rent externally
   unvalidated pending golden #3; tenant misc items + purchase/deposits/
   debt/resale/valuation/sensitivity externally unvalidated (no golden
   exercises them); Freeport B, Cedar Alt B, and Freeport E parked for
   beta-stage GUI testing (their Gate 2/3 assertions stay red by design —
   137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's sibling,
   not open; live price derivation permanently refusing (DEVIATIONS §20 #6),
-  not an open gap. When Step 4 lands, commit, push, and update this prompt
-  to point at Phase 4 Step 5 (summary/echo + remaining reports #2/#3/#4/#7/
-  #23 — the Step-0-deferred #10/#13/#14 stay deferred)."
+  not an open gap. When Step 5 lands, commit, push, and update this prompt
+  to point at Phase 4 Step 6 (the Excel export package, §8)."

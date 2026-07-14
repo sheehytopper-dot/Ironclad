@@ -36,6 +36,17 @@ from .benchmark import (
 )
 from .cash_flow import cash_flow
 from .cash_flow import reconcile_to_ledger as reconcile_cash_flow
+from .lease_reports import (
+    lease_expiration,
+    lease_summary,
+    reconcile_expiration_area,
+    reconcile_lease_summary,
+)
+from .occupancy import (
+    assert_occupied_within_rentable,
+    occupancy,
+)
+from .occupancy import reconcile_to_result as reconcile_occupancy
 from .loan_amortization import loan_amortization
 from .loan_amortization import reconcile_to_ledger as reconcile_loan_amortization
 from .valuation_reports import (
@@ -69,6 +80,10 @@ __all__ = [
     "valuation_summary", "reconcile_valuation_summary",
     "present_value", "reconcile_present_value",
     "loan_amortization", "reconcile_loan_amortization",
+    # Occupancy (#15) + Lease Summary (#11) + Lease Expiration (#12)
+    "occupancy", "reconcile_occupancy", "assert_occupied_within_rentable",
+    "lease_summary", "reconcile_lease_summary",
+    "lease_expiration", "reconcile_expiration_area",
     # audit builders (bare frame + reconciliation + contract wrapper)
     "lease_audit", "lease_audit_report", "reconcile_lease_audit",
     "recovery_audit", "recovery_audit_report", "reconcile_recovery_audit",
