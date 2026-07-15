@@ -23,7 +23,14 @@ from engine.intake import (
     import_rent_roll,
     import_rent_roll_csv,
 )
-from engine.models import Lease, MoneyRate, MoneyUnit, RentStep, UponExpiration
+from engine.models import (
+    Lease,
+    LeaseStatus,
+    MoneyRate,
+    MoneyUnit,
+    RentStep,
+    UponExpiration,
+)
 from engine.models.profiles import MiscItemSpec
 
 PSF = MoneyUnit.dollars_per_area_per_year
@@ -256,3 +263,84 @@ class TestReadableErrors:
         assert "pydantic" not in text.lower()
         assert "could not be imported" in text
         assert "- Rent Roll sheet" in text  # the bulleted, human list
+
+
+class TestBlankRequiredFields:
+    """DEVIATIONS §25 discrimination for the Step-7 blank-cell hole (owner
+    review): a BLANK required cell must route through the readable
+    RentRollImportError, never a raw pydantic/ValueError dump. These tests
+    FAIL against the pre-fix code (blank base_rent_amount / lease_type /
+    base_rent_unit leaked raw errors)."""
+
+    def _errors(self, exported, col):
+        _leases, path = exported
+        _write_cell(path, "Rent Roll", 2, col, None)  # blank the cell
+        with pytest.raises(RentRollImportError) as excinfo:
+            import_rent_roll(path)
+        return excinfo.value
+
+    @pytest.mark.parametrize("col,fix_fragment", [
+        ("tenant_name", None),
+        ("area", "Enter a number"),
+        ("lease_type", "office, industrial, retail"),
+        ("start_date", "YYYY-MM-DD"),
+        ("base_rent_amount", "Enter a number"),
+        ("base_rent_unit", "dollars_per_area_per_year"),
+    ])
+    def test_blank_required_field_is_readable(self, exported, col,
+                                              fix_fragment):
+        exc = self._errors(exported, col)
+        # names the sheet, the row, and the column
+        assert any("Rent Roll sheet" in m and "row 2" in m and col in m
+                   for m in exc.errors), exc.errors
+        # carries a fix (valid options / an example)
+        if fix_fragment is not None:
+            assert any(fix_fragment in m for m in exc.errors), exc.errors
+        # and is NOT a raw pydantic / ValueError / stack-trace surface
+        text = str(exc)
+        assert "errors.pydantic.dev" not in text
+        assert "pydantic" not in text.lower()
+        assert "Traceback" not in text
+        assert "validation error for" not in text  # the pydantic header
+
+    def test_blank_misc_item_unit_is_readable(self, tmp_path):
+        """A blank unit in the Misc Items companion sheet also leaked a raw
+        MoneyUnit(None) ValueError before the fix."""
+        acme = Lease(tenant_name="Acme Co", area=12_000, lease_type="office",
+                     start_date=dt.date(2026, 1, 1), term_months=120,
+                     base_rent=MoneyRate(amount=25.0, unit=PSF),
+                     upon_expiration=UponExpiration.vacate,
+                     miscellaneous_items=[MiscItemSpec(
+                         name="Storage", amount=100.0,
+                         unit=MoneyUnit.dollars_per_month)])
+        path = tmp_path / "misc.xlsx"
+        export_rent_roll(_RentRoll([acme]), path=path)
+        wb = openpyxl.load_workbook(path)
+        wb["Misc Items"].cell(row=2, column=4).value = None  # unit column
+        wb.save(path)
+        with pytest.raises(RentRollImportError) as excinfo:
+            import_rent_roll(path)
+        assert any("Misc Items sheet" in m and "unit" in m and "row 2" in m
+                   for m in excinfo.value.errors)
+        assert "pydantic" not in str(excinfo.value).lower()
+
+
+class TestOptionalFieldDefaults:
+    """Owner review Q3: a BLANK optional column is intentionally defaulted to
+    the §3 schema default (not silently dropped). Asserted so the behavior is
+    explicit, not unexplained."""
+
+    def test_blank_status_defaults_to_contract(self, exported):
+        _leases, path = exported
+        _write_cell(path, "Rent Roll", 2, "status", None)
+        imported = import_rent_roll(path)
+        # a blank cell has no value to read, so 'contract' is the schema default
+        assert imported[0].status == LeaseStatus.contract
+
+    def test_blank_upon_expiration_defaults_to_market(self, exported):
+        _leases, path = exported  # Acme's exported upon_expiration is 'vacate'
+        _write_cell(path, "Rent Roll", 2, "upon_expiration", None)
+        imported = import_rent_roll(path)
+        # blanked from 'vacate' → the schema default 'market' (proves default,
+        # not a stale read of the original value)
+        assert imported[0].upon_expiration == UponExpiration.market

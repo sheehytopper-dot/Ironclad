@@ -112,8 +112,11 @@ def _text(value) -> Optional[str]:
 
 
 def _number(err: _RowErrors, column: str, value, *, positive=False,
-            integer=False, example="12000"):
+            integer=False, required=False, example="12000"):
     if _is_blank(value):
+        if required:
+            err.add(column, "required value is missing",
+                    f"Enter a number, e.g. {example}")
         return None
     try:
         num = float(value)
@@ -133,8 +136,11 @@ def _number(err: _RowErrors, column: str, value, *, positive=False,
 
 
 def _enum(err: _RowErrors, column: str, value, values: list[str], *,
-          what: str):
+          what: str, required=False):
     if _is_blank(value):
+        if required:
+            err.add(column, "required value is missing",
+                    f"Use one of: {', '.join(values)}")
         return None
     text = str(value).strip()
     if text not in values:
@@ -144,8 +150,11 @@ def _enum(err: _RowErrors, column: str, value, values: list[str], *,
     return text
 
 
-def _date(err: _RowErrors, column: str, value):
+def _date(err: _RowErrors, column: str, value, *, required=False):
     if _is_blank(value):
+        if required:
+            err.add(column, "required value is missing",
+                    "Use the format YYYY-MM-DD, e.g. 2026-01-01")
         return None
     if isinstance(value, dt.datetime):
         return value.date()
@@ -251,6 +260,10 @@ def _steps_by_tenant(sheet: _Sheet, errors: list[str]
         except ValidationError as exc:
             _translate_pydantic(exc, sheet.name, row_num, errors)
             continue
+        except ValueError as exc:
+            err.add_row(f"this rent-step row could not be read ({exc})",
+                        "Check the values in this row and re-import")
+            continue
         out.setdefault(tenant, []).append(step)
     return out
 
@@ -267,10 +280,13 @@ def _misc_by_tenant(sheet: _Sheet, errors: list[str]
             continue
         name = _text(values.get("name"))
         if name is None:
-            err.add("name", "no item name", "Enter a name, e.g. 'Storage'")
-        amount = _number(err, "amount", values.get("amount"), example="100")
+            err.add("name", "required value is missing",
+                    "Enter a name, e.g. 'Storage'")
+        amount = _number(err, "amount", values.get("amount"), required=True,
+                         example="100")
         unit = _enum(err, "unit", values.get("unit"),
-                     [u.value for u in MoneyUnit], what="money unit")
+                     [u.value for u in MoneyUnit], what="money unit",
+                     required=True)
         if not err.ok:
             continue
         try:
@@ -279,6 +295,10 @@ def _misc_by_tenant(sheet: _Sheet, errors: list[str]
                                     values.get("free_rent_abates")))
         except ValidationError as exc:
             _translate_pydantic(exc, sheet.name, row_num, errors)
+            continue
+        except ValueError as exc:
+            err.add_row(f"this misc-item row could not be read ({exc})",
+                        "Check the values in this row and re-import")
             continue
         out.setdefault(tenant, []).append(item)
     return out
@@ -317,20 +337,31 @@ def _build_leases(sheets: dict[str, _Sheet]) -> list[Lease]:
         else:
             seen_tenants[tenant] = row_num
 
+        # Required fields (missing/blank AND wrong-typed both route through
+        # the readable RentRollImportError — never a raw pydantic/ValueError
+        # dump; owner review of Step 7, DEVIATIONS.md §25 discrimination).
         area = _number(err, "area", values.get("area"), positive=True,
-                       example="12000")
+                       required=True, example="12000")
         lease_type = _enum(err, "lease_type", values.get("lease_type"),
-                           [t.value for t in LeaseType], what="lease type")
+                           [t.value for t in LeaseType], what="lease type",
+                           required=True)
+        base_amount = _number(err, "base_rent_amount",
+                              values.get("base_rent_amount"), required=True,
+                              example="25.00")
+        base_unit = _enum(err, "base_rent_unit", values.get("base_rent_unit"),
+                          _BASE_RENT_UNIT_VALUES, what="base rent unit",
+                          required=True)
+        start_date = _date(err, "start_date", values.get("start_date"),
+                           required=True)
+        # Optional: a blank cell means "use the §3 schema default"
+        # (``status`` → contract, ``upon_expiration`` → market) or the
+        # one-of pair (``end_date`` / ``term_months``, checked by the Lease
+        # validator). None of these leak — see the round-trip default tests.
         status = _enum(err, "status", values.get("status"),
                        [s.value for s in LeaseStatus], what="lease status")
-        base_amount = _number(err, "base_rent_amount",
-                              values.get("base_rent_amount"), example="10.00")
-        base_unit = _enum(err, "base_rent_unit", values.get("base_rent_unit"),
-                          _BASE_RENT_UNIT_VALUES, what="base rent unit")
         upon = _enum(err, "upon_expiration", values.get("upon_expiration"),
                      [u.value for u in UponExpiration],
                      what="upon-expiration option")
-        start_date = _date(err, "start_date", values.get("start_date"))
         end_date = _date(err, "end_date", values.get("end_date"))
         term_months = _number(err, "term_months", values.get("term_months"),
                               integer=True, positive=True, example="120")
@@ -338,32 +369,41 @@ def _build_leases(sheets: dict[str, _Sheet]) -> list[Lease]:
         if not err.ok:
             continue
 
-        kwargs = dict(
-            tenant_name=tenant,
-            suite=_text(values.get("suite")),
-            external_id=_text(values.get("external_id")),
-            area=area,
-            lease_type=LeaseType(lease_type),
-            start_date=start_date,
-            base_rent=MoneyRate(amount=base_amount, unit=MoneyUnit(base_unit)),
-            market_leasing_profile=_text(values.get("market_leasing_profile")),
-            notes=_text(values.get("notes")),
-            rent_steps=steps.get(tenant, []),
-            miscellaneous_items=misc.get(tenant, []),
-        )
-        if end_date is not None:
-            kwargs["end_date"] = end_date
-        if term_months is not None:
-            kwargs["term_months"] = term_months
-        if status is not None:
-            kwargs["status"] = LeaseStatus(status)
-        if upon is not None:
-            kwargs["upon_expiration"] = UponExpiration(upon)
-
+        # Build the nested value objects and the Lease inside one translating
+        # guard: after the required checks above nothing here should raise on
+        # a blank, but the enum/MoneyRate constructors raise a raw ValueError
+        # on any unexpected input — catch BOTH so no raw error can escape an
+        # intake surface (spec §5.4).
         try:
+            kwargs = dict(
+                tenant_name=tenant,
+                suite=_text(values.get("suite")),
+                external_id=_text(values.get("external_id")),
+                area=area,
+                lease_type=LeaseType(lease_type),
+                start_date=start_date,
+                base_rent=MoneyRate(amount=base_amount,
+                                    unit=MoneyUnit(base_unit)),
+                market_leasing_profile=_text(
+                    values.get("market_leasing_profile")),
+                notes=_text(values.get("notes")),
+                rent_steps=steps.get(tenant, []),
+                miscellaneous_items=misc.get(tenant, []),
+            )
+            if end_date is not None:
+                kwargs["end_date"] = end_date
+            if term_months is not None:
+                kwargs["term_months"] = term_months
+            if status is not None:
+                kwargs["status"] = LeaseStatus(status)
+            if upon is not None:
+                kwargs["upon_expiration"] = UponExpiration(upon)
             leases.append(Lease(**kwargs))
         except ValidationError as exc:
             _translate_pydantic(exc, RENT_ROLL_SHEET, row_num, errors)
+        except ValueError as exc:
+            err.add_row(f"this row could not be read ({exc})",
+                        "Check the values in this row and re-import")
 
     if errors:
         raise RentRollImportError(errors)
