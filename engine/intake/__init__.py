@@ -11,6 +11,7 @@ This importer reads ONLY the rent-roll template / CSV, never an OM or any
 other document.
 """
 from .rent_roll_import import (
+    ImportResult,
     RentRollImportError,
     import_rent_roll,
     import_rent_roll_csv,
@@ -18,4 +19,5 @@ from .rent_roll_import import (
 
 __all__ = [
     "import_rent_roll", "import_rent_roll_csv", "RentRollImportError",
+    "ImportResult",
 ]

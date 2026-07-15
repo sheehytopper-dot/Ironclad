@@ -62,6 +62,12 @@ SUBTOTAL_ACCOUNTS = frozenset({
     CFADS,
 })
 
+#: The bottom-line "summary" totals — the running results an analyst reads
+#: (as opposed to the intermediate rollups above). The exporter gives these
+#: a rule line for a cleaner summary look (presentation only; DEVIATIONS
+#: §25 pass). A subset of ``SUBTOTAL_ACCOUNTS``.
+GRAND_TOTAL_ACCOUNTS = frozenset({EGR, NOI, CFBDS, CFADS})
+
 
 def _analysis_begin(result, analysis_begin: Optional[dt.date]) -> dt.date:
     """The analysis begin date: honored if passed, else the first ledger
@@ -96,6 +102,7 @@ def _tree(accounts, ledger) -> list[dict]:
             "account": account,
             "level": 0 if is_subtotal else 1,
             "is_subtotal": is_subtotal,
+            "grand_total": account in GRAND_TOTAL_ACCOUNTS,
             "section": section,
         })
     return rows

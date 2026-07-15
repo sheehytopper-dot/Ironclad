@@ -169,14 +169,30 @@ def _write_report_sheet(workbook, worksheet, report: Report, spec: ReportSpec,
     subtitle = workbook.add_format({"italic": True, "font_color": "#555555"})
     header = workbook.add_format({"bold": True, "font_color": "white",
                                   "bg_color": _HEADER_BG, "border": 1})
-    num = workbook.add_format({"num_format": spec.number_format}) \
-        if spec.number_format else workbook.add_format()
-    num_bold = workbook.add_format({"num_format": spec.number_format,
-                                    "bold": True}) if spec.number_format \
-        else workbook.add_format({"bold": True})
-    label = workbook.add_format()
-    label_bold = workbook.add_format({"bold": True})
     footer_fmt = workbook.add_format({"italic": True, "font_color": "#888888"})
+
+    # Cell formats, created once and cached by (is_number, indent, bold,
+    # grand_total). Subtotals are bold; the bottom-line summary totals
+    # (EGR / NOI / CFBDS / CFADS) additionally get a thin rule line above,
+    # so the Cash Flow's summary lines read cleanly without every subtotal
+    # shouting (DEVIATIONS §25 formatting pass). Presentation only — cell
+    # VALUES are unchanged.
+    _fmt_cache: dict = {}
+
+    def cell_fmt(*, is_number=False, indent=0, bold=False, grand=False):
+        key = (is_number, indent, bold, grand)
+        if key not in _fmt_cache:
+            props: dict = {}
+            if is_number and spec.number_format:
+                props["num_format"] = spec.number_format
+            if bold:
+                props["bold"] = True
+            if indent:
+                props["indent"] = indent
+            if grand:
+                props["top"] = 1
+            _fmt_cache[key] = workbook.add_format(props)
+        return _fmt_cache[key]
 
     grid = report_cell_grid(report)
     n_cols = max(len(r) for r in grid)
@@ -194,29 +210,31 @@ def _write_report_sheet(workbook, worksheet, report: Report, spec: ReportSpec,
 
     for r, cells in enumerate(grid):
         excel_row = DATA_START_ROW + r
-        is_header = r == 0
-        for c, value in enumerate(cells):
-            if is_header:
+        if r == 0:
+            for c, value in enumerate(cells):
                 worksheet.write(excel_row, c, value, header)
-                continue
-            account = str(cells[0]) if tree else None
-            node = tree.get(account) if account else None
+            continue
+        account = str(cells[0]) if tree else None
+        node = tree.get(account) if account else None
+        bold = bool(node and node["is_subtotal"])
+        grand = bool(node and node.get("grand_total"))
+        level = node["level"] if node else 0
+        for c, value in enumerate(cells):
             if isinstance(value, (int, float)) and not isinstance(value, bool):
-                fmt = num_bold if (node and node["is_subtotal"]) else num
-                worksheet.write_number(excel_row, c, value, fmt)
+                worksheet.write_number(
+                    excel_row, c, value,
+                    cell_fmt(is_number=True, bold=bold, grand=grand))
             elif value is None:
-                worksheet.write_blank(excel_row, c, None)
+                # a grand-total row carries its rule line across blank cells
+                worksheet.write_blank(
+                    excel_row, c, None,
+                    cell_fmt(grand=True) if grand else None)
             else:
-                # label cell: indent Cash Flow detail lines under subtotals
-                if c == 0 and node is not None:
-                    indent = workbook.add_format(
-                        {"indent": node["level"],
-                         "bold": bool(node["is_subtotal"])})
-                    worksheet.write_string(excel_row, c, str(value), indent)
-                else:
-                    worksheet.write_string(
-                        excel_row, c, str(value),
-                        label_bold if (node and node["is_subtotal"]) else label)
+                # the label cell (c == 0) carries the Cash Flow tree indent
+                worksheet.write_string(
+                    excel_row, c, str(value),
+                    cell_fmt(indent=(level if c == 0 else 0), bold=bold,
+                             grand=grand))
 
     # Frozen panes below the header row (and right of the first column).
     worksheet.freeze_panes(DATA_START_ROW + 1, 1)

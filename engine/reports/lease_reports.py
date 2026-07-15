@@ -52,22 +52,36 @@ from engine.calc.timeline import fiscal_year_of
 from engine.models import LeaseStatus
 from engine.reports.base import Report, ReportMeta
 
-#: Default inclusion set: contract only (contract family per [AE p. 818] —
-#: Contract / Contract Renewal / Option all map to ``contract`` in the §3
-#: schema). Speculative and MTM are excluded by default but selectable.
-DEFAULT_STATUSES: tuple[LeaseStatus, ...] = (LeaseStatus.contract,)
+#: Row provenance (spec §7 report presentation): a real contractual lease
+#: vs engine-projected tenancy. Keyed on ``lease.status`` — an absorption
+#: lease (status ``speculative``) is Speculative, matching the Lease Audit's
+#: [AE p. 398] labeling and the rent-roll export.
+CONTRACTUAL = "Contractual"
+SPECULATIVE = "Speculative"
+
+#: Default inclusion set: **all** tenancy — the real leases (contract, MTM)
+#: AND engine-projected speculative chains (absorption) — so the default
+#: view shows the full picture with an explicit provenance label per row
+#: (owner directive, 2026-07-15). Contractual-only stays selectable via
+#: ``statuses=CONTRACTUAL_STATUSES``. (§25 previously defaulted contract-only;
+#: widened here.) The status filter mirrors [AE p. 818]'s Lease Status
+#: checkboxes over the §3 schema (contract / mtm / speculative).
+DEFAULT_STATUSES: tuple[LeaseStatus, ...] = (
+    LeaseStatus.contract, LeaseStatus.mtm, LeaseStatus.speculative)
+CONTRACTUAL_STATUSES: tuple[LeaseStatus, ...] = (
+    LeaseStatus.contract, LeaseStatus.mtm)
 
 StatusInput = Union[LeaseStatus, str]
 
 SUMMARY_COLUMNS = [
-    "tenant", "suite", "status", "lease_type", "area", "lease_start",
-    "lease_end", "term_months", "monthly_base_rent", "annual_base_rent",
-    "base_rent_psf_yr", "upon_expiration",
+    "tenant", "status", "lease_status", "suite", "lease_type", "area",
+    "lease_start", "lease_end", "term_months", "monthly_base_rent",
+    "annual_base_rent", "base_rent_psf_yr", "upon_expiration",
 ]
 
 EXPIRATION_COLUMNS = [
-    "fiscal_year", "expiring_leases", "expiring_sf", "pct_of_building",
-    "expiring_annual_rent",
+    "fiscal_year", "status", "expiring_leases", "expiring_sf",
+    "pct_of_building", "expiring_annual_rent",
 ]
 
 
@@ -75,6 +89,14 @@ def _status_set(statuses: Iterable[StatusInput]) -> set[str]:
     """Normalize the inclusion filter to a set of status strings (accepts
     ``LeaseStatus`` members or their ``.value`` strings)."""
     return {s.value if isinstance(s, LeaseStatus) else str(s) for s in statuses}
+
+
+def _provenance(lease) -> str:
+    """Row provenance from the chain's underlying lease status: an
+    absorption lease (``speculative``) is Speculative; a real lease
+    (``contract`` / ``mtm``) is Contractual."""
+    return (SPECULATIVE if lease.status.value == LeaseStatus.speculative.value
+            else CONTRACTUAL)
 
 
 def _contract_segment(segments):
@@ -112,8 +134,9 @@ def lease_summary(result, *,
         annual = monthly * 12.0
         rows.append({
             "tenant": tenant,
+            "status": _provenance(lease),        # Contractual / Speculative
+            "lease_status": lease.status.value,  # §3.12 contract / mtm / speculative
             "suite": lease.suite or "",
-            "status": lease.status.value,
             "lease_type": lease.lease_type.value,
             "area": float(lease.area),
             "lease_start": str(contract.start),
@@ -171,27 +194,31 @@ def lease_expiration(result, *, fiscal_year_end_month: int = 12,
     [AE pp. 574, 815-819]. ``statuses`` selects which lease statuses to
     include ([AE p. 818]; default contract only).
 
-    Each included chain contributes exactly one expiration (its contract
-    term end); leases whose terms end past the analysis timeline bucket
-    into their true fiscal year. Cumulative expiring SF may exceed the
-    building when a suite turns over more than once — that is legitimate
-    (DEVIATIONS.md §25); see :func:`assert_expiration_within_building` for
-    the per-year sanity bound."""
+    One row per **(fiscal year, provenance)** — Contractual vs Speculative
+    — so each row carries an explicit status label (owner directive). Each
+    included chain contributes exactly one expiration (its contract term
+    end); leases whose terms end past the analysis timeline bucket into
+    their true fiscal year. Cumulative expiring SF may exceed the building
+    when a suite turns over more than once — that is legitimate (DEVIATIONS
+    §25); the per-year sanity bound (:func:`assert_expiration_within_
+    building`) sums the provenance rows within a year."""
     status_set = _status_set(statuses)
     rentable = float(result.rentable_area.iloc[0])
-    by_year: dict[int, dict[str, float]] = {}
-    for _tenant, contract, _lease in _included_chains(result, status_set):
+    by_key: dict[tuple, dict[str, float]] = {}
+    for _tenant, contract, lease in _included_chains(result, status_set):
         year = fiscal_year_of(contract.end, fiscal_year_end_month)
         annual_rent = segment_rent_level(contract, contract.end) * 12.0
-        bucket = by_year.setdefault(year, {"count": 0, "sf": 0.0, "rent": 0.0})
+        key = (year, _provenance(lease))
+        bucket = by_key.setdefault(key, {"count": 0, "sf": 0.0, "rent": 0.0})
         bucket["count"] += 1
         bucket["sf"] += contract.area
         bucket["rent"] += annual_rent
     rows = []
-    for year in sorted(by_year):
-        b = by_year[year]
+    for (year, prov) in sorted(by_key, key=lambda k: (k[0], k[1])):
+        b = by_key[(year, prov)]
         rows.append({
             "fiscal_year": year,
+            "status": prov,
             "expiring_leases": int(b["count"]),
             "expiring_sf": b["sf"],
             "pct_of_building": (b["sf"] / rentable if rentable else float("nan")),
@@ -215,41 +242,51 @@ def reconcile_lease_expiration(report: Report, model, *,
     a source the builder never reads (it builds from ``result.segments``),
     so this is NOT a self-subtraction and CAN fail (DEVIATIONS.md §25).
 
-    Rebuilds the expected expiration table independently from
-    ``model.rent_roll`` (+ ``model.absorption`` when speculative is
-    included) via :func:`lease_term_periods` and :func:`fiscal_year_of`,
-    then diffs it against the report: overall lease count, overall expiring
-    SF, and the per-fiscal-year count and SF. All four diffs are ~0 when the
-    builder emits each included lease exactly once at the right area and
-    year; a dropped, duplicated, mis-aread, or mis-bucketed lease makes one
-    nonzero."""
+    **Contractual** rows reconcile to an INDEPENDENT source —
+    ``model.rent_roll`` rebuilt via :func:`lease_term_periods` /
+    :func:`fiscal_year_of`, which the builder never reads. **Speculative**
+    rows here are absorption chains, rebuilt from ``model.absorption`` via
+    ``generate_absorption_leases`` — also independent of the builder's
+    ``result.segments``. (The weaker case — MLP-rollover speculative
+    tenancy with no independent model source — appears only in the
+    rent-roll EXPORT, not this report; DEVIATIONS §25 named tradeoff.)
+
+    Diffs the report against that expected table per **(fiscal year,
+    provenance)** plus the overall count and SF; every diff is ~0 when the
+    builder emits each lease once at the right area, year, and provenance,
+    and a dropped / duplicated / mis-aread / mis-bucketed / mis-labeled
+    lease makes one nonzero."""
     status_set = _status_set(statuses)
-    included = [l for l in model.rent_roll if l.status.value in status_set]
+    expected: dict[tuple, dict[str, float]] = defaultdict(
+        lambda: {"count": 0, "sf": 0.0})
+
+    def add(lease, provenance):
+        _start, end = lease_term_periods(lease)
+        year = fiscal_year_of(end, fiscal_year_end_month)
+        expected[(year, provenance)]["count"] += 1
+        expected[(year, provenance)]["sf"] += float(lease.area)
+
+    for lease in model.rent_roll:
+        if lease.status.value in status_set:
+            add(lease, _provenance(lease))
     if LeaseStatus.speculative.value in status_set:
         profiles = {p.name: p for p in model.market_leasing_profiles}
         begin = model.property.analysis_begin
         for spec in model.absorption:
-            included.extend(
-                generate_absorption_leases(spec, profiles, begin, model.inflation))
+            for gen in generate_absorption_leases(spec, profiles, begin,
+                                                  model.inflation):
+                add(gen, SPECULATIVE)
 
-    expected: dict[int, dict[str, float]] = defaultdict(
-        lambda: {"count": 0, "sf": 0.0})
-    for lease in included:
-        _start, end = lease_term_periods(lease)
-        year = fiscal_year_of(end, fiscal_year_end_month)
-        expected[year]["count"] += 1
-        expected[year]["sf"] += float(lease.area)
-
-    rep = report.frame.set_index("fiscal_year")
-    max_year_sf_diff = 0.0
-    max_year_count_diff = 0.0
-    for year in set(expected) | set(rep.index):
-        r_sf = float(rep.loc[year, "expiring_sf"]) if year in rep.index else 0.0
-        r_n = int(rep.loc[year, "expiring_leases"]) if year in rep.index else 0
-        e_sf = expected[year]["sf"]
-        e_n = expected[year]["count"]
-        max_year_sf_diff = max(max_year_sf_diff, abs(r_sf - e_sf))
-        max_year_count_diff = max(max_year_count_diff, abs(r_n - e_n))
+    rep = report.frame.set_index(["fiscal_year", "status"])
+    max_key_sf_diff = 0.0
+    max_key_count_diff = 0.0
+    for key in set(expected) | set(rep.index):
+        r_sf = float(rep.loc[key, "expiring_sf"]) if key in rep.index else 0.0
+        r_n = int(rep.loc[key, "expiring_leases"]) if key in rep.index else 0
+        e_sf = expected[key]["sf"]
+        e_n = expected[key]["count"]
+        max_key_sf_diff = max(max_key_sf_diff, abs(r_sf - e_sf))
+        max_key_count_diff = max(max_key_count_diff, abs(r_n - e_n))
     return pd.Series({
         "lease_count_diff": float(
             report.frame["expiring_leases"].sum()
@@ -257,8 +294,8 @@ def reconcile_lease_expiration(report: Report, model, *,
         "total_sf_diff": float(
             report.frame["expiring_sf"].sum()
             - sum(v["sf"] for v in expected.values())),
-        "max_year_count_diff": float(max_year_count_diff),
-        "max_year_sf_diff": float(max_year_sf_diff),
+        "max_key_count_diff": float(max_key_count_diff),
+        "max_key_sf_diff": float(max_key_sf_diff),
     })
 
 
@@ -271,15 +308,19 @@ def assert_expiration_within_building(report: Report, result, *,
     within-year double-counting, not a guaranteed identity, and the figure
     is fiscal-year-end dependent (assert it across conventions, never citing
     a single convention's number as if universal). Raises naming the first
-    breaching year and the convention in force."""
+    breaching year and the convention in force.
+
+    The report has one row per (fiscal year, provenance), so the per-year
+    total sums the Contractual and Speculative rows before the check."""
     rentable = float(result.rentable_area.iloc[0])
     limit = rentable * (1.0 + tolerance)
-    breach = report.frame[report.frame["expiring_sf"] > limit]
+    per_year = report.frame.groupby("fiscal_year")["expiring_sf"].sum()
+    breach = per_year[per_year > limit]
     if not breach.empty:
-        row = breach.iloc[0]
+        year = int(breach.index[0])
         fye = report.meta.extra.get("fiscal_year_end_month")
         raise ValueError(
-            f"lease-expiration sanity bound tripped: FY{int(row['fiscal_year'])} "
-            f"expiring SF {row['expiring_sf']:,.0f} exceeds rentable "
-            f"{rentable:,.0f} (fiscal_year_end_month={fye}); inspect for a "
-            f"within-year double-count (DEVIATIONS.md §25)")
+            f"lease-expiration sanity bound tripped: FY{year} expiring SF "
+            f"{float(breach.iloc[0]):,.0f} exceeds rentable {rentable:,.0f} "
+            f"(fiscal_year_end_month={fye}); inspect for a within-year "
+            f"double-count (DEVIATIONS.md §25)")

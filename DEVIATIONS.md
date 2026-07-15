@@ -1682,3 +1682,72 @@ area`), but two have coverage gaps stated plainly below.
 report corruption. The one genuinely non-failing check found on review was
 the building-area *test* (not a reconciler), now fixed. The coverage gaps
 above are recorded, not papered over.
+
+### Report/export/intake polish pass (2026-07-15) — provenance + a named reconcile tradeoff
+
+Owner-directed polish pass over the report / export / intake layer (no
+engine/calc or engine/models touched; the four by-design golden reds stay
+red). It surfaces engine-projected tenancy alongside the contractual rent
+roll, with an explicit **provenance** label, and records the reconciliation
+tradeoff that surfacing forces.
+
+**Provenance = Contractual vs Speculative.** A row is **Speculative** iff it
+is an MLP-rollover segment or an absorption lease's own term
+(``lease.status == speculative``) — the same rule as the Lease Audit
+[AE p. 398]; everything else (the real ``contract`` / ``mtm`` leases) is
+**Contractual**. Applied consistently in:
+
+- **Rent-roll export** (``engine/export/rent_roll_export.py``): now takes the
+  **RunResult**, not the model. Speculative tenancy lives in
+  ``result.segments`` (Freeport: 57 rollover segments + 1 absorption =
+  58 Speculative rows vs 1 ``model.absorption`` entry) — building it from
+  ``model.absorption`` alone would miss every rollover generation. One
+  unified **Rent Roll** sheet: a ``status`` column (Contractual / Speculative)
+  plus ``lease_status`` (the §3.12 contract / mtm / speculative). Contractual
+  rows carry the full flat fields + steps + misc and round-trip; Speculative
+  rows are segment-derived and informational.
+- **Rent-roll import** (``engine/intake/rent_roll_import.py``): reads ONLY
+  Contractual rows into leases; a blank ``status`` stays Contractual (a plain
+  Step-7 rent roll with no provenance column still imports fully). Ignored
+  Speculative rows are reported in ``ImportResult.notes`` ("N speculative/
+  projected row(s) ignored — engine projections, not intake (rows ...)") —
+  **not a silent skip**. All Step-7 readable-error behavior preserved.
+- **Reports #11 Lease Summary / #12 Lease Expiration**: the default view now
+  includes speculative tenancy with an explicit provenance label per row
+  (``DEFAULT_STATUSES`` widened from contract-only to contract + mtm +
+  speculative; ``CONTRACTUAL_STATUSES`` selectable). #12 rows are per
+  **(fiscal year, provenance)**; the per-year sanity bound sums the
+  provenance rows before the ≤ rentable check.
+
+**NAMED TRADEOFF (the honest limitation).** Contractual rows reconcile to an
+**independent** source — ``model.rent_roll`` (rebuilt via
+``lease_term_periods`` / ``fiscal_year_of``, which the builder never reads).
+Speculative tenancy splits:
+
+- **Absorption** chains (in reports #11/#12) reconcile to ``model.absorption``
+  re-expanded via ``generate_absorption_leases`` — still independent of the
+  builder's ``result.segments``, so a genuine cross-check.
+- **MLP-rollover** generations (only in the rent-roll EXPORT) have **no
+  independent model source** — they exist solely in ``result.segments``, the
+  same lineage as the exporter. Any check of the exported Speculative rows
+  can only reconcile them to ``result.segments`` — a **weaker check** than the
+  Contractual ↔ ``model.rent_roll`` tie. This is not hidden: the export's
+  round-trip guarantee and every reconciler is scoped to the Contractual
+  subset (independent), and the Speculative rows are labeled, counted, and —
+  on import — reported as ignored. The discrimination tests reflect this:
+  relabeling a Contractual row to Speculative DROPS it on import (the filter
+  is real and can fail); a Speculative row never becomes a Lease; corrupting
+  a Contractual field breaks the round-trip; and the #12 reconciler catches a
+  mislabeled provenance and a corrupted SF cell.
+
+**Standing gap carried forward:** percentage rent on speculative tenancy is
+**externally unvalidated pending golden #3** (the whole percentage-rent
+module is; CLAUDE.md standing gap). The Speculative rows the export/reports
+now surface include projected percentage-rent economics that no golden
+exercises — the same unvalidated status, now more visible.
+
+**Cash Flow formatting (presentation only).** The exporter's subtotal
+bolding was refined: intermediate rollups stay bold; the bottom-line summary
+totals (EGR / NOI / CFBDS / CFADS, ``cash_flow.GRAND_TOTAL_ACCOUNTS``) get a
+thin rule line above. Cell **values are unchanged** — the Step-6 cell-by-cell
+and corrupt-a-cell discrimination tests still pass.

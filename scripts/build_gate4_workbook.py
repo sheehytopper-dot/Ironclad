@@ -100,14 +100,21 @@ def _export(model, out: Path) -> None:
     print(f"    tabs ({len(tabs)}): {', '.join(tabs)}")
 
     rr = out.with_name(f"{out.stem}-rentroll.xlsx")
-    counts = export_rent_roll(model, path=rr)
-    reimported = import_rent_roll(rr)
-    ok = len(reimported) == len(model.rent_roll) and all(
-        a.tenant_name == b.tenant_name and a.area == b.area
-        and a.base_rent.amount == b.base_rent.amount
-        for a, b in zip(model.rent_roll, reimported))
-    print(f"  rent roll: {rr}  ({counts['Rent Roll']} leases; "
-          f"export->import round-trip {'OK' if ok else 'MISMATCH'})")
+    counts = export_rent_roll(result, path=rr)
+    imported = import_rent_roll(rr)
+    reimported = imported.leases
+    # round-trip is the Contractual subset (the real rent roll); Speculative
+    # rows are engine projections and are intentionally not re-imported.
+    contractual = {l.tenant_name: l for l in model.rent_roll}
+    ok = len(reimported) == len(contractual) and all(
+        (g := contractual.get(a.tenant_name)) is not None
+        and g.area == a.area and g.base_rent.amount == a.base_rent.amount
+        for a in reimported)
+    print(f"  rent roll: {rr}  ({counts['Contractual']} contractual + "
+          f"{counts['Speculative']} speculative rows; Contractual round-trip "
+          f"{'OK' if ok else 'MISMATCH'})")
+    for note in imported.notes:
+        print(f"    note: {note}")
 
 
 def main() -> None:

@@ -71,6 +71,28 @@ class RentRollImportError(ValueError):
 
 
 @dataclass
+class ImportResult:
+    """The outcome of a successful import: the ``leases`` built from the
+    Contractual rows, plus readable informational ``notes`` (e.g.
+    engine-projected Speculative rows that were intentionally ignored — a
+    stated skip, never silent). Iterating an ``ImportResult`` yields its
+    leases, and ``len`` is the lease count, so it reads like the list it
+    largely is."""
+
+    leases: list[Lease]
+    notes: list[str] = field(default_factory=list)
+
+    def __iter__(self):
+        return iter(self.leases)
+
+    def __len__(self):
+        return len(self.leases)
+
+    def __getitem__(self, index):
+        return self.leases[index]
+
+
+@dataclass
 class _Sheet:
     name: str
     columns: list[str]
@@ -323,7 +345,20 @@ def _build_leases(sheets: dict[str, _Sheet]) -> list[Lease]:
 
     leases: list[Lease] = []
     seen_tenants: dict[str, int] = {}
+    speculative_rows: list[int] = []
     for row_num, values in roll.rows:
+        # Provenance filter: only Contractual rows become leases. Speculative
+        # rows are engine projections (MLP rollover / absorption), NOT intake
+        # — ignored for lease construction but recorded and reported (not a
+        # silent skip; owner directive). A blank provenance stays Contractual
+        # (a plain rent roll with no ``status`` column imports fully, as in
+        # Step 7); anything not exactly "Speculative" is treated as
+        # Contractual (the label is a soft presentation hint, not an enum).
+        provenance = _text(values.get("status"))
+        if provenance is not None and provenance.strip().lower() == "speculative":
+            speculative_rows.append(row_num)
+            continue
+
         err = _RowErrors(RENT_ROLL_SHEET, row_num, errors)
         tenant = _text(values.get("tenant_name"))
         if tenant is None:
@@ -354,10 +389,12 @@ def _build_leases(sheets: dict[str, _Sheet]) -> list[Lease]:
         start_date = _date(err, "start_date", values.get("start_date"),
                            required=True)
         # Optional: a blank cell means "use the §3 schema default"
-        # (``status`` → contract, ``upon_expiration`` → market) or the
+        # (``lease_status`` → contract, ``upon_expiration`` → market) or the
         # one-of pair (``end_date`` / ``term_months``, checked by the Lease
         # validator). None of these leak — see the round-trip default tests.
-        status = _enum(err, "status", values.get("status"),
+        # ``lease_status`` is the §3.12 status (contract/mtm/speculative),
+        # distinct from the provenance ``status`` column filtered above.
+        status = _enum(err, "lease_status", values.get("lease_status"),
                        [s.value for s in LeaseStatus], what="lease status")
         upon = _enum(err, "upon_expiration", values.get("upon_expiration"),
                      [u.value for u in UponExpiration],
@@ -407,27 +444,35 @@ def _build_leases(sheets: dict[str, _Sheet]) -> list[Lease]:
 
     if errors:
         raise RentRollImportError(errors)
-    return leases
+    notes: list[str] = []
+    if speculative_rows:
+        rows_text = ", ".join(str(r) for r in speculative_rows)
+        notes.append(
+            f"{len(speculative_rows)} speculative/projected row(s) ignored — "
+            f"engine projections (MLP rollover / absorption), not intake "
+            f"(Rent Roll rows {rows_text}).")
+    return ImportResult(leases=leases, notes=notes)
 
 
 # ------------------------------------------------------------------ #
 # Public front-ends                                                  #
 # ------------------------------------------------------------------ #
 
-def import_rent_roll(path) -> list[Lease]:
+def import_rent_roll(path) -> ImportResult:
     """Import an ``.xlsx`` rent-roll template (Rent Roll + Rent Steps + Misc
-    Items sheets) into a validated ``list[Lease]``. Raises
-    :class:`RentRollImportError` (with plain, row-level messages) if any row
-    is invalid."""
+    Items sheets) into an :class:`ImportResult` — the validated leases (the
+    Contractual rows) plus readable ``notes`` (e.g. Speculative rows
+    ignored). Raises :class:`RentRollImportError` (with plain, row-level
+    messages) if any Contractual row is invalid."""
     return _build_leases(_read_xlsx(path))
 
 
 def import_rent_roll_csv(rent_roll_path, *, steps_path=None,
-                         misc_path=None) -> list[Lease]:
+                         misc_path=None) -> ImportResult:
     """Import the rent roll from CSV (spec §5.2 "also support CSV"): the Rent
     Roll rows in ``rent_roll_path``, with optional companion CSVs for rent
-    steps and misc items. Same validation and readable errors as the xlsx
-    path."""
+    steps and misc items. Same validation, readable errors, and
+    :class:`ImportResult` as the xlsx path."""
     sheets = {
         RENT_ROLL_SHEET: _read_csv_file(rent_roll_path, RENT_ROLL_SHEET),
         RENT_STEPS_SHEET: _read_csv_file(steps_path, RENT_STEPS_SHEET),

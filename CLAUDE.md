@@ -785,6 +785,31 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   except the Step-0-deferred six #10/#13/#14/#17/#19/#22); the §8 default set
   (11 reports) is complete. The four by-design golden reds stay red by design
   (not Gate 4 blockers).
+  **Report/export/intake POLISH PASS 2026-07-15 (owner-directed; Gate 4 still
+  HELD; DEVIATIONS §25):** report/export/intake layer only — engine/calc and
+  engine/models untouched, four golden reds unchanged. Provenance
+  (Contractual vs Speculative, keyed on lease.status / segment.speculative =
+  the [AE p. 398] rule): (1) `export_rent_roll(result, *, path)` now takes the
+  **RunResult** and emits one unified Rent Roll sheet with a `status`
+  (Contractual/Speculative) + `lease_status` column — Speculative rows are the
+  engine-projected rollover+absorption generations from `result.segments`
+  (Freeport 58 vs 1 model.absorption), which `model.absorption` alone would
+  miss; (2) the importer reads ONLY Contractual rows, blank provenance stays
+  Contractual, and returns an `ImportResult(leases, notes)` reporting the
+  ignored Speculative rows (not a silent skip) — Step-7 readable errors
+  preserved; (3) reports #11/#12 default to the full view (contract+mtm+
+  speculative) with an explicit provenance label per row, contractual-only
+  selectable (`CONTRACTUAL_STATUSES`), #12 rows per (fiscal year, provenance),
+  reconcilers + sanity bound still failable; (4) Cash Flow subtotal bolding
+  refined (grand totals EGR/NOI/CFBDS/CFADS get a rule line — values
+  unchanged, Step-6 tests still pass). **NAMED TRADEOFF (DEVIATIONS §25):**
+  Contractual rows reconcile to independent model input (model.rent_roll /
+  model.absorption); MLP-rollover Speculative rows in the EXPORT reconcile
+  only to result.segments — a weaker check, because engine-projected tenancy
+  has no independent model source. Percentage rent on speculative tenancy
+  stays externally unvalidated pending golden #3. Suite: **560 passed + the
+  same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**. The
+  Gate 4 workbooks were regenerated for the owner re-spot-check.
 - **Next session's first prompt:** "Phase 4 is BUILD-COMPLETE — Steps 1-7 all
   shipped and pushed (report-builder contract + toggle/period engine; Cash
   Flow #1 + Benchmark #24; valuation family #5/#6/#8/#9 + Loan Amort #20;

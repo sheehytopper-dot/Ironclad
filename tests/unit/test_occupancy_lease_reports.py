@@ -17,6 +17,7 @@ import pytest
 
 from engine.calc.run import run_property
 from engine.reports import (
+    CONTRACTUAL_STATUSES,
     Period,
     Report,
     assert_expiration_within_building,
@@ -178,7 +179,12 @@ class TestLeaseSummary:
         assert "total_area" not in report.meta.extra  # the wrong field is gone
         assert report.meta.extra["distinct_demised_area"] == pytest.approx(
             300_000.0)
-        assert report.meta.extra["included_statuses"] == ["contract"]
+        # default now includes all tenancy (real + projected); this clean
+        # fixture has only contract chains, so both rows are Contractual
+        assert report.meta.extra["included_statuses"] == [
+            "contract", "mtm", "speculative"]
+        assert set(report.frame["status"]) == {"Contractual"}
+        assert list(report.frame["lease_status"]) == ["contract", "contract"]
 
 
 class TestLeaseExpiration:
@@ -190,6 +196,14 @@ class TestLeaseExpiration:
         assert report.meta.number == 12 and report.meta.monetary is False
         diffs = reconcile_lease_expiration(report, model)
         assert diffs.abs().max() == pytest.approx(0.0, abs=1e-9)
+
+    def test_reconcile_is_failable(self, model, result):
+        """DEVIATIONS §25: the model-input reconcile CAN fail — corrupt a
+        written expiring-SF cell and it flags a nonzero diff (not a
+        self-subtraction)."""
+        report = lease_expiration(result)
+        report.frame.loc[0, "expiring_sf"] += 1000.0
+        assert reconcile_lease_expiration(report, model).abs().max() > 0.0
 
     def test_by_year_count_sf_pct_rent(self, result):
         frame = lease_expiration(result).frame.set_index("fiscal_year")
@@ -233,31 +247,51 @@ class TestStatusFilterAndTurnover:
     chains (incl. the suite-100 OKI double-entry), 1 MTM, and 1 speculative
     absorption chain (the module-level ``freeport`` fixture)."""
 
-    def test_default_excludes_speculative_and_mtm(self, freeport):
+    def test_default_includes_all_tenancy_with_provenance_label(self, freeport):
+        """Default now includes the full picture (owner directive): 28
+        contract + 1 MTM + 1 speculative absorption chain = 30, each row
+        labeled Contractual / Speculative, reconciling to the model input."""
         model, res = freeport
         rep = lease_expiration(res)
-        assert rep.meta.extra["included_statuses"] == ["contract"]
-        # 28 contract chains only (MTM AT&T + speculative absorption excluded)
-        assert int(rep.frame["expiring_leases"].sum()) == 28
-        # reconciles to the model input for exactly the contract statuses
+        assert rep.meta.extra["included_statuses"] == [
+            "contract", "mtm", "speculative"]
+        assert int(rep.frame["expiring_leases"].sum()) == 30
+        assert set(rep.frame["status"]) == {"Contractual", "Speculative"}
+        # the absorption chain is the lone Speculative expiration
+        spec = rep.frame[rep.frame["status"] == "Speculative"]
+        assert int(spec["expiring_leases"].sum()) == 1
         assert reconcile_lease_expiration(rep, model).abs().max() == pytest.approx(
             0.0, abs=1e-6)
 
-    def test_including_speculative_adds_absorption_and_reconciles(self, freeport):
+    def test_reconcile_catches_mislabeled_provenance(self, freeport):
+        """Mislabeling a Contractual expiration as Speculative is caught by
+        the per-(year, provenance) reconcile — the label is verified, not
+        assumed (DEVIATIONS §25 discrimination)."""
         model, res = freeport
-        statuses = (LeaseStatus.contract, LeaseStatus.speculative)
-        rep = lease_expiration(res, statuses=statuses)
-        assert int(rep.frame["expiring_leases"].sum()) == 29  # +1 absorption
+        report = lease_expiration(res)
+        idx = report.frame.index[report.frame["status"] == "Contractual"][0]
+        report.frame.loc[idx, "status"] = "Speculative"
+        diffs = reconcile_lease_expiration(report, model)
+        assert diffs["max_key_sf_diff"] > 0.0 or diffs["max_key_count_diff"] > 0.0
+
+    def test_contractual_only_selectable(self, freeport):
+        """Contractual-only stays selectable — 28 contract + 1 MTM = 29,
+        no Speculative rows, still reconciles."""
+        model, res = freeport
+        rep = lease_expiration(res, statuses=CONTRACTUAL_STATUSES)
+        assert int(rep.frame["expiring_leases"].sum()) == 29
+        assert set(rep.frame["status"]) == {"Contractual"}
         assert reconcile_lease_expiration(
-            rep, model, statuses=statuses).abs().max() == pytest.approx(
-            0.0, abs=1e-6)
+            rep, model, statuses=CONTRACTUAL_STATUSES).abs().max() == (
+            pytest.approx(0.0, abs=1e-6))
 
     def test_summary_distinct_demised_dedupes_suite_100(self, freeport):
         """Suite 100 is two sequential contract leases (OKI + OKI Renewal);
         distinct demised area counts it once and stays UNDER the building —
-        never the double-counted 128,087 the old total_area reported."""
+        never the double-counted 128,087 the old total_area reported.
+        (Contract-only isolates the suite-100 dedup.)"""
         _model, res = freeport
-        report = lease_summary(res)
+        report = lease_summary(res, statuses=(LeaseStatus.contract,))
         demised = report.meta.extra["distinct_demised_area"]
         assert demised == pytest.approx(122_870.0)         # deduped
         assert demised < float(res.rentable_area.iloc[0])  # 123,099; honest

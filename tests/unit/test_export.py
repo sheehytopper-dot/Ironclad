@@ -235,16 +235,19 @@ class TestSingleReportExport:
 
 
 class TestRentRollExport:
-    def test_template_layout_and_values(self, model, tmp_path):
+    def test_template_layout_and_values(self, result, tmp_path):
         path = tmp_path / "rr.xlsx"
-        counts = export_rent_roll(model, path=path)
+        counts = export_rent_roll(result, path=path)
         assert counts["Rent Roll"] == 1 and counts["Rent Steps"] == 1
+        assert counts["Contractual"] == 1 and counts["Speculative"] == 0
         wb = openpyxl.load_workbook(path)
         assert wb.sheetnames == ["Rent Roll", "Rent Steps", "Misc Items"]
         header = [c.value for c in wb["Rent Roll"][1]]
         assert header == RENT_ROLL_COLUMNS
         row = [c.value for c in wb["Rent Roll"][2]]
         by = dict(zip(header, row))
+        assert by["status"] == "Contractual"          # provenance
+        assert by["lease_status"] == "contract"       # §3.12 status
         assert by["tenant_name"] == "Acme Co"
         assert by["area"] == 12_000
         assert by["base_rent_amount"] == 10.0

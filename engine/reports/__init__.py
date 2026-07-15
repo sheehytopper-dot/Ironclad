@@ -37,6 +37,10 @@ from .benchmark import (
 from .cash_flow import cash_flow
 from .cash_flow import reconcile_to_ledger as reconcile_cash_flow
 from .lease_reports import (
+    CONTRACTUAL,
+    CONTRACTUAL_STATUSES,
+    DEFAULT_STATUSES,
+    SPECULATIVE,
     assert_expiration_within_building,
     lease_expiration,
     lease_summary,
@@ -102,6 +106,7 @@ __all__ = [
     "lease_summary", "reconcile_lease_summary",
     "lease_expiration", "reconcile_lease_expiration",
     "assert_expiration_within_building",
+    "CONTRACTUAL", "SPECULATIVE", "DEFAULT_STATUSES", "CONTRACTUAL_STATUSES",
     # audit builders (bare frame + reconciliation + contract wrapper)
     "lease_audit", "lease_audit_report", "reconcile_lease_audit",
     "recovery_audit", "recovery_audit_report", "reconcile_recovery_audit",
