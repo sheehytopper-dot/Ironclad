@@ -30,3 +30,6 @@ OM/
 # Generated ledger dumps (scripts/dump_monthly.py)
 *.monthly.xlsx
 *.audits.xlsx
+# Generated Excel result packages (scripts/build_gate4_workbook.py, §8)
+*.package.xlsx
+*.rentroll.xlsx

@@ -162,13 +162,14 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
-  IN PROGRESS — Steps 1-6 shipped (Step 1 report-builder contract + toggle/period
-  engine; Step 2 Cash Flow #1 + Benchmark Comparison #24; Step 3 valuation family
-  #5/#6/#8/#9 + Loan Amortization #20; Step 4 Occupancy #15 + Lease Summary #11 +
-  Lease Expiration #12, with a #12 correction — DEVIATIONS §25 — approved &
-  pushed; Step 5 Executive Summary #2 + Assumptions #3 + Sources & Uses #4 +
-  Resale Matrix #7 + Input Assumptions #23; Step 6 Excel export package §8 +
-  rent-roll export §5.2); Gate 3 passed 2026-07-12.** Phase 1
+  BUILD COMPLETE (Steps 1-7 shipped); GATE 4 EVIDENCE PREPARED — AWAITING OWNER
+  DECLARATION (do not self-declare — the gate is an owner call).** Steps: 1
+  report-builder contract + toggle/period engine; 2 Cash Flow #1 + Benchmark #24;
+  3 valuation family #5/#6/#8/#9 + Loan Amort #20; 4 Occupancy #15 + Lease Summary
+  #11 + Lease Expiration #12 (with the #12 correction — DEVIATIONS §25 — approved
+  & pushed); 5 Exec Summary #2 + Assumptions #3 + Sources & Uses #4 + Resale
+  Matrix #7 + Input Assumptions #23; 6 Excel export package §8 + rent-roll export
+  §5.2; 7 rent-roll import round-trip §5.2. Gate 3 passed 2026-07-12. Phase 1
   shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
@@ -736,43 +737,83 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   rent-roll template layout + a step round-trips to the companion sheet.
   Suite: **539 passed + the same 4 by-design golden reds (137/47 Gate 2,
   33/12 Gate 3 capital)** — counts unchanged. No engine/calc touched.
-- **Next session's first prompt:** "Phase 4 Steps 1-6 are DONE (Step 1
-  report-builder contract + toggle/period engine, engine/reports/base.py;
-  Step 2 Cash Flow #1 + Benchmark #24, cash_flow.py/benchmark.py; Step 3
-  valuation family #5/#6/#8/#9 + Loan Amort #20, valuation_reports.py/
-  loan_amortization.py; Step 4 Occupancy #15 + Lease Summary #11 + Lease
-  Expiration #12, occupancy.py/lease_reports.py, with the DEVIATIONS §25 #12
-  correction + test-defect fix, approved & pushed; Step 5 Exec Summary #2 +
-  Assumptions #3 + Sources & Uses #4 + Resale Matrix #7 + Input Assumptions
-  #23, summary_reports.py + valuation_reports.py; Step 6 Excel export package
-  §8 + rent-roll export §5.2, engine/export/package_builder.py +
-  rent_roll_export.py — all shipped). Begin **Phase 4 Step 7: the rent-roll
-  import template round-trip (§5.2)** per NEXT_STEPS_TO_PHASE4.md Step 7 —
-  build the importer that reads `templates/rent_roll_template.xlsx` (the
-  layout `engine/export/rent_roll_export.py` already writes: Rent Roll + Rent
-  Steps + Misc Items sheets; also support CSV), validates through the §3
-  pydantic models, and returns **row-level errors readable by a
-  non-programmer** (plain language, field path, offending value, what a valid
-  value looks like — spec §5.2/§5.4 [AE pp. 62, 171]). Acceptance
-  (NEXT_STEPS_TO_PHASE4.md Step 7): a property's rent roll exported (Step 6)
-  then re-imported reproduces the same `PropertyModel` rent roll (the flat
-  §3.12 fields the template carries — nested free-rent/recovery/pct-rent/
-  deposit structures live in the JSON and are out of the flat template's
-  scope, §5.2); a malformed row yields a readable error, not a stack trace.
-  Per the DEVIATIONS §25 standing rule, the round-trip test must discriminate
-  (a corrupted/dropped field must fail it) and the error test must assert the
-  MESSAGE is readable, not just that it raised. Do NOT build the in-app OM
-  ingestion ('Phase 7', cancelled) — the importer reads only the §5.2 rent-
-  roll template / CSV, never an OM. Do NOT build the Step-0-deferred six.
-  REMEMBER the standing gaps, all carried forward unchanged and none a Phase
-  4 blocker: percentage rent externally unvalidated pending golden #3; tenant
-  misc items + purchase/deposits/debt/resale/valuation/sensitivity externally
-  unvalidated (no golden exercises them); Freeport B, Cedar Alt B, and
-  Freeport E parked for beta-stage GUI testing (Gate 2/3 assertions stay red
-  by design — 137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D closed as C's
-  sibling, not open; live price derivation permanently refusing (DEVIATIONS
-  §20 #6), not an open gap; the two named reconciler blind spots
-  (_SU_LEDGER_ROWS shared mapping; resale-matrix monotonicity-preserving
-  non-anchor corruption) stay named. When Step 7 lands — the last Phase 4
-  build step — commit, push, run the Gate 4 review (NEXT_STEPS_TO_PHASE4.md
-  Step 8), and update this prompt."
+  **Phase 4 Step 7 complete 2026-07-14 (the LAST Phase 4 build step):** the
+  rent-roll importer (`engine/intake/rent_roll_import.py`; spec §5.2/§5.4) —
+  the second intake surface. Reads the template `rent_roll_export.py` writes
+  (Rent Roll + Rent Steps + Misc Items sheets; CSV also via
+  `import_rent_roll_csv`), validates through the §3 pydantic
+  Lease/RentStep/MiscItemSpec models, returns a validated `list[Lease]`.
+  Reads ONLY the rent-roll template — never an OM (§1.2/§5.4). **Readable
+  errors:** every message names sheet / row / column / offending value / the
+  fix; ALL rows validated and every error collected before raising
+  `RentRollImportError`; pydantic cross-field errors translated to row-level
+  lines (no stack trace). Flat §3.12 fields + steps + misc name/amount/unit/
+  abatement round-trip; nested structures (free rent/recoveries/pct rent/
+  deposits/misc timing) live in the JSON, out of the flat template's scope
+  (§5.2). 31 tests (tests/unit/test_rent_roll_import.py): round-trip
+  reproduces every flat field (xlsx + CSV); **DEVIATIONS §25 discrimination**
+  — corrupting any of 11 fields (or dropping the notes column, or a rent
+  step) breaks the round-trip; readable-error tests assert MESSAGE CONTENT
+  (row/column/value/fix), all-errors-collected, missing-column named,
+  cross-field rule translated, surface is not a pydantic dump. engine/calc
+  untouched. **Step-7 blank-cell fix 2026-07-15 (owner review; commit
+  c8e0ec3):** blank REQUIRED cells (base_rent_amount / lease_type /
+  base_rent_unit / area / start_date, and misc `unit`) previously leaked raw
+  pydantic/ValueError dumps — the §5.4-forbidden surface; now routed through
+  the readable RentRollImportError (required-field check + a translating
+  guard over all model/enum construction catching ValidationError AND
+  ValueError). Confirmed a blank optional column is the §3 schema default
+  (status → contract, upon_expiration → market), asserted by tests. +9 tests.
+  Suite: **570 passed + the same 4 by-design golden reds** — counts
+  unchanged.
+  **GATE 4 EVIDENCE PREPARED 2026-07-14 — AWAITING OWNER DECLARATION (Claude
+  does NOT self-declare the gate).** Criteria 1-6 (NEXT_STEPS_TO_PHASE4.md
+  Step 8) map to: (1) builder contract — engine/reports/base.py + the 24
+  builders conform, test_report_base.py; (2) unit/period toggles + sum(monthly)
+  =annual=fiscal + PSF/per-occupied denominators — test_report_base.py; (3)
+  the §8 default report set built + reconciling, Cash Flow + Benchmark against
+  the golden CSVs — test_cash_flow_report.py (reproduces 137/33/47/12 + Clorox
+  0) + the per-report reconcile tests; (4) Excel package exports values-only,
+  a tab per report, §8 formatting, single-report + rent-roll export —
+  test_export.py (cell-by-cell + corrupt-a-cell discrimination); (5) rent-roll
+  import round-trip + readable errors — test_rent_roll_import.py; (6) **owner
+  workbook spot-check — the one OWNER action outstanding.** Run
+  `scripts/build_gate4_workbook.py` (no args) to generate the spot-check
+  workbooks: the Clorox golden (7 tabs; valuation tabs correctly skipped) and
+  a valuation+debt demo (all 11 tabs) as `*.package.xlsx` (gitignored), plus
+  the rent-roll export/round-trip. **18 of 24 report builders exist** (all
+  except the Step-0-deferred six #10/#13/#14/#17/#19/#22); the §8 default set
+  (11 reports) is complete. The four by-design golden reds stay red by design
+  (not Gate 4 blockers).
+- **Next session's first prompt:** "Phase 4 is BUILD-COMPLETE — Steps 1-7 all
+  shipped and pushed (report-builder contract + toggle/period engine; Cash
+  Flow #1 + Benchmark #24; valuation family #5/#6/#8/#9 + Loan Amort #20;
+  Occupancy #15 + Lease Summary #11 + Lease Expiration #12 with the §25 #12
+  correction; Exec Summary #2 + Assumptions #3 + Sources & Uses #4 + Resale
+  Matrix #7 + Input Assumptions #23; Excel export package §8 + rent-roll export
+  §5.2; rent-roll import round-trip §5.2, incl. the blank-cell readable-error
+  fix c8e0ec3). Suite: 570 passed + the four by-design golden reds (137/47
+  Gate 2, 33/12 Gate 3 capital), which stay red by design. **GATE 4 is an
+  OWNER declaration — do NOT self-declare it.**
+  FIRST: confirm the owner has done the §8 workbook spot-check (criterion 6):
+  run `scripts/build_gate4_workbook.py`, ask the owner to open the generated
+  `*.package.xlsx` and eyeball the tabs / formatting / a couple of totals; the
+  other five Gate 4 criteria are evidenced by the green suite (see the Gate 4
+  evidence note above). If the owner declares Gate 4 passed, **Phase 5 (UI,
+  Streamlit per spec §6) begins — but Iron Rule 2 applies to planning: draft
+  NEXT_STEPS_TO_PHASE5.md and get owner review BEFORE any UI code** (and a
+  Phase 5 UI mockup is being prototyped separately in Claude Design —
+  exploratory, not ready to build). If Gate 4 is NOT yet declared, do NOT
+  start Phase 5 and do NOT invent more Phase 4 work — the build is complete;
+  address only what the owner's spot-check raises. Do NOT build the
+  Step-0-deferred six (#10/#13/#14/#17/#19/#22) or the cancelled in-app OM
+  ingestion. REMEMBER the standing gaps, all carried forward unchanged and
+  none a Phase 4 blocker: percentage rent externally unvalidated pending
+  golden #3; tenant misc items + purchase/deposits/debt/resale/valuation/
+  sensitivity externally unvalidated (no golden exercises them); Freeport B,
+  Cedar Alt B, and Freeport E parked for beta-stage GUI testing; Cedar Alt D
+  closed as C's sibling; live price derivation permanently refusing (DEVIATIONS
+  §20 #6); the two named reconciler blind spots (_SU_LEDGER_ROWS shared
+  mapping; resale-matrix monotonicity-preserving non-anchor corruption) stay
+  named; the DEVIATIONS §25 standing rule (a regression test must run where
+  the wrong answer differs from the right) applies to all future tests."
