@@ -193,7 +193,7 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   deposits). **Golden #1 FY2029-FY2031 revenue/vacancy/expense/NOI assertions active
   and green — worst deviation $0.86** (capital lines wait for Gate 3;
   DISCREPANCY_LOG.md updated). `scripts/dump_monthly.py` (owner request) dumps any
-  .icprop.json's full monthly ledger + fiscal subtotals to .xlsx (`*.monthly.xlsx`
+  .icprop.json's full monthly ledger + fiscal subtotals to .xlsx (`*-monthly.xlsx`
   gitignored). **Phase 2 Step 3 complete 2026-07-06:** space absorption
   (`engine/calc/absorption.py`, [AE pp. 395-403]) — synthetic leases on the schedule
   at MLP new-tenant economics (rent inflated to each lease's own start, "N of M"
@@ -246,7 +246,7 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   total identities, reconciling exactly to the ledger's five revenue lines
   (`reconcile_lease_audit`, tested to 1e-9 on a multi-tenant rollover + absorption +
   free-rent property). `scripts/dump_audits.py` (owner review helper) writes both
-  audit reports + a reconciliation sheet to .xlsx (`*.audits.xlsx` gitignored); run on
+  audit reports + a reconciliation sheet to .xlsx (`*-audits.xlsx` gitignored); run on
   Clorox: reconciliation exactly 0. Suite 226 green. **BOTH audit reports are ready
   for the Gate 2 owner review** (a Gate 2 criterion). Gate 2 remaining: owner review
   of the audits, Step 7 (goldens #2/#4 — owner-gated fixtures; #5 disqualified
@@ -780,7 +780,7 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   workbook spot-check — the one OWNER action outstanding.** Run
   `scripts/build_gate4_workbook.py` (no args) to generate the spot-check
   workbooks: the Clorox golden (7 tabs; valuation tabs correctly skipped) and
-  a valuation+debt demo (all 11 tabs) as `*.package.xlsx` (gitignored), plus
+  a valuation+debt demo (all 11 tabs) as `*-package.xlsx` (gitignored), plus
   the rent-roll export/round-trip. **18 of 24 report builders exist** (all
   except the Step-0-deferred six #10/#13/#14/#17/#19/#22); the §8 default set
   (11 reports) is complete. The four by-design golden reds stay red by design
@@ -797,7 +797,7 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   OWNER declaration — do NOT self-declare it.**
   FIRST: confirm the owner has done the §8 workbook spot-check (criterion 6):
   run `scripts/build_gate4_workbook.py`, ask the owner to open the generated
-  `*.package.xlsx` and eyeball the tabs / formatting / a couple of totals; the
+  `*-package.xlsx` and eyeball the tabs / formatting / a couple of totals; the
   other five Gate 4 criteria are evidenced by the green suite (see the Gate 4
   evidence note above). If the owner declares Gate 4 passed, **Phase 5 (UI,
   Streamlit per spec §6) begins — but Iron Rule 2 applies to planning: draft

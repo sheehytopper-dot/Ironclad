@@ -11,7 +11,7 @@ Loads the PropertyModel, runs the engine, and writes three sheets:
 both reports, which must be exactly zero everywhere. Full precision
 (spec §4.3): this is an audit dump, not a formatted report (Phase 4).
 
-Default output: next to the input, `<name>.audits.xlsx` (gitignored —
+Default output: next to the input, `<name>-audits.xlsx` (gitignored —
 generated artifacts are never committed).
 """
 from __future__ import annotations
@@ -83,7 +83,7 @@ def main() -> None:
     out = args.out
     if out is None:
         name = args.property_json.name.removesuffix(".icprop.json")
-        out = args.property_json.parent / f"{name}.audits.xlsx"
+        out = args.property_json.parent / f"{name}-audits.xlsx"
     path = dump_audits(args.property_json, out)
     print(f"wrote {path}")
 

@@ -18,7 +18,7 @@ exports **two** demonstration packages so every tab is exercised:
 It also writes the rent-roll template (export half of the §5.2 round-trip)
 and re-imports it, printing whether the round-trip reproduced the rent roll.
 
-Outputs are ``*.package.xlsx`` / ``*.rentroll.xlsx`` next to this repo
+Outputs are ``*-package.xlsx`` / ``*-rentroll.xlsx`` next to this repo
 (gitignored — generated artifacts are never committed).
 """
 from __future__ import annotations
@@ -90,14 +90,16 @@ def _valuation_demo() -> PropertyModel:
 
 
 def _export(model, out: Path) -> None:
+    # Generated-file convention: kebab-case stem + a single real extension
+    # (with_name, not with_suffix — the suffix has no leading dot).
     result = run_property(model)
-    pkg = out.with_suffix(".package.xlsx")
+    pkg = out.with_name(f"{out.stem}-package.xlsx")
     tabs = build_package(result, model, path=pkg, scenario="Base",
                          timestamp=STAMP)
     print(f"  package: {pkg}")
     print(f"    tabs ({len(tabs)}): {', '.join(tabs)}")
 
-    rr = out.with_suffix(".rentroll.xlsx")
+    rr = out.with_name(f"{out.stem}-rentroll.xlsx")
     counts = export_rent_roll(model, path=rr)
     reimported = import_rent_roll(rr)
     ok = len(reimported) == len(model.rent_roll) and all(
@@ -127,8 +129,8 @@ def main() -> None:
           "are correctly skipped):")
     _export(load_property(clorox), ROOT / "clorox")
     print("\nExporting the valuation demo (all valuation/debt tabs populated):")
-    _export(_valuation_demo(), ROOT / "valuation_demo")
-    print("\nOpen the .package.xlsx files and spot-check: tabs present, "
+    _export(_valuation_demo(), ROOT / "valuation-demo")
+    print("\nOpen the -package.xlsx files and spot-check: tabs present, "
           "indigo header band, Cash Flow tree indentation, negatives in red "
           "parens, frozen panes, the unit/period note under each title, and a "
           "couple of totals against the on-screen report. This is the §8 "

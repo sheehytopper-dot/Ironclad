@@ -27,9 +27,9 @@ desktop.ini
 # into tests/golden/<property>/ deliberately, never committed wholesale)
 OM/
 
-# Generated ledger dumps (scripts/dump_monthly.py)
-*.monthly.xlsx
-*.audits.xlsx
-# Generated Excel result packages (scripts/build_gate4_workbook.py, §8)
-*.package.xlsx
-*.rentroll.xlsx
+# Generated artifacts (kebab-case stems, single extension). scripts/
+# dump_monthly.py, dump_audits.py, build_gate4_workbook.py.
+*-monthly.xlsx
+*-audits.xlsx
+*-package.xlsx
+*-rentroll.xlsx

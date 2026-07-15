@@ -10,7 +10,7 @@ goldens assert on). Values are full precision — rounding is report-level
 only (spec §4.3) and this is an audit dump, not a report; the report
 modules (engine/reports/, Phase 2 Steps 5-6) are a separate surface.
 
-Default output: next to the input, `<name>.monthly.xlsx` (gitignored —
+Default output: next to the input, `<name>-monthly.xlsx` (gitignored —
 generated artifacts are never committed).
 """
 from __future__ import annotations
@@ -68,7 +68,7 @@ def main() -> None:
     out = args.out
     if out is None:
         name = args.property_json.name.removesuffix(".icprop.json")
-        out = args.property_json.parent / f"{name}.monthly.xlsx"
+        out = args.property_json.parent / f"{name}-monthly.xlsx"
     path = dump_monthly(args.property_json, out)
     print(f"wrote {path}")
 
