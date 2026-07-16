@@ -47,7 +47,9 @@ from engine.models.valuation import (  # noqa: E402
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-STAMP = "2026-07-14 (Gate 4 review)"
+#: Footer stamp = the real generation time, so a workbook never misreads as
+#: stale (owner note 2026-07-15). datetime is imported as dt above.
+STAMP = dt.datetime.now().strftime("%Y-%m-%d %H:%M") + " (Gate 4 review)"
 
 
 def _valuation_demo() -> PropertyModel:
