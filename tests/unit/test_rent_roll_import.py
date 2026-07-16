@@ -199,8 +199,38 @@ class TestProvenanceDiscrimination:
         with pytest.raises(AssertionError):
             _assert_contractual_roundtrip(model, import_rent_roll(path).leases)
 
+    def test_rent_step_corruption_breaks_roundtrip(self, exported):
+        """The rent-step companion sheet is read: change Acme's step amount
+        and the Contractual round-trip fails (§25 discrimination for steps)."""
+        model, _result, path = exported
+        wb = openpyxl.load_workbook(path)
+        wb["Rent Steps"].cell(row=2, column=2).value = 99.0   # amount column
+        wb.save(path)
+        with pytest.raises(AssertionError):
+            _assert_contractual_roundtrip(model, import_rent_roll(path).leases)
+
+    def test_dropping_optional_notes_column_breaks_roundtrip(self, exported):
+        """Deleting the optional 'notes' header makes the importer read notes
+        as blank → Acme's 'anchor' note is lost → the round-trip fails."""
+        model, _result, path = exported
+        wb = openpyxl.load_workbook(path)
+        ws = wb["Rent Roll"]
+        ws.cell(row=1, column=_col("notes")).value = None
+        for r in range(2, ws.max_row + 1):
+            ws.cell(row=r, column=_col("notes")).value = None
+        wb.save(path)
+        with pytest.raises(AssertionError):
+            _assert_contractual_roundtrip(model, import_rent_roll(path).leases)
+
 
 class TestReadableErrorsPreserved:
+    """Criterion-5 readable-error coverage (restored 2026-07-15 after the
+    polish pass thinned it — DEVIATIONS §25). Every message is asserted for
+    CONTENT (sheet / row / column / a fix) and for NOT being a raw
+    pydantic / stack-trace surface. Speculative rows (4, 5) are ignored
+    before validation, so they never confound a multi-error case; the
+    Contractual rows are 2 (Acme), 3 (Roller), 6 (Beta)."""
+
     def _import_err(self, exported, edits):
         _model, _result, path = exported
         for row, col, value in edits:
@@ -215,14 +245,62 @@ class TestReadableErrorsPreserved:
                    and "'offce'" in m and "office, industrial, retail" in m
                    for m in exc.errors)
 
-    def test_blank_required_field_is_readable_not_pydantic(self, exported):
-        exc = self._import_err(exported, [(2, "base_rent_amount", None)])
-        assert any("base_rent_amount" in m and "required value is missing" in m
-                   and "row 2" in m for m in exc.errors)
+    def test_all_errors_collected_not_just_first(self, exported):
+        """§5.4: bad values in DISTINCT Contractual rows are ALL reported in
+        one error — not first-fail. (Rows 2 and 3 are Contractual; the
+        Speculative rows between/after are ignored, not counted.)"""
+        exc = self._import_err(exported,
+                               [(2, "lease_type", "bad"), (3, "area", -1)])
+        assert any("row 2" in m and "lease_type" in m for m in exc.errors)
+        assert any("row 3" in m and "area" in m for m in exc.errors)
+        assert len(exc.errors) >= 2
+
+    @pytest.mark.parametrize("col,fix_fragment", [
+        ("tenant_name", "tenant"),
+        ("area", "Enter a number"),
+        ("lease_type", "office, industrial, retail"),
+        ("start_date", "YYYY-MM-DD"),
+        ("base_rent_amount", "Enter a number"),
+        ("base_rent_unit", "dollars_per_area_per_year"),
+    ])
+    def test_blank_required_field_is_readable(self, exported, col,
+                                              fix_fragment):
+        """Every required field, left blank on a Contractual row (Acme, row
+        2), yields a plain message (sheet/row/column + a fix), never a
+        pydantic dump. (end_date is one-of with term_months — covered by the
+        cross-field test below.)"""
+        exc = self._import_err(exported, [(2, col, None)])
+        assert any("Rent Roll sheet" in m and "row 2" in m and col in m
+                   for m in exc.errors), exc.errors
+        assert any(fix_fragment in m for m in exc.errors), exc.errors
         text = str(exc)
         assert "errors.pydantic.dev" not in text
         assert "pydantic" not in text.lower()
         assert "Traceback" not in text
+        assert "validation error for" not in text
+
+    def test_blank_misc_item_unit_is_readable(self, exported):
+        """The c8e0ec3 §5.4 fix — a blank unit in the Misc Items sheet must
+        not leak a raw MoneyUnit(None) ValueError (Acme's misc is row 2)."""
+        _model, _result, path = exported
+        wb = openpyxl.load_workbook(path)
+        wb["Misc Items"].cell(row=2, column=4).value = None   # unit column
+        wb.save(path)
+        with pytest.raises(RentRollImportError) as excinfo:
+            import_rent_roll(path)
+        assert any("Misc Items sheet" in m and "unit" in m and "row 2" in m
+                   for m in excinfo.value.errors)
+        assert "pydantic" not in str(excinfo.value).lower()
+
+    def test_negative_area_message(self, exported):
+        exc = self._import_err(exported, [(2, "area", -500)])
+        assert any("area" in m and "positive" in m and "row 2" in m
+                   for m in exc.errors)
+
+    def test_non_numeric_area_message(self, exported):
+        exc = self._import_err(exported, [(2, "area", "abc")])
+        assert any("area" in m and "not a number" in m and "row 2" in m
+                   for m in exc.errors)
 
     def test_missing_required_column_named(self, exported):
         _model, _result, path = exported
@@ -233,18 +311,43 @@ class TestReadableErrorsPreserved:
             import_rent_roll(path)
         assert any("area" in m and "missing" in m for m in excinfo.value.errors)
 
-    def test_blank_lease_status_defaults_to_contract(self, exported):
-        _model, _result, path = exported
-        _set_cell(path, 2, "lease_status", None)   # Acme's §3.12 status blank
-        leases = import_rent_roll(path).leases
-        acme = next(l for l in leases if l.tenant_name == "Acme Co")
-        assert acme.status == LeaseStatus.contract  # schema default
+    def test_cross_field_rule_translated_readably(self, exported):
+        """A Contractual row with neither term_months nor end_date trips the
+        Lease cross-field validator — translated to a row-level line naming
+        both fields, not a pydantic dump (this is end_date's requiredness,
+        which is one-of with term_months)."""
+        exc = self._import_err(exported, [(2, "term_months", None)])  # Acme
+        joined = "\n".join(exc.errors)
+        assert "row 2" in joined
+        assert "end_date" in joined and "term_months" in joined
+        assert "pydantic" not in str(exc).lower()
+        assert "Traceback" not in str(exc)
 
     def test_error_surface_is_not_a_stack_trace(self, exported):
         exc = self._import_err(exported, [(2, "lease_type", "bad")])
         text = str(exc)
         assert "could not be imported" in text and "- Rent Roll sheet" in text
         assert "pydantic" not in text.lower() and "Traceback" not in text
+
+
+class TestOptionalFieldDefaults:
+    """A blank optional column is the §3 schema default — not silently
+    dropped (owner Q3, restored 2026-07-15)."""
+
+    def test_blank_lease_status_defaults_to_contract(self, exported):
+        _model, _result, path = exported
+        _set_cell(path, 2, "lease_status", None)   # Acme's §3.12 status blank
+        acme = next(l for l in import_rent_roll(path).leases
+                    if l.tenant_name == "Acme Co")
+        assert acme.status == LeaseStatus.contract
+
+    def test_blank_upon_expiration_defaults_to_market(self, exported):
+        _model, _result, path = exported
+        # Acme's exported upon_expiration is 'vacate'; blank it → 'market'
+        _set_cell(path, 2, "upon_expiration", None)
+        acme = next(l for l in import_rent_roll(path).leases
+                    if l.tenant_name == "Acme Co")
+        assert acme.upon_expiration == UponExpiration.market
 
 
 class TestCsvRoundTrip:

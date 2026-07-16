@@ -807,9 +807,13 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   model.absorption); MLP-rollover Speculative rows in the EXPORT reconcile
   only to result.segments — a weaker check, because engine-projected tenancy
   has no independent model source. Percentage rent on speculative tenancy
-  stays externally unvalidated pending golden #3. Suite: **560 passed + the
-  same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**. The
-  Gate 4 workbooks were regenerated for the owner re-spot-check.
+  stays externally unvalidated pending golden #3. **Readable-error test
+  coverage restored 2026-07-15** (the pass initially dropped ~8 tests
+  570→560; restored to 32 in test_rent_roll_import.py — DEVIATIONS §25, plus
+  the standing rule "a test-file rewrite MUST list every test removed").
+  Suite: **573 passed + the same 4 by-design golden reds (137/47 Gate 2,
+  33/12 Gate 3 capital)**. The Gate 4 workbooks were regenerated for the
+  owner re-spot-check.
 - **Next session's first prompt:** "Phase 4 is BUILD-COMPLETE — Steps 1-7 all
   shipped and pushed (report-builder contract + toggle/period engine; Cash
   Flow #1 + Benchmark #24; valuation family #5/#6/#8/#9 + Loan Amort #20;

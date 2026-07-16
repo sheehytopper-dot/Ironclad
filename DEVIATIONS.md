@@ -1751,3 +1751,37 @@ bolding was refined: intermediate rollups stay bold; the bottom-line summary
 totals (EGR / NOI / CFBDS / CFADS, ``cash_flow.GRAND_TOTAL_ACCOUNTS``) get a
 thin rule line above. Cell **values are unchanged** — the Step-6 cell-by-cell
 and corrupt-a-cell discrimination tests still pass.
+
+### Coverage regression in the polish pass — dropped tests restored + a standing rule (2026-07-15)
+
+The report/export/intake polish pass (commit e84962b) rewrote
+``tests/unit/test_rent_roll_import.py`` and, in doing so, **silently dropped
+~8 readable-error tests** — taking the suite 570 → 560 — without listing
+them. The behavior was intact (blank ``lease_type`` / ``base_rent_unit`` /
+``base_rent_amount`` still return a readable ``RentRollImportError`` with no
+pydantic leak; errors still collect across contractual rows), so this was a
+**coverage regression, not a bug** — but Gate 4 criterion 5 ("readable
+errors") must not rest on thinner tests than the prior commit.
+
+**Restored (owner-directed):** all-errors-collected across distinct
+Contractual rows; blank misc-item ``unit`` readable (the c8e0ec3 §5.4 fix,
+which must never go untested again); blank-required readability
+**parametrized over every required field** (tenant_name, area, lease_type,
+start_date, base_rent_amount, base_rent_unit — each asserting sheet/row/
+column + a fix and NO pydantic/Traceback surface); negative-area and
+non-numeric-area messages; the cross-field rule (neither term_months nor
+end_date — end_date's one-of requiredness) translated readably; rent-step
+corruption and dropped-``notes``-column each breaking the round-trip (§25
+discrimination for steps / optional columns); blank ``upon_expiration`` →
+``market`` default. The file is now 32 tests (≥ the pre-pass 31); suite
+573 passed. Each satisfies the §25 rule — it fails if the behavior
+regresses.
+
+**STANDING RULE (owner-directed 2026-07-15): a test-file rewrite MUST list
+every test it removes** — the same discipline CLAUDE.md already requires for
+restructuring a planning document ("list explicitly anything you removed or
+consolidated — every time"). A rewrite that quietly thins coverage while the
+headline behavior still passes is a silent drop; enumerate removals so a
+reviewer can weigh each one. Applies through Phase 6, alongside the §25
+"a regression test must run where the wrong answer differs from the right"
+rule.
