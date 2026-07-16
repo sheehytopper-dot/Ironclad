@@ -161,16 +161,19 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - Every monetary report respects the Total $ / $ per SF / per-month / per-occupied-SF toggle.
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
-- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **PHASE 4
-  BUILD COMPLETE (Steps 1-7 shipped); GATE 4 EVIDENCE PREPARED — AWAITING OWNER
-  DECLARATION (do not self-declare — the gate is an owner call).** Steps: 1
-  report-builder contract + toggle/period engine; 2 Cash Flow #1 + Benchmark #24;
-  3 valuation family #5/#6/#8/#9 + Loan Amort #20; 4 Occupancy #15 + Lease Summary
-  #11 + Lease Expiration #12 (with the #12 correction — DEVIATIONS §25 — approved
-  & pushed); 5 Exec Summary #2 + Assumptions #3 + Sources & Uses #4 + Resale
-  Matrix #7 + Input Assumptions #23; 6 Excel export package §8 + rent-roll export
-  §5.2; 7 rent-roll import round-trip §5.2. Gate 3 passed 2026-07-12. Phase 1
-  shipped 2026-07-05:
+- Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 4
+  PASSED (owner declaration 2026-07-16) — Phase 5 (UI) — planning.** Phase 4
+  complete: Steps 1 report-builder contract + toggle/period engine; 2 Cash Flow
+  #1 + Benchmark #24; 3 valuation family #5/#6/#8/#9 + Loan Amort #20; 4
+  Occupancy #15 + Lease Summary #11 + Lease Expiration #12 (with the #12
+  correction — DEVIATIONS §25 — approved & pushed); 5 Exec Summary #2 +
+  Assumptions #3 + Sources & Uses #4 + Resale Matrix #7 + Input Assumptions #23;
+  6 Excel export package §8 + rent-roll export §5.2; 7 rent-roll import
+  round-trip §5.2; plus the provenance polish pass and the restored
+  readable-error coverage. **Phase 5 is PLANNING ONLY until
+  [NEXT_STEPS_TO_PHASE5.md](NEXT_STEPS_TO_PHASE5.md) is owner-reviewed (Iron
+  Rule 2) — no UI code, no Streamlit scaffolding before that.** Gate 3 passed
+  2026-07-12. Phase 1 shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -766,25 +769,23 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   (status → contract, upon_expiration → market), asserted by tests. +9 tests.
   Suite: **570 passed + the same 4 by-design golden reds** — counts
   unchanged.
-  **GATE 4 EVIDENCE PREPARED 2026-07-14 — AWAITING OWNER DECLARATION (Claude
-  does NOT self-declare the gate).** Criteria 1-6 (NEXT_STEPS_TO_PHASE4.md
-  Step 8) map to: (1) builder contract — engine/reports/base.py + the 24
-  builders conform, test_report_base.py; (2) unit/period toggles + sum(monthly)
-  =annual=fiscal + PSF/per-occupied denominators — test_report_base.py; (3)
-  the §8 default report set built + reconciling, Cash Flow + Benchmark against
-  the golden CSVs — test_cash_flow_report.py (reproduces 137/33/47/12 + Clorox
-  0) + the per-report reconcile tests; (4) Excel package exports values-only,
-  a tab per report, §8 formatting, single-report + rent-roll export —
-  test_export.py (cell-by-cell + corrupt-a-cell discrimination); (5) rent-roll
-  import round-trip + readable errors — test_rent_roll_import.py; (6) **owner
-  workbook spot-check — the one OWNER action outstanding.** Run
-  `scripts/build_gate4_workbook.py` (no args) to generate the spot-check
-  workbooks: the Clorox golden (7 tabs; valuation tabs correctly skipped) and
-  a valuation+debt demo (all 11 tabs) as `*-package.xlsx` (gitignored), plus
-  the rent-roll export/round-trip. **18 of 24 report builders exist** (all
-  except the Step-0-deferred six #10/#13/#14/#17/#19/#22); the §8 default set
-  (11 reports) is complete. The four by-design golden reds stay red by design
-  (not Gate 4 blockers).
+  **GATE 4 PASSED — owner declaration 2026-07-16** (evidence prepared
+  2026-07-14; the §8 workbook spot-check — criterion 6, the one owner action —
+  completed 2026-07-16 on the regenerated workbooks). Criteria 1-6
+  (NEXT_STEPS_TO_PHASE4.md Step 8) were evidenced by: (1) builder contract —
+  engine/reports/base.py + the builders conform, test_report_base.py; (2)
+  unit/period toggles + sum(monthly)=annual=fiscal + PSF/per-occupied
+  denominators — test_report_base.py; (3) the §8 default report set built +
+  reconciling, Cash Flow + Benchmark against the golden CSVs —
+  test_cash_flow_report.py (reproduces 137/33/47/12 + Clorox 0) + the
+  per-report reconcile tests; (4) Excel package values-only, a tab per report,
+  §8 formatting, single-report + rent-roll export — test_export.py
+  (cell-by-cell + corrupt-a-cell discrimination); (5) rent-roll import
+  round-trip + readable errors — test_rent_roll_import.py; (6) the owner
+  workbook spot-check via `scripts/build_gate4_workbook.py`. **18 of 24
+  report builders exist** (the Step-0-deferred six #10/#13/#14/#17/#19/#22
+  stay deferred); the §8 default set (11 reports) is complete. The four
+  by-design golden reds stay red by design (not Gate 4 blockers).
   **Report/export/intake POLISH PASS 2026-07-15 (owner-directed; Gate 4 still
   HELD; DEVIATIONS §25):** report/export/intake layer only — engine/calc and
   engine/models untouched, four golden reds unchanged. Provenance
@@ -814,35 +815,34 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   Suite: **573 passed + the same 4 by-design golden reds (137/47 Gate 2,
   33/12 Gate 3 capital)**. The Gate 4 workbooks were regenerated for the
   owner re-spot-check.
-- **Next session's first prompt:** "Phase 4 is BUILD-COMPLETE — Steps 1-7 all
-  shipped and pushed (report-builder contract + toggle/period engine; Cash
-  Flow #1 + Benchmark #24; valuation family #5/#6/#8/#9 + Loan Amort #20;
-  Occupancy #15 + Lease Summary #11 + Lease Expiration #12 with the §25 #12
-  correction; Exec Summary #2 + Assumptions #3 + Sources & Uses #4 + Resale
-  Matrix #7 + Input Assumptions #23; Excel export package §8 + rent-roll export
-  §5.2; rent-roll import round-trip §5.2, incl. the blank-cell readable-error
-  fix c8e0ec3). Suite: 570 passed + the four by-design golden reds (137/47
-  Gate 2, 33/12 Gate 3 capital), which stay red by design. **GATE 4 is an
-  OWNER declaration — do NOT self-declare it.**
-  FIRST: confirm the owner has done the §8 workbook spot-check (criterion 6):
-  run `scripts/build_gate4_workbook.py`, ask the owner to open the generated
-  `*-package.xlsx` and eyeball the tabs / formatting / a couple of totals; the
-  other five Gate 4 criteria are evidenced by the green suite (see the Gate 4
-  evidence note above). If the owner declares Gate 4 passed, **Phase 5 (UI,
-  Streamlit per spec §6) begins — but Iron Rule 2 applies to planning: draft
-  NEXT_STEPS_TO_PHASE5.md and get owner review BEFORE any UI code** (and a
-  Phase 5 UI mockup is being prototyped separately in Claude Design —
-  exploratory, not ready to build). If Gate 4 is NOT yet declared, do NOT
-  start Phase 5 and do NOT invent more Phase 4 work — the build is complete;
-  address only what the owner's spot-check raises. Do NOT build the
-  Step-0-deferred six (#10/#13/#14/#17/#19/#22) or the cancelled in-app OM
-  ingestion. REMEMBER the standing gaps, all carried forward unchanged and
-  none a Phase 4 blocker: percentage rent externally unvalidated pending
-  golden #3; tenant misc items + purchase/deposits/debt/resale/valuation/
-  sensitivity externally unvalidated (no golden exercises them); Freeport B,
-  Cedar Alt B, and Freeport E parked for beta-stage GUI testing; Cedar Alt D
-  closed as C's sibling; live price derivation permanently refusing (DEVIATIONS
-  §20 #6); the two named reconciler blind spots (_SU_LEDGER_ROWS shared
-  mapping; resale-matrix monotonicity-preserving non-anchor corruption) stay
-  named; the DEVIATIONS §25 standing rule (a regression test must run where
-  the wrong answer differs from the right) applies to all future tests."
+- **Next session's first prompt:** "GATE 4 PASSED (owner declaration
+  2026-07-16); Phase 4 is complete. **Phase 5 (Streamlit UI, spec §6) is in
+  PLANNING: [NEXT_STEPS_TO_PHASE5.md](NEXT_STEPS_TO_PHASE5.md) was drafted
+  2026-07-16 and is awaiting owner review — per Iron Rule 2 applied to
+  planning, NO UI code, NO Streamlit scaffolding, and NO engine changes until
+  Topper has reviewed and approved that plan.** First task: check with the
+  owner whether he has reviewed NEXT_STEPS_TO_PHASE5.md and resolved its
+  Step 0 owner-gated decisions (in-process engine import vs FastAPI layer;
+  v1 editable-input scope vs JSON-escape-hatch; the gate's from-scratch
+  property; scenario semantics; the Claude Design mockup's two layout
+  choices; beta-testing scope for the parked Freeport B / Cedar Alt B /
+  Freeport E items). If approved, begin Phase 5 Step 1 per that plan. If NOT
+  yet reviewed, there is NO Phase 5 code to invent — do not scaffold the app,
+  do not touch engine/calc, and do not build the cancelled in-app OM
+  ingestion ('Phase 7') or the Step-0-deferred six reports
+  (#10/#13/#14/#17/#19/#22). Iron Rule 1 governs the build: the UI imports
+  the engine, never the reverse — the Gate 5 checklist includes 'no engine
+  code was modified during UI development (git log proves it)'. REMEMBER the
+  standing gaps, all carried forward unchanged and none a Phase 5 blocker:
+  percentage rent externally unvalidated pending golden #3; tenant misc items
+  + purchase/deposits/debt/resale/valuation/sensitivity externally
+  unvalidated (no golden exercises them); Freeport B, Cedar Alt B, and
+  Freeport E parked for beta-stage GUI testing (their Gate 2/3 assertions
+  stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D
+  closed as C's sibling; live price derivation permanently refusing
+  (DEVIATIONS §20 #6); the two named reconciler blind spots (_SU_LEDGER_ROWS
+  shared mapping; resale-matrix monotonicity-preserving non-anchor
+  corruption); the DEVIATIONS §25 standing rules (a regression test must run
+  where the wrong answer differs from the right; a test-file rewrite must
+  list every test removed). When the plan is approved and a step lands,
+  commit, push, and update this prompt to point at the next Phase 5 step."
