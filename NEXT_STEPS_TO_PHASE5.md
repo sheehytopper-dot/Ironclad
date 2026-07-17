@@ -1,9 +1,10 @@
 # NEXT STEPS TO GATE 5 (Phase 5 — Streamlit UI)
 
-**DRAFT — awaiting owner review. No UI code, no Streamlit scaffolding, and
-no engine changes until Topper has seen this plan and resolved Step 0's
-decisions (Iron Rule 2 applies to planning — same as every prior
-NEXT_STEPS doc).**
+**OWNER-REVIEWED AND APPROVED 2026-07-16 — Step 0 D1-D6 resolved as
+recommended, including the D6 amendment (see Step 0). The Phase 5 build is
+authorized per this plan; Iron Rule 1 governs it (the UI imports the
+engine, never the reverse — zero changes under `engine/` during UI
+development, git-log-checked from the baseline recorded in Step 1).**
 
 The concrete path through Phase 5 — the Streamlit application per spec §6
 — to Gate 5 (spec §10: "full property built from scratch through UI only,
@@ -129,59 +130,81 @@ not tolerance:
    reported not silently skipped).
 5. Every rendered monetary report honors the unit/period toggles; #11/#12
    show the Contractual/Speculative provenance.
+6. **The three D6-amendment inspection surfaces exist and render on the
+   goldens** (GV basis decomposition; per-lease rollover recovery timing;
+   per-generation rollover economics incl. renewal LC rates). The
+   investigation itself stays post-Gate-5 (Step 0 D6).
 
 ---
 
-## Step 0 — Owner-gated decisions (D1-D2 gate the build's start; D3-D6 gate completion)
+## Step 0 — Owner-gated decisions — **RESOLVED 2026-07-16 (owner approval, D1-D6 as recommended + the D6 amendment)**
 
-**Owner: Topper (human). Future sessions must not act on these without his
-sign-off.**
-
-- **D1 — Client architecture: in-process engine import vs FastAPI.** Spec
-  §2 lists a FastAPI layer in the stack, but the Phase 5 gate needs none
-  of it. **Recommendation:** Streamlit imports the engine in-process for
-  v1 (simpler, faster to Gate 5, Iron Rule 1 fully preserved — the UI is
-  still a pure client); the FastAPI layer is deferred until something
-  real needs it (a second client), recorded in DEVIATIONS as a conscious
-  sequencing choice, not a cancellation.
-- **D2 — v1 editable-input scope.** The §3 schema is large. Options:
-  (a) full editors for every §3 field; (b) **recommended:** full editors
-  for the §3 surface the goldens + demo properties actually exercise
-  (which is nearly everything: rent roll incl. steps/CPI/free rent/misc/
+- **D1 — RESOLVED 2026-07-16: in-process engine import for v1.** Streamlit
+  imports the engine directly; the FastAPI layer is **deferred, not
+  cancelled** — recorded in DEVIATIONS §26 as a conscious sequencing
+  choice. Iron Rule 1 fully preserved: the UI is still a pure client.
+- **D2 — RESOLVED 2026-07-16: full editors for the §3 surface the goldens
+  + demo properties exercise** (rent roll incl. steps/CPI/free rent/misc/
   deposits/% rent/recovery assignments, MLPs, absorption, recovery
   structures, vacancy/credit loss, revenues, expenses+groups, purchase,
-  loans, valuation), with the engine-refused schema fields (TI/LC
-  categories, pct_of_value, derived price, pct_of_account) shown
-  read-only with their refusal messages, and a raw-JSON view (read-only +
-  "reload from disk") as the escape hatch for anything exotic. The Gate 5
-  from-scratch build defines the floor either way.
-- **D3 — the Gate 5 from-scratch property.** **Recommendation:** rebuild
-  **Clorox Northlake** from scratch through the UI (real OM deal;
-  known-good fixture) with acceptance = the UI-built model's fiscal cash
-  flow is **identical** to the fixture's engine output (engine-to-engine,
-  ~$0 — a §25-discriminating check: any mis-entered field fails it), plus
-  a **Freeport load-and-drive timing exercise** (open the 29-lease golden,
-  calculate, drill, export — the "15-tenant deal under an hour" friction
-  test on something real). Owner may substitute a different deal.
-- **D4 — scenario semantics for v1.** The sidebar has a scenario selector;
-  scenario COMPARE is Phase 6. **Recommendation:** v1 scenario = "duplicate
-  property JSON under a new name, edit independently" (pure file
-  operation); the selector lists them; compare waits for Phase 6.
-- **D5 — the two mockup layout choices.** Confirm (or override) adopting
-  from the Claude Design exploration: Dashboard as the default-active tab;
-  Tenants lease detail as a persistent split pane rather than a drawer.
-- **D6 — beta-testing scope for the parked items.** Freeport B
-  (general-vacancy basis), Cedar Alt B (rollover recovery timing,
-  [AE p. 520] Calculation Frequency), and Freeport E (renewal LC rates)
-  were parked FOR beta-stage GUI testing — Phase 5 builds the GUI that
-  finally enables that lease-by-lease inspection. **Recommendation:** that
-  investigation is a **post-Gate-5 / Phase 6 activity** (it is deal
-  forensics, not UI acceptance) — schedule it explicitly then; it is NOT
-  a Gate 5 criterion. The three assertions stay red by design meanwhile.
-- **(Deferred-index note, no decision needed now):** spec §2 also lists a
+  loans, valuation); engine-refused schema fields (TI/LC categories,
+  pct_of_value, derived price, pct_of_account) shown **read-only with
+  their refusal messages**; a **raw-JSON view (read-only + reload-from-
+  disk)** as the escape hatch for anything exotic.
+- **D3 — RESOLVED 2026-07-16: Gate 5 from-scratch property = Clorox
+  Northlake rebuilt through the UI**, acceptance = the UI-built model's
+  fiscal cash flow is engine-to-engine **IDENTICAL** to the committed
+  fixture output (§25-discriminating: any mis-entered field fails it);
+  plus the **Freeport load-and-drive timing exercise** (open the 29-lease
+  golden, calculate, drill, export — the friction test).
+- **D4 — RESOLVED 2026-07-16: v1 scenario = duplicate property JSON under
+  a new name**, edited independently; scenario COMPARE deferred to
+  Phase 6.
+- **D5 — RESOLVED 2026-07-16: both mockup layout choices adopted** —
+  Dashboard as the default-active tab; Tenants lease detail as a
+  persistent split pane (not a drawer).
+- **D6 — RESOLVED 2026-07-16 with an owner-approved AMENDMENT.** The
+  Freeport B / Cedar Alt B / Freeport E **investigation** is a
+  post-Gate-5 / Phase 6 activity, NOT a Gate 5 criterion (the three
+  assertions stay red by design meanwhile). **AMENDMENT — Phase 5 must
+  still BUILD the inspection surfaces that investigation requires** (see
+  "Phase 5 UI requirement (D6 amendment)" below, wired into Steps 4/6 and
+  Gate 5 criterion 6).
+- **(Deferred-index note, no decision needed):** spec §2 also lists a
   SQLite property index (sqlmodel). v1's property selector scans
   `data/properties/` directly; the index joins when the property count
-  makes scanning slow — recorded as sequencing, not scope change.
+  makes scanning slow — sequencing, not scope change.
+
+### Phase 5 UI requirement (D6 amendment, owner-approved 2026-07-16)
+
+The UI must surface, to lease/generation level, the three parked
+inspection targets — **all from data the RunResult already retains; no
+engine change is needed for any of them:**
+
+1. **Freeport B — general-vacancy basis:** an Audit-tab General Vacancy
+   panel decomposing the month's GV against its revenue basis, composed
+   from the per-tenant series `RunResult` retains (lease_rents,
+   recoveries, percentage_rent, misc, absorption_vacancy) plus the model's
+   `GeneralVacancy` method — presentation over existing detail. (Step 6.)
+2. **Cedar Alt B — per-lease rollover recovery timing:** the Recovery
+   Audit drill-down already carries one row per (tenant, **segment_start**,
+   pool, month) — the Audit tab renders it filterable by tenant and
+   segment so downtime/rollover months are inspectable per lease. (Step 6.)
+3. **Freeport E — renewal LC rates per rollover generation:** **CONFIRMED
+   GAP in the original tab inventory — no tab showed it.** The data exists
+   per generation on `result.segments` (each speculative `LeaseSegment`
+   carries `lc_pct` / `lc_pct_years` / `lc_rate`, `ti`, and
+   `renewal_weight` — verified on Freeport: e.g. lc_pct 6.75, renewal
+   weight 0.75). **Closure: a read-only "Rollover generations
+   (engine-projected)" section in the Tenants tab's split-pane lease
+   detail**, listing every resolved segment of the selected chain —
+   start/end, provenance, renewal weight, blended initial rent, downtime,
+   weighted free months, TI, and the **LC pct/rate** — sourced from
+   `result.segments`. (Step 4; also reachable from the Audit tab's
+   Leasing Commissions drill.)
+
+Gate 5 criterion 6 (added below): these three surfaces exist and render
+on the goldens. The **investigation** using them stays post-Gate-5 (D6).
 
 ## Step 1 — App shell, persistence, Calculate pipe (session 1)
 
@@ -231,11 +254,17 @@ assignment, upon-expiration + MLP link; absorption specs; the recovery
 structure builder (pools/gross-up/caps/fees — the owner's home turf);
 **the rent-roll template import surface** (`ImportResult.notes` as an
 info banner listing ignored Speculative rows; row-level errors rendered
-as returned).
+as returned); **the D6-amendment "Rollover generations (engine-projected)"
+read-only section in the split pane** — every resolved segment of the
+selected chain from `result.segments` with start/end, provenance, renewal
+weight, blended initial rent, downtime, weighted free months, TI, and
+**LC pct/rate per generation** (the Freeport E surface).
 - **Acceptance:** round-trip + discrimination; import the Phase 4 template
   export of a golden and confirm the Contractual subset lands identically;
   the Speculative-rows note displays; a malformed row shows the readable
-  error text verbatim.
+  error text verbatim; **the rollover-generations panel shows Freeport's
+  known per-generation LC pct (6.75) and renewal weight (0.75)** —
+  §25-discriminating against a wrong-field read.
 
 ## Step 5 — Investment + Valuation tabs (session 5)
 
@@ -255,11 +284,16 @@ slice; provenance labels; export-this-view (`export_report`) and the
 sidebar package export (`build_package`); full Dashboard (KPI cards +
 Plotly charts off RunResult/reports); Audit tab drill-down (account +
 month → composition via the audit reports and RunResult per-tenant
-series).
+series), **including the two remaining D6-amendment surfaces: the General
+Vacancy basis-decomposition panel (Freeport B) and the Recovery Audit
+drill filterable by tenant + segment_start (Cedar Alt B).**
 - **Acceptance:** every rendered report's frame equals the builder's
   output for the same toggles (no UI-side math); the drill-down reproduces
   a Recovery Audit row for a golden tenant-month; exports open and match
-  (the Phase 4 cell-by-cell machinery is reused, not rewritten).
+  (the Phase 4 cell-by-cell machinery is reused, not rewritten); **the GV
+  panel's basis ties to the RunResult per-tenant series and the recovery
+  drill isolates a Cedar Alt rollover month per lease** (Gate 5
+  criterion 6).
 
 ## Step 7 — Gate 5 acceptance run (owner, session 7)
 
@@ -286,6 +320,7 @@ rewrite must list every test removed). The Step-0-deferred six reports
 (#10/#13/#14/#17/#19/#22) stay deferred. In-app OM ingestion ("Phase 7")
 is cancelled permanently and must not be scaffolded in any tab.
 
-**Status:** drafted 2026-07-16 on the Gate 4 pass, per the Phase 5
-opening directive. **Awaiting owner review — no UI code starts until
-Topper has seen this plan and resolved Step 0's decisions.**
+**Status:** drafted 2026-07-16 on the Gate 4 pass; **Step 0 resolved and
+the plan APPROVED by the owner 2026-07-16** (D1-D6 as recommended + the D6
+amendment). The Phase 5 build proceeds step by step per this plan; each
+step stops for owner + advisor review before the next.

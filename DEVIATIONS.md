@@ -1785,3 +1785,20 @@ headline behavior still passes is a silent drop; enumerate removals so a
 reviewer can weigh each one. Applies through Phase 6, alongside the §25
 "a regression test must run where the wrong answer differs from the right"
 rule.
+
+## 26. Phase 5 sequencing: in-process engine import; FastAPI layer deferred (owner decision 2026-07-16, NEXT_STEPS_TO_PHASE5.md Step 0 D1)
+
+Spec §2.1 lists a FastAPI API layer in the stack. For Phase 5 v1 the
+Streamlit UI **imports the engine in-process** — no HTTP layer between
+them. **Deferred, not cancelled:** the FastAPI layer joins when something
+real needs it (a second client), not before. Rationale: the Phase 5 gate
+("full property built from scratch through UI only, calc, export") needs
+no API; adding one now would be untested indirection between the UI and
+the engine it exists to exercise. Iron Rule 1 is fully preserved either
+way — the UI is a pure client of `engine.*` and the engine never imports
+`ui/` or `api/`; the Gate 5 checklist's git-log boundary check ("no engine
+code was modified during UI development") enforces it mechanically from
+the Phase 5 baseline commit recorded in NEXT_STEPS_TO_PHASE5.md Step 1.
+Related sequencing (same Step 0): the spec §2 SQLite property index is
+also deferred — the v1 property selector scans `data/properties/`
+directly; the index joins when scanning gets slow.
