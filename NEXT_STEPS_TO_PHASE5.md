@@ -220,8 +220,9 @@ on the goldens. The **investigation** using them stays post-Gate-5 (D6).
   error panels, never tracebacks.
 - Minimal Dashboard (year-1 NOI, occupancy) to prove the pipe end-to-end;
   Dashboard default-active per D5.
-- **Record the Phase 5 baseline commit hash here for the Gate 5 git-log
-  check.**
+- **Phase 5 baseline commit for the Gate 5 git-log boundary check:
+  `62617f1`** (the Step 0 resolution commit — the last commit before any
+  UI code). Gate 5 verifies `git log 62617f1..HEAD -- engine/` is empty.
 - UI state helpers live in pure functions (`ui/state.py` etc.) so they are
   unit-testable without a browser; flow smoke tests via Streamlit's
   `AppTest` (`streamlit.testing.v1`). All §25 rules apply to every test.

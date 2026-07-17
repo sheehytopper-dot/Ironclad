@@ -162,7 +162,10 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
 - **When you restructure or summarize a planning document, list explicitly anything you
   removed or consolidated — every time.** Silent drops from plans are not acceptable.
 - Run tests: `.venv\Scripts\python -m pytest` (Windows). Current status: **GATE 4
-  PASSED (owner declaration 2026-07-16) — Phase 5 (UI) — planning.** Phase 4
+  PASSED (owner declaration 2026-07-16) — Phase 5 (UI) IN PROGRESS: Step 0
+  resolved (owner approval 2026-07-16, incl. the D6 amendment) and Step 1
+  shipped (app shell + Calculate pipe; baseline `62617f1` — zero engine/
+  changes, git-log-checked).** Phase 4
   complete: Steps 1 report-builder contract + toggle/period engine; 2 Cash Flow
   #1 + Benchmark #24; 3 valuation family #5/#6/#8/#9 + Loan Amort #20; 4
   Occupancy #15 + Lease Summary #11 + Lease Expiration #12 (with the #12
@@ -170,10 +173,12 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   Assumptions #3 + Sources & Uses #4 + Resale Matrix #7 + Input Assumptions #23;
   6 Excel export package §8 + rent-roll export §5.2; 7 rent-roll import
   round-trip §5.2; plus the provenance polish pass and the restored
-  readable-error coverage. **Phase 5 is PLANNING ONLY until
-  [NEXT_STEPS_TO_PHASE5.md](NEXT_STEPS_TO_PHASE5.md) is owner-reviewed (Iron
-  Rule 2) — no UI code, no Streamlit scaffolding before that.** Gate 3 passed
-  2026-07-12. Phase 1 shipped 2026-07-05:
+  readable-error coverage. **Phase 5 builds per the owner-approved
+  [NEXT_STEPS_TO_PHASE5.md](NEXT_STEPS_TO_PHASE5.md) (Step 0 D1-D6 resolved
+  2026-07-16, incl. the D6 amendment: the UI must surface the Freeport B /
+  Cedar Alt B / Freeport E inspection detail); Iron Rule 1 boundary: ZERO
+  changes under engine/ during UI work (Gate 5 git-log check from baseline
+  `62617f1`).** Gate 3 passed 2026-07-12. Phase 1 shipped 2026-07-05:
   `leases.py` ([AE pp. 391-394, 253-257]), `expenses.py` ([AE pp. 361-362]),
   `recoveries.py` (net/none, [AE pp. 404-407]), `ledger.py` (Cash Flow tree,
   [AE pp. 535-539]; DEVIATIONS.md §5), `run.py` (spec §4.1 passes 1-6; the recoverable
@@ -815,34 +820,71 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   Suite: **573 passed + the same 4 by-design golden reds (137/47 Gate 2,
   33/12 Gate 3 capital)**. The Gate 4 workbooks were regenerated for the
   owner re-spot-check.
-- **Next session's first prompt:** "GATE 4 PASSED (owner declaration
-  2026-07-16); Phase 4 is complete. **Phase 5 (Streamlit UI, spec §6) is in
-  PLANNING: [NEXT_STEPS_TO_PHASE5.md](NEXT_STEPS_TO_PHASE5.md) was drafted
-  2026-07-16 and is awaiting owner review — per Iron Rule 2 applied to
-  planning, NO UI code, NO Streamlit scaffolding, and NO engine changes until
-  Topper has reviewed and approved that plan.** First task: check with the
-  owner whether he has reviewed NEXT_STEPS_TO_PHASE5.md and resolved its
-  Step 0 owner-gated decisions (in-process engine import vs FastAPI layer;
-  v1 editable-input scope vs JSON-escape-hatch; the gate's from-scratch
-  property; scenario semantics; the Claude Design mockup's two layout
-  choices; beta-testing scope for the parked Freeport B / Cedar Alt B /
-  Freeport E items). If approved, begin Phase 5 Step 1 per that plan. If NOT
-  yet reviewed, there is NO Phase 5 code to invent — do not scaffold the app,
-  do not touch engine/calc, and do not build the cancelled in-app OM
-  ingestion ('Phase 7') or the Step-0-deferred six reports
-  (#10/#13/#14/#17/#19/#22). Iron Rule 1 governs the build: the UI imports
-  the engine, never the reverse — the Gate 5 checklist includes 'no engine
-  code was modified during UI development (git log proves it)'. REMEMBER the
-  standing gaps, all carried forward unchanged and none a Phase 5 blocker:
-  percentage rent externally unvalidated pending golden #3; tenant misc items
-  + purchase/deposits/debt/resale/valuation/sensitivity externally
-  unvalidated (no golden exercises them); Freeport B, Cedar Alt B, and
-  Freeport E parked for beta-stage GUI testing (their Gate 2/3 assertions
-  stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital); Cedar Alt D
-  closed as C's sibling; live price derivation permanently refusing
-  (DEVIATIONS §20 #6); the two named reconciler blind spots (_SU_LEDGER_ROWS
-  shared mapping; resale-matrix monotonicity-preserving non-anchor
-  corruption); the DEVIATIONS §25 standing rules (a regression test must run
-  where the wrong answer differs from the right; a test-file rewrite must
-  list every test removed). When the plan is approved and a step lands,
-  commit, push, and update this prompt to point at the next Phase 5 step."
+  **Phase 5 Step 0 RESOLVED + Step 1 complete 2026-07-16/17:** Step 0 D1-D6
+  approved as recommended (D1 in-process engine import, FastAPI deferred —
+  DEVIATIONS §26; D2 full editors for the exercised §3 surface + read-only
+  refusals + raw-JSON escape hatch; D3 Gate 5 = Clorox rebuilt through the
+  UI, engine-to-engine IDENTICAL fiscal cash flow, + the Freeport timing
+  exercise; D4 scenario = duplicate JSON; D5 Dashboard default-active +
+  Tenants split pane; D6 investigation post-Gate-5 **with the amendment**:
+  Phase 5 must BUILD the three inspection surfaces — GV basis decomposition
+  [Freeport B, Audit tab, Step 6], recovery timing drill by tenant +
+  segment_start [Cedar Alt B, Audit tab, Step 6], and the **confirmed-gap**
+  per-generation rollover economics incl. renewal LC rates [Freeport E,
+  Tenants split-pane "Rollover generations" panel, Step 4 — data already on
+  `result.segments`: lc_pct/lc_rate/renewal_weight per segment; no engine
+  change needed]; Gate 5 criterion 6 added). **Step 1 (app shell)**:
+  `app.py` + `ui/main.py` (thin renderer) + `ui/state.py` (pure,
+  browser-free helpers — Iron Rule 1: ui imports engine only). Sidebar:
+  property selector over `data/properties/` (env-overridable for tests),
+  Open/Save, New Property (minimal valid model), upload-JSON intake,
+  **Calculate** → `run_property` with the RunResult cached in session state
+  and invalidated on every model change (`_set_model`). §5.4 readable
+  errors everywhere (JSON/pydantic translated with field path + offending
+  value + SCHEMA_GUIDE pointer; engine refusals framed verbatim; never a
+  traceback). Nav = spec §6 tab order with Dashboard default-active (D5;
+  horizontal radio because st.tabs cannot set an active tab); minimal
+  Dashboard (year-1 NOI + occupancy off the ledger's own annual view — no
+  UI-side math). 18 new tests (test_ui_state.py 12 pure + test_ui_app.py 6
+  AppTest flows), all §25-discriminating: Clorox literals ($2,596,319 /
+  100.0%), model_dump identity flipped by a one-field edit, corrupted-JSON
+  readable content + no-traceback assertions, D5 default-tab check, engine
+  refusal panel. **Known nit flagged, NOT fixed (engine boundary): the
+  engine's pct_of_account refusal message still says "until Phase 2" — a
+  stale label inside engine/calc/run.py; owner call whether to batch an
+  engine wording pass later.** Suite: **591 passed + the same 4 by-design
+  golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**; `git log
+  62617f1..HEAD -- engine/` is EMPTY.
+- **Next session's first prompt:** "Phase 5 Step 1 is DONE (app shell +
+  Calculate pipe: app.py, ui/main.py, ui/state.py; 591 passed + the four
+  by-design golden reds; zero engine/ changes since baseline 62617f1 —
+  verify `git log 62617f1..HEAD -- engine/` stays EMPTY every session).
+  Begin **Phase 5 Step 2: the Property + Market tabs** per the
+  owner-approved NEXT_STEPS_TO_PHASE5.md — editable UI for `PropertyInfo`
+  + `AreaMeasures` (§3.1-3.2) and `Inflation` + custom indices,
+  `GeneralVacancy`, `CreditLoss`, MLP grid + detail editor, CPI profiles,
+  free-rent profiles (§3.4-3.8); engine-refused fields (TI/LC categories)
+  read-only with their refusal messages (Step 0 D2); every edit flows
+  through model-replacing helpers that invalidate the cached RunResult;
+  per-cell validation errors inline and readable (§5.4). Acceptance
+  (plan Step 2): every field round-trips (edit → save → reload →
+  identical, model_dump equality) and a §25 discrimination test alters one
+  field and fails the round-trip; per-cell errors readable. Keep UI logic
+  in pure `ui/` helpers (browser-free tests) + AppTest flows; every §25
+  rule applies (a test must fail on wrong behavior; a test-file rewrite
+  lists every removal). IRON RULE 1: ZERO changes under engine/ — if a tab
+  seems to need an engine change, STOP and flag it as an owner decision.
+  Do NOT build the cancelled in-app OM ingestion or the Step-0-deferred
+  six reports. REMEMBER the standing gaps, all carried forward unchanged
+  and none a Phase 5 blocker: percentage rent externally unvalidated
+  pending golden #3; tenant misc items + purchase/deposits/debt/resale/
+  valuation/sensitivity externally unvalidated; Freeport B / Cedar Alt B /
+  Freeport E parked for post-Gate-5 investigation (their Gate 2/3
+  assertions stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital)
+  while Phase 5 BUILDS their inspection surfaces (D6 amendment: Freeport E
+  panel in Step 4, the other two in Step 6); Cedar Alt D closed as C's
+  sibling; live price derivation permanently refusing (DEVIATIONS §20 #6);
+  the two named reconciler blind spots; the stale 'until Phase 2' refusal
+  wording in engine/calc/run.py (flagged, engine-frozen). When Step 2
+  lands: commit, push, update this prompt to point at Step 3 (Revenues +
+  Expenses tabs), and STOP for owner + advisor review."
