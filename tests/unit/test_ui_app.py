@@ -95,6 +95,63 @@ class TestShell:
         assert values["Year-1 Occupancy"] == "0.0%"
 
 
+class TestStep2TabFlows:
+    """Step 2 AppTest flows (additions 2026-07-17; nothing removed): the
+    Property tab edits the model THROUGH the session (result invalidated),
+    errors render readably, and the Market tab renders a real golden with
+    the D2 read-only notes. Grid (data_editor) depth lives in the pure
+    tests — AppTest cannot drive data_editor."""
+
+    def test_property_edit_updates_model_and_invalidates_result(self,
+                                                                props_dir):
+        at = _app()
+        at.run()
+        _open_property(at, "clorox")
+        at.button(key="calc_btn").click()
+        at.run()
+        assert at.session_state.result is not None
+        rev = at.session_state.model_rev
+        at.radio(key="active_tab").set_value("Property")
+        at.run()
+        at.text_input(key=f"pi_name_{rev}").set_value("Clorox Renamed")
+        at.button(key=f"pi_apply_{rev}").click()
+        at.run()
+        assert not at.exception
+        assert at.session_state.model.property.name == "Clorox Renamed"
+        assert at.session_state.result is None          # edit invalidated it
+
+    def test_property_bad_term_readable_error_model_unchanged(self,
+                                                              props_dir):
+        at = _app()
+        at.run()
+        _open_property(at, "clorox")
+        rev = at.session_state.model_rev
+        at.radio(key="active_tab").set_value("Property")
+        at.run()
+        at.number_input(key=f"pi_term_{rev}").set_value(0)
+        at.button(key=f"pi_apply_{rev}").click()
+        at.run()
+        assert not at.exception
+        errors = " ".join(e.value for e in at.error)
+        assert "property.analysis_term_years" in errors
+        assert "Traceback" not in errors
+        assert at.session_state.model.property.analysis_term_years == 5
+
+    def test_market_tab_renders_freeport_with_readonly_notes(self, props_dir):
+        shutil.copy(ROOT / "tests" / "golden" / "freeport" /
+                    "freeport.icprop.json", props_dir / "freeport.icprop.json")
+        at = _app()
+        at.run()
+        _open_property(at, "freeport")
+        at.radio(key="active_tab").set_value("Market")
+        at.run()
+        assert not at.exception
+        warnings = " ".join(w.value for w in at.warning)
+        assert "TI/LC categories" in warnings           # D2 read-only note
+        captions = " ".join(c.value for c in at.caption)
+        assert "per lease" in captions                  # the CPI pointer
+
+
 class TestReadableErrorsInApp:
     def test_corrupted_property_file_readable_not_traceback(self, props_dir):
         doc = json.loads(CLOROX.read_text(encoding="utf-8"))

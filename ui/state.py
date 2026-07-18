@@ -102,7 +102,11 @@ def _readable_validation_error(exc: ValidationError, source: str) -> str:
     for e in exc.errors():
         loc = ".".join(str(p) for p in e.get("loc", ())) or "(document)"
         got = e.get("input")
-        got_text = f" (got {got!r})" if got is not None else ""
+        got_repr = repr(got) if got is not None else ""
+        # Show the offending value only when it is actually readable — a
+        # document-level validator reports the WHOLE model as its input,
+        # and dumping that would itself violate §5.4.
+        got_text = f" (got {got_repr})" if 0 < len(got_repr) <= 120 else ""
         lines.append(f"  - field '{loc}': {e['msg']}{got_text}")
     body = "\n".join(lines)
     return (f"{source} is not a valid PropertyModel "
@@ -146,6 +150,27 @@ def load_model_from_text_source(read, *, source: str
 def save_model(model: PropertyModel, path: Path) -> Path:
     """Write the model via the engine's own writer (spec §5.1 format)."""
     return save_property(model, path)
+
+
+def updated_model(model: PropertyModel, mutate
+                  ) -> tuple[Optional[PropertyModel], Optional[str]]:
+    """The single edit funnel every tab commits through (Phase 5 Step 2).
+
+    ``mutate(data)`` edits the model's ``model_dump(mode="json")`` dict in
+    place; the whole document is then revalidated as a fresh
+    ``PropertyModel``. Success → ``(new_model, None)``; any pydantic
+    failure → ``(None, readable §5.4 message)`` naming the field path and
+    the offending value — the per-cell error surface, and the original
+    model is untouched (edits are all-or-nothing)."""
+    data = model.model_dump(mode="json")
+    try:
+        mutate(data)
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        return None, f"This edit could not be applied: {exc}."
+    try:
+        return PropertyModel.model_validate(data), None
+    except ValidationError as exc:
+        return None, _readable_validation_error(exc, "This edit")
 
 
 def models_equal(a: Optional[PropertyModel], b: Optional[PropertyModel]) -> bool:

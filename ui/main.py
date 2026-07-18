@@ -22,7 +22,8 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ui import state
+from ui import session, state
+from ui.tabs import market_tab, property_tab
 
 #: Spec §6 tab order, verbatim. Dashboard is default-active (Step 0 D5).
 TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
@@ -30,18 +31,17 @@ TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
 DEFAULT_TAB = "Dashboard"
 
 #: Which future step builds each placeholder tab (NEXT_STEPS_TO_PHASE5.md).
-_TAB_STEP = {"Property": 2, "Market": 2, "Revenues": 3, "Expenses": 3,
-             "Tenants": 4, "Investment": 5, "Valuation": 5, "Reports": 6,
-             "Audit": 6}
+_TAB_STEP = {"Revenues": 3, "Expenses": 3, "Tenants": 4, "Investment": 5,
+             "Valuation": 5, "Reports": 6, "Audit": 6}
+
+#: Built tab renderers (grows step by step).
+_TAB_RENDERERS = {"Property": property_tab.render, "Market": market_tab.render}
 
 
 def _set_model(model, path) -> None:
-    """Install a (new) current model and invalidate the cached RunResult —
-    every model change goes through here, so a stale result can never
-    render."""
-    st.session_state.model = model
-    st.session_state.model_path = path
-    st.session_state.result = None
+    """Install a (new) current document — resets editors and invalidates
+    the cached RunResult (ui.session.set_model)."""
+    session.set_model(model, path)
 
 
 def _sidebar() -> None:
@@ -127,11 +127,7 @@ def _dashboard() -> None:
 
 def render() -> None:
     st.set_page_config(page_title="IronClad", layout="wide")
-    st.session_state.setdefault("model", None)
-    st.session_state.setdefault("model_path", None)
-    st.session_state.setdefault("result", None)
-    st.session_state.setdefault("load_error", None)
-    st.session_state.setdefault("calc_error", None)
+    session.init()
 
     _sidebar()
 
@@ -140,6 +136,8 @@ def render() -> None:
                       label_visibility="collapsed")
     if active == "Dashboard":
         _dashboard()
+    elif active in _TAB_RENDERERS:
+        _TAB_RENDERERS[active]()
     else:
         st.info(f"**{active}** — built in Phase 5 Step {_TAB_STEP[active]} "
                 "(NEXT_STEPS_TO_PHASE5.md).")

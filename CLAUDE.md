@@ -855,36 +855,77 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   engine wording pass later.** Suite: **591 passed + the same 4 by-design
   golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**; `git log
   62617f1..HEAD -- engine/` is EMPTY.
-- **Next session's first prompt:** "Phase 5 Step 1 is DONE (app shell +
-  Calculate pipe: app.py, ui/main.py, ui/state.py; 591 passed + the four
-  by-design golden reds; zero engine/ changes since baseline 62617f1 —
-  verify `git log 62617f1..HEAD -- engine/` stays EMPTY every session).
-  Begin **Phase 5 Step 2: the Property + Market tabs** per the
-  owner-approved NEXT_STEPS_TO_PHASE5.md — editable UI for `PropertyInfo`
-  + `AreaMeasures` (§3.1-3.2) and `Inflation` + custom indices,
-  `GeneralVacancy`, `CreditLoss`, MLP grid + detail editor, CPI profiles,
-  free-rent profiles (§3.4-3.8); engine-refused fields (TI/LC categories)
-  read-only with their refusal messages (Step 0 D2); every edit flows
-  through model-replacing helpers that invalidate the cached RunResult;
-  per-cell validation errors inline and readable (§5.4). Acceptance
-  (plan Step 2): every field round-trips (edit → save → reload →
-  identical, model_dump equality) and a §25 discrimination test alters one
-  field and fails the round-trip; per-cell errors readable. Keep UI logic
-  in pure `ui/` helpers (browser-free tests) + AppTest flows; every §25
-  rule applies (a test must fail on wrong behavior; a test-file rewrite
-  lists every removal). IRON RULE 1: ZERO changes under engine/ — if a tab
-  seems to need an engine change, STOP and flag it as an owner decision.
-  Do NOT build the cancelled in-app OM ingestion or the Step-0-deferred
-  six reports. REMEMBER the standing gaps, all carried forward unchanged
-  and none a Phase 5 blocker: percentage rent externally unvalidated
-  pending golden #3; tenant misc items + purchase/deposits/debt/resale/
-  valuation/sensitivity externally unvalidated; Freeport B / Cedar Alt B /
-  Freeport E parked for post-Gate-5 investigation (their Gate 2/3
-  assertions stay red by design — 137/47 Gate 2, 33/12 Gate 3 capital)
-  while Phase 5 BUILDS their inspection surfaces (D6 amendment: Freeport E
-  panel in Step 4, the other two in Step 6); Cedar Alt D closed as C's
-  sibling; live price derivation permanently refusing (DEVIATIONS §20 #6);
-  the two named reconciler blind spots; the stale 'until Phase 2' refusal
-  wording in engine/calc/run.py (flagged, engine-frozen). When Step 2
-  lands: commit, push, update this prompt to point at Step 3 (Revenues +
-  Expenses tabs), and STOP for owner + advisor review."
+  **Phase 5 Step 2 complete 2026-07-17:** the Property + Market tabs.
+  `ui/session.py` (the one place a model is installed: RunResult
+  invalidated on EVERY change, `model_rev` nonce resets editor widgets on
+  document switch); `ui/state.updated_model(model, mutate)` — the single
+  edit funnel: mutate the `model_dump(mode="json")` dict, revalidate the
+  WHOLE document, §5.4 readable per-field errors (all-or-nothing; the
+  original model untouched on error; the "got …" clause truncated at 120
+  chars so a document-level validator can't dump the whole model into the
+  message — found and fixed in-session); `ui/convert.py` pure grid↔model
+  converters (YearRate rows, area schedule, tenant overrides, free-rent
+  profiles, MLP scalar grid merge-by-row-order preserving nested detail,
+  RentStep rows; blank rows drop; empty grids → None). `ui/tabs/
+  property_tab.py` (PropertyInfo + Address + AreaMeasures incl. the
+  schedule editor) and `ui/tabs/market_tab.py` (Inflation + the four
+  series + custom indices; GV/CL with method/rates/PGR-account
+  multiselect/overrides/reduce-flag; MLP scalar grid + per-MLP detail
+  editor — market rents new/renew incl. %-of-new vs amount vs
+  %-of-last-rent, TI new/renew, LC pct+years vs rate, recovery
+  assignment, free-rent/chained refs, rent-increase steps; free-rent
+  profile grid). Per D2: TI/LC categories READ-ONLY with the engine's
+  refusal wording; MLP percentage_rent / misc_items / security_deposit
+  read-only JSON (unexercised by goldens); an honest CPI note — the §3
+  schema has NO top-level CPI profiles (per-lease, Tenants tab Step 4).
+  Plain widgets + explicit Apply buttons (AppTest cannot drive
+  st.form_submit_button / st.data_editor; grid depth is covered by the
+  pure tests). 36 new tests: tests/unit/test_ui_tabs.py (33 pure —
+  parametrized round-trip + §25 one-field discrimination on the real
+  goldens, readable per-cell errors incl. cross-ref breaks like dropping
+  a referenced free-rent profile, MLP grid add/delete preserving nested
+  detail, converters) + 3 AppTest flows ADDED to test_ui_app.py (nothing
+  removed): Property edit → model updated + result invalidated; bad term
+  → readable panel + model unchanged; Market renders Freeport with the
+  read-only notes. Suite: **627 passed + the same 4 by-design golden reds
+  (137/47 Gate 2, 33/12 Gate 3 capital)**; `git log 62617f1..HEAD --
+  engine/` EMPTY.
+- **Next session's first prompt:** "Phase 5 Steps 1-2 are DONE (app shell +
+  Calculate pipe; Property + Market tabs — 627 passed + the four by-design
+  golden reds; zero engine/ changes since baseline 62617f1 — verify
+  `git log 62617f1..HEAD -- engine/` stays EMPTY every session). Begin
+  **Phase 5 Step 3: the Revenues + Expenses tabs** per the owner-approved
+  NEXT_STEPS_TO_PHASE5.md — editable UI for the misc/parking/storage
+  `PropertyRevenue` grids (§3.10) and the opex/capex/non-op `ExpenseItem`
+  grids with annual overrides, limits, units, timing, and `ExpenseGroup`s
+  (§3.11). Reuse the Step 2 pattern exactly: pure `apply_*` commit
+  functions through `ui.state.updated_model` (all-or-nothing, §5.4
+  readable errors), `ui/convert.py` row converters (blank rows drop),
+  plain widgets + Apply buttons keyed by `session.rev()`, every success
+  through `ui.session.set_model` (result invalidated). Engine-refused
+  units (`pct_of_account` on revenues AND expenses) render READ-ONLY with
+  the refusal message (Step 0 D2) — note the refusal wording is
+  engine-frozen. Acceptance (plan Step 3): every field round-trips with a
+  §25 one-field discrimination test on the real goldens; per-cell errors
+  readable; a %-of-EGR fee edited in the UI recalculates through the
+  fixed point (Calculate) to the known fixture value (Clorox Management
+  Fee = 3% of final EGR — assert the recalculated year-1 NOI literal).
+  Pure tests + thin AppTest flows; every §25 rule applies (a test fails on
+  wrong behavior; a test-file rewrite lists every removal). IRON RULE 1:
+  ZERO changes under engine/ — if a tab seems to need an engine change,
+  STOP and flag it as an owner decision. Do NOT build the cancelled
+  in-app OM ingestion or the Step-0-deferred six reports. REMEMBER the
+  standing gaps, all carried forward unchanged and none a Phase 5
+  blocker: percentage rent externally unvalidated pending golden #3;
+  tenant misc items + purchase/deposits/debt/resale/valuation/sensitivity
+  externally unvalidated; Freeport B / Cedar Alt B / Freeport E parked
+  for post-Gate-5 investigation (assertions red by design — 137/47 Gate
+  2, 33/12 Gate 3 capital) while Phase 5 BUILDS their inspection surfaces
+  (D6 amendment: Freeport E panel in Step 4, the other two in Step 6);
+  Cedar Alt D closed as C's sibling; live price derivation permanently
+  refusing (DEVIATIONS §20 #6); the two named reconciler blind spots; the
+  stale 'until Phase 2' refusal wording in engine/calc/run.py (flagged,
+  engine-frozen, on the post-Gate-5 wording-pass list). When Step 3
+  lands: commit, push, update this prompt to point at Step 4 (the Tenants
+  tab incl. the D6-amendment Freeport E rollover-generations panel), and
+  STOP for owner + advisor review."
