@@ -918,47 +918,81 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   session_state.result; Revenues renders Freeport. Suite: **648 passed +
   the same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3
   capital)**; `git log 62617f1..HEAD -- engine/` EMPTY.
-- **Next session's first prompt:** "Phase 5 Steps 1-3 are DONE (app shell +
-  Calculate pipe; Property + Market tabs; Revenues + Expenses tabs — 648
-  passed + the four by-design golden reds; zero engine/ changes since
-  baseline 62617f1 — verify `git log 62617f1..HEAD -- engine/` stays EMPTY
-  every session). Begin **Phase 5 Step 4: the Tenants tab — the big one**
-  per the owner-approved NEXT_STEPS_TO_PHASE5.md: rent roll grid
-  (`st.data_editor`) + the D5 **persistent split-pane lease detail** (term,
-  base rent, steps, CPI, free rent, misc items, security deposit, % rent,
-  recovery assignment, upon-expiration + MLP link); `AbsorptionSpec`s; the
-  recovery structure builder (pools/gross-up/caps/fees — the owner's home
-  turf); **the rent-roll template import surface** (`ImportResult.notes` as
-  an info banner listing ignored Speculative rows; row-level errors
-  rendered verbatim); and **the D6-amendment 'Rollover generations
-  (engine-projected)' READ-ONLY panel** in the split pane — every resolved
-  segment of the selected chain from `result.segments` with start/end,
-  provenance, renewal weight, blended initial rent, downtime, weighted free
-  months, TI, and **LC pct/rate per generation** (the Freeport E
-  inspection surface; data already on RunResult, no engine change).
-  Reuse the established pattern: pure `apply_*` through
-  `ui.state.updated_model`, converters in `ui/convert.py`, Apply buttons
-  keyed by `session.rev()`, engine-refused fields (lease TI/LC categories,
-  `pct_of_account`) read-only with verbatim refusals. Acceptance (plan
-  Step 4): round-trip + §25 one-field discrimination on the real goldens;
-  import the Phase 4 template export of a golden → the Contractual subset
-  lands identically, the Speculative-rows note displays, a malformed row
-  shows the readable error verbatim; **the rollover-generations panel
-  shows Freeport's known per-generation LC pct 6.75 and renewal weight
-  0.75** (§25-discriminating against a wrong-field read). Pure tests +
-  thin AppTest flows; every §25 rule applies. IRON RULE 1: ZERO changes
-  under engine/ — if the tab seems to need an engine change, STOP and
-  flag it. Do NOT build the cancelled in-app OM ingestion or the
-  Step-0-deferred six reports. REMEMBER the standing gaps, all carried
-  forward unchanged and none a Phase 5 blocker: percentage rent externally
-  unvalidated pending golden #3; tenant misc items + purchase/deposits/
-  debt/resale/valuation/sensitivity externally unvalidated; Freeport B /
-  Cedar Alt B / Freeport E parked for post-Gate-5 investigation
-  (assertions red by design — 137/47 Gate 2, 33/12 Gate 3 capital) while
-  Phase 5 BUILDS their inspection surfaces (Freeport E lands THIS step;
-  the other two in Step 6); Cedar Alt D closed as C's sibling; live price
+  **Phase 5 Step 4 complete 2026-07-18:** the Tenants tab — the biggest.
+  Rent-roll grid (base_rent flattened to amount+unit columns, merge by row
+  order preserving nested detail; the new-row template defaults
+  `upon_expiration: vacate` so a fresh row is valid BEFORE an MLP link —
+  the §3.12 market-requires-MLP rule then fires readably on switch) + the
+  D5 **persistent split-pane lease detail** (rent steps, CPI, free rent,
+  misc items grid, security deposit, a compact % rent editor
+  [sales volume + breakpoint + layers; flagged externally unvalidated
+  pending golden #3], recovery assignment via the shared
+  `common_widgets.recovery_assignment_inputs`, contract-term TI/LC with
+  the **category refusal shown verbatim** and categories preserved
+  untouched); `AbsorptionSpec` grid; the **recovery structure builder**
+  (add/delete structures; per-pool: expense/group multiselect members,
+  method, gross-up, stop, admin fee + applies, denominator, share
+  override, caps/floors, expense adjustments — exercised against
+  Freeport's 13 real structures); the **§5.2 template import surface**
+  (uploader + AppTest-able path field; `ImportResult.notes` as info
+  banners — never a silent skip; Step-7 readable errors verbatim; apply
+  revalidates the whole document so an unknown-MLP import refuses
+  readably); and **the D6-amendment 'Rollover generations
+  (engine-projected)' READ-ONLY panel** (the Freeport E surface) —
+  per-generation start/end, provenance, renewal weight, blended rent,
+  downtime, free months, TI, LC pct/rate off `result.segments`
+  (`convert.segments_to_generation_rows`; prompts "Calculate to view"
+  when no result). 24 new tests: tests/unit/test_ui_tabs_step4.py (21
+  pure — grid/detail/absorption/structures round-trips + §25
+  discrimination on Freeport, readable errors incl. the real
+  market-requires-MLP + both-end-and-term rules, template import
+  [Contractual subset identical, note present, malformed row verbatim,
+  unknown-MLP apply refused], and the generations literals: **LC '6.75%
+  of rent', renewal weight 0.75, TI '12.5 dollars_per_area', vacate chain
+  = single Contractual generation, absorption first term = Speculative**)
+  + 3 AppTest flows ADDED to test_ui_app.py (nothing removed): Tenants
+  renders Freeport (pre-Calculate prompt), the generations panel shows
+  the Freeport E literals through the WIDGET path (dataframe located by
+  its provenance column — data_editors register as dataframes too), and
+  import-by-path lands 29 Contractual leases with the note displayed.
+  Suite: **672 passed + the same 4 by-design golden reds (137/47 Gate 2,
+  33/12 Gate 3 capital)**; `git log 62617f1..HEAD -- engine/` EMPTY.
+- **Next session's first prompt:** "Phase 5 Steps 1-4 are DONE (app shell +
+  Calculate pipe; Property + Market; Revenues + Expenses; Tenants incl. the
+  D6-amendment Freeport E rollover-generations panel — 672 passed + the
+  four by-design golden reds; zero engine/ changes since baseline 62617f1
+  — verify `git log 62617f1..HEAD -- engine/` stays EMPTY every session).
+  Begin **Phase 5 Step 5: the Investment + Valuation tabs** per the
+  owner-approved NEXT_STEPS_TO_PHASE5.md: `Purchase` + closing costs;
+  `Loan` grid + detail (fixed/floating, IO, balloon, additional principal,
+  loan costs); `ValuationInputs` (DCF discount rate/method/convention +
+  pv_start, direct cap, `Resale` with method-appropriate field visibility
+  across all five methods, `SensitivityIntervals`). Permanent refusals
+  (pct_of_value loan sizing, derived price — DEVIATIONS §20 #6) render
+  READ-ONLY with the engine's refusal messages verbatim. Reuse the
+  established pattern: pure `apply_*` through `ui.state.updated_model`,
+  converters in `ui/convert.py`, Apply buttons keyed by `session.rev()`.
+  Acceptance (plan Step 5): round-trip + §25 one-field discrimination on
+  the real goldens (none has purchase/loans/valuation — use the valuation
+  demo shapes from scripts/build_gate4_workbook.py as engineered
+  fixtures); per-cell errors readable; **the valuation demo entered
+  through these tabs reproduces the known hand-check numbers** (amort
+  payment 5,995.51 on the $1M/6%/30yr case, resale 1,212,500 on the
+  100k-NOI/8%-cap/3%-selling case, PV/IRR self-consistency) — hard
+  literals, §25-discriminating. Pure tests + thin AppTest flows; every
+  §25 rule applies. IRON RULE 1: ZERO changes under engine/ — STOP and
+  flag if a tab seems to need one. Do NOT build the cancelled in-app OM
+  ingestion or the Step-0-deferred six reports. REMEMBER the standing
+  gaps, all carried forward unchanged and none a Phase 5 blocker:
+  percentage rent externally unvalidated pending golden #3; tenant misc
+  items + purchase/deposits/debt/resale/valuation/sensitivity externally
+  unvalidated; Freeport B / Cedar Alt B / Freeport E parked for
+  post-Gate-5 investigation (assertions red by design — 137/47 Gate 2,
+  33/12 Gate 3 capital; Freeport E's surface SHIPPED in Step 4, the other
+  two land in Step 6); Cedar Alt D closed as C's sibling; live price
   derivation permanently refusing (DEVIATIONS §20 #6); the two named
   reconciler blind spots; the stale-message list in
-  NEXT_STEPS_TO_PHASE5.md (engine-frozen). When Step 4 lands: commit,
-  push, update this prompt to point at Step 5 (Investment + Valuation
-  tabs), and STOP for owner + advisor review."
+  NEXT_STEPS_TO_PHASE5.md (engine-frozen). When Step 5 lands: commit,
+  push, update this prompt to point at Step 6 (Reports + Dashboard +
+  Audit tabs incl. the remaining two D6-amendment surfaces), and STOP for
+  owner + advisor review."

@@ -222,6 +222,173 @@ def rows_to_expense_groups(rows: list[dict]) -> list[dict]:
 
 
 # ------------------------------------------------------------------ #
+# Tenants tab (§3.12-3.15; Step 4)                                    #
+# ------------------------------------------------------------------ #
+
+#: Rent-roll scalar grid; base_rent is flattened to amount+unit columns
+#: (the §5.2 template convention). Nested detail (steps, CPI, free rent,
+#: misc, deposit, % rent, recoveries, leasing costs) lives in the D5
+#: split-pane detail editor.
+LEASE_GRID_COLUMNS = ["tenant_name", "suite", "external_id", "area",
+                      "lease_type", "status", "start_date", "end_date",
+                      "term_months", "base_rent_amount", "base_rent_unit",
+                      "upon_expiration", "market_leasing_profile", "notes"]
+
+#: A new grid row's defaults. ``upon_expiration: vacate`` so the row is
+#: valid BEFORE the user links an MLP (``market`` requires one — the §3.12
+#: cross-field rule); switching to market in the grid then demands the ref.
+NEW_LEASE_TEMPLATE = {
+    "tenant_name": "New Tenant", "area": 1_000.0, "lease_type": "office",
+    "start_date": "2026-01-01", "term_months": 60,
+    "base_rent": {"amount": 0.0, "unit": "dollars_per_area_per_year"},
+    "upon_expiration": "vacate",
+}
+
+
+def lease_grid_rows(leases: list) -> list[dict]:
+    rows = []
+    for lease in leases:
+        row = {c: lease.get(c) for c in LEASE_GRID_COLUMNS
+               if c not in ("base_rent_amount", "base_rent_unit")}
+        row["base_rent_amount"] = lease["base_rent"]["amount"]
+        row["base_rent_unit"] = lease["base_rent"]["unit"]
+        rows.append(row)
+    return rows
+
+
+def apply_lease_grid_rows(leases: list, rows: list[dict]) -> list[dict]:
+    """Merge scalar grid edits by row order (add = template + row; delete =
+    drop), unflattening base_rent and preserving nested detail on
+    survivors."""
+    kept_rows = [row for row in rows if not _blank_row(row)]
+    merged: list[dict] = []
+    for i, row in enumerate(kept_rows):
+        base = (dict(leases[i]) if i < len(leases)
+                else dict(NEW_LEASE_TEMPLATE))
+        for column in LEASE_GRID_COLUMNS:
+            if column in ("base_rent_amount", "base_rent_unit"):
+                continue
+            if column in row:
+                value = row[column]
+                base[column] = None if _is_blank(value) else value
+        rent = dict(base.get("base_rent") or {})
+        if not _is_blank(row.get("base_rent_amount")):
+            rent["amount"] = row["base_rent_amount"]
+        if not _is_blank(row.get("base_rent_unit")):
+            rent["unit"] = row["base_rent_unit"]
+        base["base_rent"] = rent
+        merged.append(base)
+    return merged
+
+
+#: Misc-item grid (the §5.2 flat columns); nested timing/inflation/limits
+#: preserved by row order.
+MISC_ITEM_GRID_COLUMNS = ["name", "amount", "unit", "free_rent_abates"]
+
+
+def misc_items_to_rows(items: list) -> list[dict]:
+    return [{c: item.get(c) for c in MISC_ITEM_GRID_COLUMNS}
+            for item in items]
+
+
+def apply_misc_item_rows(items: list, rows: list[dict]) -> list[dict]:
+    kept = [row for row in rows if not _is_blank(row.get("name"))]
+    merged = []
+    for i, row in enumerate(kept):
+        base = dict(items[i]) if i < len(items) else {}
+        for column in MISC_ITEM_GRID_COLUMNS:
+            if column in row:
+                base[column] = row[column]
+        base["free_rent_abates"] = bool(base.get("free_rent_abates", False))
+        merged.append(base)
+    return merged
+
+
+ABSORPTION_GRID_COLUMNS = ["name", "total_area", "number_of_leases",
+                           "area_per_lease", "start_date", "interval_months",
+                           "lease_type", "market_leasing_profile",
+                           "reabsorbed_from"]
+
+
+def absorption_to_rows(specs: list) -> list[dict]:
+    return [{c: s.get(c) for c in ABSORPTION_GRID_COLUMNS} for s in specs]
+
+
+def rows_to_absorption(rows: list[dict]) -> list[dict]:
+    kept = []
+    for row in rows:
+        if _is_blank(row.get("name")):
+            continue
+        kept.append({c: (None if _is_blank(row.get(c)) else row.get(c))
+                     for c in ABSORPTION_GRID_COLUMNS})
+    return kept
+
+
+#: %-rent breakpoint layers (up to 6, spec §3.13).
+BREAKPOINT_LAYER_COLUMNS = ["breakpoint_amount", "pct"]
+
+
+def layers_to_rows(layers: list) -> list[dict]:
+    return [{c: l.get(c) for c in BREAKPOINT_LAYER_COLUMNS} for l in layers]
+
+
+def rows_to_layers(rows: list[dict]) -> list[dict]:
+    return [{"breakpoint_amount": (None if _is_blank(row.get("breakpoint_amount"))
+                                   else row.get("breakpoint_amount")),
+             "pct": row.get("pct")}
+            for row in rows if not _blank_row(row)]
+
+
+#: Recovery-pool expense adjustments.
+ADJUSTMENT_COLUMNS = ["expense", "action", "pct"]
+
+
+def adjustments_to_rows(adjustments: list) -> list[dict]:
+    return [{c: a.get(c) for c in ADJUSTMENT_COLUMNS} for a in adjustments]
+
+
+def rows_to_adjustments(rows: list[dict]) -> list[dict]:
+    return [{"expense": row.get("expense"),
+             "action": row.get("action") or "exclude",
+             "pct": row.get("pct") if not _is_blank(row.get("pct")) else 100.0}
+            for row in rows if not _is_blank(row.get("expense"))]
+
+
+def segments_to_generation_rows(segments, contractual_label: str,
+                                speculative_label: str) -> list[dict]:
+    """The D6-amendment Freeport E surface (READ-ONLY): one row per
+    resolved segment of a chain, straight off ``result.segments`` — no
+    engine change, pure presentation. LC / TI / renewal weight are the
+    per-generation rollover economics the parked Freeport E investigation
+    needs."""
+    rows = []
+    for segment in segments:
+        speculative = (segment.speculative
+                       or segment.lease.status.value == "speculative")
+        if segment.lc_pct is not None:
+            years = (f" (yrs {','.join(str(y) for y in segment.lc_pct_years)})"
+                     if segment.lc_pct_years else "")
+            lc = f"{segment.lc_pct}% of rent{years}"
+        elif segment.lc_rate is not None:
+            lc = f"{segment.lc_rate.amount} {segment.lc_rate.unit.value}"
+        else:
+            lc = ""
+        ti = (f"{segment.ti.amount} {segment.ti.unit.value}"
+              if segment.ti is not None else "")
+        rows.append({
+            "start": str(segment.start), "end": str(segment.end),
+            "provenance": (speculative_label if speculative
+                           else contractual_label),
+            "renewal_weight": segment.renewal_weight,
+            "downtime_months": segment.downtime_months,
+            "free_rent_months": segment.free_rent_months,
+            "initial_rent_monthly": segment.initial_rent_monthly,
+            "ti": ti, "lc": lc,
+        })
+    return rows
+
+
+# ------------------------------------------------------------------ #
 # RentStep rows (MLP rent_increases; reused by later steps)           #
 # ------------------------------------------------------------------ #
 

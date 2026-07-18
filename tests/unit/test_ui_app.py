@@ -195,6 +195,78 @@ class TestStep3TabFlows:
         assert not at.exception
 
 
+class TestStep4TabFlows:
+    """Step 4 AppTest flows (additions 2026-07-18; nothing removed): the
+    Tenants tab renders a real golden with the split pane, the
+    rollover-generations panel shows the Freeport E literals after
+    Calculate, and the import-by-path surface lands the Contractual subset
+    with the Speculative note displayed. Grid depth lives in the pure
+    tests."""
+
+    def _open_freeport(self, at, props_dir):
+        shutil.copy(ROOT / "tests" / "golden" / "freeport" /
+                    "freeport.icprop.json", props_dir / "freeport.icprop.json")
+        at.run()
+        _open_property(at, "freeport")
+
+    def test_tenants_renders_freeport_split_pane(self, props_dir):
+        at = _app()
+        self._open_freeport(at, props_dir)
+        at.radio(key="active_tab").set_value("Tenants")
+        at.run()
+        assert not at.exception
+        # pre-Calculate, the generations panel prompts instead of guessing
+        infos = " ".join(i.value for i in at.info)
+        assert "Calculate to view" in infos
+
+    def test_generations_panel_shows_freeport_e_literals(self, props_dir):
+        at = _app()
+        self._open_freeport(at, props_dir)
+        at.button(key="calc_btn").click()
+        at.run()
+        rev = at.session_state.model_rev
+        at.radio(key="active_tab").set_value("Tenants")
+        at.run()
+        at.selectbox(key=f"ld_pick_{rev}").set_value("2: Aqore LLC")
+        at.run()
+        assert not at.exception
+        # data_editor grids register as dataframes too — the generations
+        # panel is the one carrying the provenance column
+        frames = [f for f in at.dataframe
+                  if "provenance" in list(f.value.columns)]
+        assert frames, "the generations panel dataframe did not render"
+        rows = frames[0].value
+        # the Freeport E literals through the WIDGET path (§25)
+        speculative = [r for r in list(rows.to_dict("records"))
+                       if r["provenance"] == "Speculative"]
+        assert len(speculative) == 2
+        assert all(r["lc"] == "6.75% of rent" for r in speculative)
+        assert all(r["renewal_weight"] == 0.75 for r in speculative)
+
+    def test_import_by_path_lands_contractual_with_note(self, props_dir,
+                                                        tmp_path):
+        from engine.calc.run import run_property
+        from engine.export import export_rent_roll
+        from engine.models.io import load_property
+        freeport = load_property(ROOT / "tests" / "golden" / "freeport" /
+                                 "freeport.icprop.json")
+        template = tmp_path / "template.xlsx"
+        export_rent_roll(run_property(freeport), path=template)
+
+        at = _app()
+        self._open_freeport(at, props_dir)
+        rev = at.session_state.model_rev
+        at.radio(key="active_tab").set_value("Tenants")
+        at.run()
+        at.text_input(key=f"imp_path_{rev}").set_value(str(template))
+        at.button(key=f"imp_btn_{rev}").click()
+        at.run()
+        assert not at.exception
+        infos = " ".join(i.value for i in at.info)
+        assert "speculative" in infos and "ignored" in infos   # the note
+        assert len(at.session_state.model.rent_roll) == 29     # Contractual
+
+
 class TestReadableErrorsInApp:
     def test_corrupted_property_file_readable_not_traceback(self, props_dir):
         doc = json.loads(CLOROX.read_text(encoding="utf-8"))
