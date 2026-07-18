@@ -23,7 +23,7 @@ from __future__ import annotations
 import streamlit as st
 
 from ui import session, state
-from ui.tabs import market_tab, property_tab
+from ui.tabs import expenses_tab, market_tab, property_tab, revenues_tab
 
 #: Spec §6 tab order, verbatim. Dashboard is default-active (Step 0 D5).
 TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
@@ -31,11 +31,13 @@ TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
 DEFAULT_TAB = "Dashboard"
 
 #: Which future step builds each placeholder tab (NEXT_STEPS_TO_PHASE5.md).
-_TAB_STEP = {"Revenues": 3, "Expenses": 3, "Tenants": 4, "Investment": 5,
-             "Valuation": 5, "Reports": 6, "Audit": 6}
+_TAB_STEP = {"Tenants": 4, "Investment": 5, "Valuation": 5, "Reports": 6,
+             "Audit": 6}
 
 #: Built tab renderers (grows step by step).
-_TAB_RENDERERS = {"Property": property_tab.render, "Market": market_tab.render}
+_TAB_RENDERERS = {"Property": property_tab.render, "Market": market_tab.render,
+                  "Revenues": revenues_tab.render,
+                  "Expenses": expenses_tab.render}
 
 
 def _set_model(model, path) -> None:

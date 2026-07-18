@@ -152,6 +152,49 @@ class TestStep2TabFlows:
         assert "per lease" in captions                  # the CPI pointer
 
 
+class TestStep3TabFlows:
+    """Step 3 AppTest flows (additions 2026-07-17; nothing removed): the
+    fee edit drives the WIDGET path end-to-end through Calculate (the
+    fixed-point literals land in session_state.result), and the Revenues
+    tab renders a real golden. Grid depth lives in the pure tests."""
+
+    def test_fee_edit_via_widgets_recalculates_fixed_point(self, props_dir):
+        at = _app()
+        at.run()
+        _open_property(at, "clorox")
+        rev = at.session_state.model_rev
+        at.radio(key="active_tab").set_value("Expenses")
+        at.run()
+        # pick the Management Fee (model index 2) in the detail editor
+        at.selectbox(key=f"exp_pick_{rev}").set_value("2: Management Fee")
+        at.run()
+        at.number_input(key=f"exp_2_{rev}_amt").set_value(5.0)
+        at.button(key=f"exp_2_{rev}_apply").click()
+        at.run()
+        assert not at.exception
+        assert at.session_state.model.expenses[2].amount == 5.0
+        assert at.session_state.result is None           # edit invalidated
+        at.button(key="calc_btn").click()
+        at.run()
+        assert not at.exception
+        result = at.session_state.result
+        assert result is not None
+        # the 5% fixed-point literal, reached through the WIDGET path
+        fee = float(next(s for item, s in result.expense_series
+                         if item.name == "Management Fee").iloc[:12].sum())
+        assert fee == pytest.approx(200_497.09, abs=0.01)
+
+    def test_revenues_tab_renders_freeport(self, props_dir):
+        shutil.copy(ROOT / "tests" / "golden" / "freeport" /
+                    "freeport.icprop.json", props_dir / "freeport.icprop.json")
+        at = _app()
+        at.run()
+        _open_property(at, "freeport")
+        at.radio(key="active_tab").set_value("Revenues")
+        at.run()
+        assert not at.exception
+
+
 class TestReadableErrorsInApp:
     def test_corrupted_property_file_readable_not_traceback(self, props_dir):
         doc = json.loads(CLOROX.read_text(encoding="utf-8"))

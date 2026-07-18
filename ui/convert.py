@@ -134,6 +134,94 @@ def _new_mlp_template() -> dict:
 
 
 # ------------------------------------------------------------------ #
+# Revenues + Expenses (§3.10-3.11; Step 3)                            #
+# ------------------------------------------------------------------ #
+
+#: Scalar grid columns; nested detail (timing, limits, annual overrides,
+#: inflation schedules) lives in the per-item detail editor.
+REVENUE_GRID_COLUMNS = ["name", "account", "amount", "unit",
+                        "number_of_spaces", "pct_fixed"]
+EXPENSE_GRID_COLUMNS = ["name", "category", "account", "amount", "unit",
+                        "pct_fixed", "recoverable", "expense_group",
+                        "amortization_years", "refundable"]
+EXPENSE_GROUP_COLUMNS = ["name", "members"]
+ANNUAL_OVERRIDE_COLUMNS = ["year", "amount"]
+
+#: The engine-refused unit (run.py phase guards) — rows carrying it are
+#: excluded from the editable grid and rendered read-only (Step 0 D2).
+REFUSED_UNIT = "pct_of_account"
+
+
+def is_refused_item(item: dict) -> bool:
+    return item.get("unit") == REFUSED_UNIT
+
+
+def items_to_grid_rows(items: list, columns: list[str]) -> list[dict]:
+    """Editable grid rows — refused (pct_of_account) items excluded."""
+    return [{c: item.get(c) for c in columns}
+            for item in items if not is_refused_item(item)]
+
+
+def refused_items(items: list) -> list[dict]:
+    return [item for item in items if is_refused_item(item)]
+
+
+def apply_grid_rows_with_refused(items: list, rows: list[dict],
+                                 columns: list[str], template: dict
+                                 ) -> list[dict]:
+    """Merge edited scalar grid rows back over the EDITABLE items by row
+    order (add = ``template`` + row; delete = drop), preserving nested
+    detail on survivors; refused (pct_of_account) items are re-inserted at
+    their original positions untouched — read-only means read-only."""
+    refused = [(i, item) for i, item in enumerate(items)
+               if is_refused_item(item)]
+    editable = [item for item in items if not is_refused_item(item)]
+    kept_rows = [row for row in rows if not _blank_row(row)]
+    merged: list[dict] = []
+    for i, row in enumerate(kept_rows):
+        base = dict(editable[i]) if i < len(editable) else dict(template)
+        for column in columns:
+            if column in row:
+                base[column] = row[column]
+        merged.append(base)
+    for original_index, item in refused:
+        merged.insert(min(original_index, len(merged)), item)
+    return merged
+
+
+NEW_REVENUE_TEMPLATE = {"name": "New Revenue", "amount": 0.0,
+                        "unit": "dollars_per_year"}
+NEW_EXPENSE_TEMPLATE = {"name": "New Expense", "category": "operating",
+                        "amount": 0.0, "unit": "dollars_per_year"}
+
+
+def overrides_to_override_rows(overrides: list) -> list[dict]:
+    return [{"year": o["year"], "amount": o["amount"]} for o in overrides]
+
+
+def rows_to_annual_overrides(rows: list[dict]) -> list[dict]:
+    return [{"year": row.get("year"), "amount": row.get("amount")}
+            for row in rows if not _blank_row(row)]
+
+
+def expense_groups_to_rows(groups: list) -> list[dict]:
+    return [{"name": g["name"], "members": ", ".join(g["members"])}
+            for g in groups]
+
+
+def rows_to_expense_groups(rows: list[dict]) -> list[dict]:
+    out = []
+    for row in rows:
+        if _is_blank(row.get("name")):
+            continue
+        members_text = row.get("members") or ""
+        members = [m.strip() for m in str(members_text).split(",")
+                   if m.strip()]
+        out.append({"name": str(row["name"]).strip(), "members": members})
+    return out
+
+
+# ------------------------------------------------------------------ #
 # RentStep rows (MLP rent_increases; reused by later steps)           #
 # ------------------------------------------------------------------ #
 

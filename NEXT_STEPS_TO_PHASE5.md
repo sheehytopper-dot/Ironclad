@@ -206,6 +206,21 @@ engine change is needed for any of them:**
 Gate 5 criterion 6 (added below): these three surfaces exist and render
 on the goldens. The **investigation** using them stays post-Gate-5 (D6).
 
+## Stale engine messages — running list for the post-Gate-5 wording pass
+
+The engine is FROZEN during Phase 5 (Iron Rule 1), so user-surfacing
+engine messages with stale wording are LISTED here, not fixed. The UI
+shows them verbatim. One batched, owner-approved wording pass happens
+after Gate 5:
+
+1. **`engine/calc/run.py` `_phase_guards`** — the `pct_of_account` expense
+   refusal says *"not implemented until Phase 2"*; Phase 2 is long done
+   (the deferral is real, the label is stale). Surfaced by the Calculate
+   error panel and the Expenses tab's read-only refused-row display.
+   (Flagged Step 1; carried Step 3.)
+
+*(Append here as found; do not fix in-phase.)*
+
 ## Step 1 — App shell, persistence, Calculate pipe (session 1)
 
 `ui/` package + `app.py` entry point (`streamlit run app.py`); add

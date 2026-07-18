@@ -890,42 +890,75 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   read-only notes. Suite: **627 passed + the same 4 by-design golden reds
   (137/47 Gate 2, 33/12 Gate 3 capital)**; `git log 62617f1..HEAD --
   engine/` EMPTY.
-- **Next session's first prompt:** "Phase 5 Steps 1-2 are DONE (app shell +
-  Calculate pipe; Property + Market tabs — 627 passed + the four by-design
-  golden reds; zero engine/ changes since baseline 62617f1 — verify
-  `git log 62617f1..HEAD -- engine/` stays EMPTY every session). Begin
-  **Phase 5 Step 3: the Revenues + Expenses tabs** per the owner-approved
-  NEXT_STEPS_TO_PHASE5.md — editable UI for the misc/parking/storage
-  `PropertyRevenue` grids (§3.10) and the opex/capex/non-op `ExpenseItem`
-  grids with annual overrides, limits, units, timing, and `ExpenseGroup`s
-  (§3.11). Reuse the Step 2 pattern exactly: pure `apply_*` commit
-  functions through `ui.state.updated_model` (all-or-nothing, §5.4
-  readable errors), `ui/convert.py` row converters (blank rows drop),
-  plain widgets + Apply buttons keyed by `session.rev()`, every success
-  through `ui.session.set_model` (result invalidated). Engine-refused
-  units (`pct_of_account` on revenues AND expenses) render READ-ONLY with
-  the refusal message (Step 0 D2) — note the refusal wording is
-  engine-frozen. Acceptance (plan Step 3): every field round-trips with a
-  §25 one-field discrimination test on the real goldens; per-cell errors
-  readable; a %-of-EGR fee edited in the UI recalculates through the
-  fixed point (Calculate) to the known fixture value (Clorox Management
-  Fee = 3% of final EGR — assert the recalculated year-1 NOI literal).
-  Pure tests + thin AppTest flows; every §25 rule applies (a test fails on
-  wrong behavior; a test-file rewrite lists every removal). IRON RULE 1:
-  ZERO changes under engine/ — if a tab seems to need an engine change,
-  STOP and flag it as an owner decision. Do NOT build the cancelled
-  in-app OM ingestion or the Step-0-deferred six reports. REMEMBER the
-  standing gaps, all carried forward unchanged and none a Phase 5
-  blocker: percentage rent externally unvalidated pending golden #3;
-  tenant misc items + purchase/deposits/debt/resale/valuation/sensitivity
-  externally unvalidated; Freeport B / Cedar Alt B / Freeport E parked
-  for post-Gate-5 investigation (assertions red by design — 137/47 Gate
-  2, 33/12 Gate 3 capital) while Phase 5 BUILDS their inspection surfaces
-  (D6 amendment: Freeport E panel in Step 4, the other two in Step 6);
-  Cedar Alt D closed as C's sibling; live price derivation permanently
-  refusing (DEVIATIONS §20 #6); the two named reconciler blind spots; the
-  stale 'until Phase 2' refusal wording in engine/calc/run.py (flagged,
-  engine-frozen, on the post-Gate-5 wording-pass list). When Step 3
-  lands: commit, push, update this prompt to point at Step 4 (the Tenants
-  tab incl. the D6-amendment Freeport E rollover-generations panel), and
-  STOP for owner + advisor review."
+  **Phase 5 Step 3 complete 2026-07-17:** the Revenues + Expenses tabs.
+  `ui/convert.py` additions (revenue/expense scalar grids, annual-override
+  + expense-group rows, and the **refused-row lifecycle**:
+  `pct_of_account` items are excluded from the editable grid, re-inserted
+  UNTOUCHED at their original positions on apply, and detail-edits on them
+  refuse readably — read-only means read-only); `ui/tabs/common_widgets.py`
+  (shared Timing / Limits / Inflation editors — inflation as
+  general-default | named index | custom YearRate schedule);
+  `ui/tabs/revenues_tab.py` (misc/parking/storage grids + per-item detail)
+  and `ui/tabs/expenses_tab.py` (grid + per-item detail incl. amount/unit/
+  timing/limits/annual overrides/inflation + ExpenseGroups with CSV
+  members). Engine-refused rows show the refusal VERBATIM — including the
+  stale "until Phase 2" expense wording, deliberately surfaced as-is and
+  now on the **stale-message list in NEXT_STEPS_TO_PHASE5.md** (post-Gate-5
+  wording pass; a §25 test asserts the UI copy matches the engine's actual
+  message, so the wording pass will fail it and force the UI copy update).
+  **The fixed-point end-to-end check:** editing Clorox's management fee
+  3%→5% through the tab's own apply fn + Calculate lands the HARD literals
+  fee 200,497.09 / EGR 4,009,941.72 (vs 3% baseline 117,817.88 /
+  3,927,262.51), fee = exactly 5% of final EGR — and the §25 catch: NOI
+  stays 2,596,319.40 under BOTH (the fee is recoverable — pass-through),
+  so NOI was deliberately NOT used as the discriminator; the fee/EGR
+  literals are. 21 new tests: tests/unit/test_ui_tabs_step3.py (19 pure)
+  + 2 AppTest flows ADDED to test_ui_app.py (nothing removed): the fee
+  edit through the WIDGET path → Calculate → the 5% literal in
+  session_state.result; Revenues renders Freeport. Suite: **648 passed +
+  the same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3
+  capital)**; `git log 62617f1..HEAD -- engine/` EMPTY.
+- **Next session's first prompt:** "Phase 5 Steps 1-3 are DONE (app shell +
+  Calculate pipe; Property + Market tabs; Revenues + Expenses tabs — 648
+  passed + the four by-design golden reds; zero engine/ changes since
+  baseline 62617f1 — verify `git log 62617f1..HEAD -- engine/` stays EMPTY
+  every session). Begin **Phase 5 Step 4: the Tenants tab — the big one**
+  per the owner-approved NEXT_STEPS_TO_PHASE5.md: rent roll grid
+  (`st.data_editor`) + the D5 **persistent split-pane lease detail** (term,
+  base rent, steps, CPI, free rent, misc items, security deposit, % rent,
+  recovery assignment, upon-expiration + MLP link); `AbsorptionSpec`s; the
+  recovery structure builder (pools/gross-up/caps/fees — the owner's home
+  turf); **the rent-roll template import surface** (`ImportResult.notes` as
+  an info banner listing ignored Speculative rows; row-level errors
+  rendered verbatim); and **the D6-amendment 'Rollover generations
+  (engine-projected)' READ-ONLY panel** in the split pane — every resolved
+  segment of the selected chain from `result.segments` with start/end,
+  provenance, renewal weight, blended initial rent, downtime, weighted free
+  months, TI, and **LC pct/rate per generation** (the Freeport E
+  inspection surface; data already on RunResult, no engine change).
+  Reuse the established pattern: pure `apply_*` through
+  `ui.state.updated_model`, converters in `ui/convert.py`, Apply buttons
+  keyed by `session.rev()`, engine-refused fields (lease TI/LC categories,
+  `pct_of_account`) read-only with verbatim refusals. Acceptance (plan
+  Step 4): round-trip + §25 one-field discrimination on the real goldens;
+  import the Phase 4 template export of a golden → the Contractual subset
+  lands identically, the Speculative-rows note displays, a malformed row
+  shows the readable error verbatim; **the rollover-generations panel
+  shows Freeport's known per-generation LC pct 6.75 and renewal weight
+  0.75** (§25-discriminating against a wrong-field read). Pure tests +
+  thin AppTest flows; every §25 rule applies. IRON RULE 1: ZERO changes
+  under engine/ — if the tab seems to need an engine change, STOP and
+  flag it. Do NOT build the cancelled in-app OM ingestion or the
+  Step-0-deferred six reports. REMEMBER the standing gaps, all carried
+  forward unchanged and none a Phase 5 blocker: percentage rent externally
+  unvalidated pending golden #3; tenant misc items + purchase/deposits/
+  debt/resale/valuation/sensitivity externally unvalidated; Freeport B /
+  Cedar Alt B / Freeport E parked for post-Gate-5 investigation
+  (assertions red by design — 137/47 Gate 2, 33/12 Gate 3 capital) while
+  Phase 5 BUILDS their inspection surfaces (Freeport E lands THIS step;
+  the other two in Step 6); Cedar Alt D closed as C's sibling; live price
+  derivation permanently refusing (DEVIATIONS §20 #6); the two named
+  reconciler blind spots; the stale-message list in
+  NEXT_STEPS_TO_PHASE5.md (engine-frozen). When Step 4 lands: commit,
+  push, update this prompt to point at Step 5 (Investment + Valuation
+  tabs), and STOP for owner + advisor review."
