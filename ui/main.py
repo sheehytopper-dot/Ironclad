@@ -23,24 +23,25 @@ from __future__ import annotations
 import streamlit as st
 
 from ui import session, state
-from ui.tabs import (expenses_tab, investment_tab, market_tab, property_tab,
-                     revenues_tab, tenants_tab, valuation_tab)
+from ui.tabs import (audit_tab, dashboard_tab, expenses_tab, investment_tab,
+                     market_tab, property_tab, reports_tab, revenues_tab,
+                     tenants_tab, valuation_tab)
 
 #: Spec §6 tab order, verbatim. Dashboard is default-active (Step 0 D5).
 TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
         "Investment", "Valuation", "Reports", "Dashboard", "Audit"]
 DEFAULT_TAB = "Dashboard"
 
-#: Which future step builds each placeholder tab (NEXT_STEPS_TO_PHASE5.md).
-_TAB_STEP = {"Reports": 6, "Audit": 6}
-
-#: Built tab renderers (grows step by step).
+#: All ten spec §6 tabs are built (Steps 1-6).
 _TAB_RENDERERS = {"Property": property_tab.render, "Market": market_tab.render,
                   "Revenues": revenues_tab.render,
                   "Expenses": expenses_tab.render,
                   "Tenants": tenants_tab.render,
                   "Investment": investment_tab.render,
-                  "Valuation": valuation_tab.render}
+                  "Valuation": valuation_tab.render,
+                  "Reports": reports_tab.render,
+                  "Dashboard": dashboard_tab.render,
+                  "Audit": audit_tab.render}
 
 
 def _set_model(model, path) -> None:
@@ -106,28 +107,7 @@ def _sidebar() -> None:
     if st.session_state.get("calc_error"):
         st.sidebar.error(st.session_state.calc_error)
 
-    st.sidebar.caption("Export Package — built in Step 6.")
-
-
-def _dashboard() -> None:
-    model = st.session_state.get("model")
-    result = st.session_state.get("result")
-    if model is None:
-        st.info("Open or create a property in the sidebar to begin.")
-        return
-    st.subheader(model.property.name)
-    path = st.session_state.get("model_path")
-    st.caption(f"File: {path}" if path else "Not saved yet.")
-    if result is None:
-        st.info("Press **Calculate** in the sidebar to populate the "
-                "dashboard.")
-        return
-    metrics = state.dashboard_metrics(result, model)
-    col1, col2 = st.columns(2)
-    col1.metric("Year-1 NOI", state.format_currency(metrics["year1_noi"]))
-    col2.metric("Year-1 Occupancy",
-                state.format_pct(metrics["year1_occupancy_pct"]))
-    st.caption("Full dashboard (KPI cards, charts, expirations) — Step 6.")
+    st.sidebar.caption("Package export lives on the Reports tab.")
 
 
 def render() -> None:
@@ -139,10 +119,4 @@ def render() -> None:
     active = st.radio("Navigation", TABS, index=TABS.index(DEFAULT_TAB),
                       horizontal=True, key="active_tab",
                       label_visibility="collapsed")
-    if active == "Dashboard":
-        _dashboard()
-    elif active in _TAB_RENDERERS:
-        _TAB_RENDERERS[active]()
-    else:
-        st.info(f"**{active}** — built in Phase 5 Step {_TAB_STEP[active]} "
-                "(NEXT_STEPS_TO_PHASE5.md).")
+    _TAB_RENDERERS[active]()

@@ -353,6 +353,59 @@ class TestStep5TabFlows:
                                                               abs=0.01)
 
 
+class TestStep6TabFlows:
+    """Step 6 AppTest flows (additions 2026-07-19; nothing removed): the
+    Reports tab renders a builder frame, the full Dashboard renders its
+    KPI cards + charts, and the Audit tab renders the drill + both
+    D6-amendment panels. Frame-level equality lives in the pure tests."""
+
+    def test_reports_tab_renders_cash_flow(self, props_dir):
+        at = _app()
+        at.run()
+        _open_property(at, "clorox")
+        at.button(key="calc_btn").click()
+        at.run()
+        at.radio(key="active_tab").set_value("Reports")
+        at.run()
+        assert not at.exception
+        # the default pick is #1 Cash Flow; its frame renders
+        assert at.selectbox(key="report_pick").value.startswith("#1 ")
+        frames = [f for f in at.dataframe]
+        assert frames, "the report frame did not render"
+
+    def test_dashboard_full_cards_render(self, props_dir):
+        at = _app()
+        at.run()
+        _open_property(at, "clorox")
+        at.button(key="calc_btn").click()
+        at.run()
+        assert not at.exception            # Dashboard is default-active
+        labels = {m.label for m in at.metric}
+        # the Step-1 labels survive; the Step-6 cards joined them
+        assert {"Year-1 NOI", "Year-1 Occupancy", "Purchase Price",
+                "Unleveraged PV", "IRR (unleveraged)"} <= labels
+        values = {m.label: m.value for m in at.metric}
+        assert values["Year-1 NOI"] == "$2,596,319"
+        assert values["Unleveraged PV"] == "—"      # no valuation on Clorox
+
+    def test_audit_tab_renders_both_d6_panels(self, props_dir):
+        shutil.copy(ROOT / "tests" / "golden" / "freeport" /
+                    "freeport.icprop.json", props_dir / "freeport.icprop.json")
+        at = _app()
+        at.run()
+        _open_property(at, "freeport")
+        at.button(key="calc_btn").click()
+        at.run()
+        at.radio(key="active_tab").set_value("Audit")
+        at.run()
+        assert not at.exception
+        markdown = " ".join(m.value for m in at.markdown)
+        assert "General Vacancy basis decomposition" in markdown
+        assert "Recovery-timing drill" in markdown
+        # both panels' dataframes render (gv components + the drill rows)
+        assert len(list(at.dataframe)) >= 2
+
+
 class TestReadableErrorsInApp:
     def test_corrupted_property_file_readable_not_traceback(self, props_dir):
         doc = json.loads(CLOROX.read_text(encoding="utf-8"))

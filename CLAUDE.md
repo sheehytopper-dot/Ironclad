@@ -996,45 +996,89 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   1,250,000 (vs the 3% baseline 1,212,500). Suite: **697 passed + the
   same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**;
   `git log 62617f1..HEAD -- engine/` EMPTY.
-- **Next session's first prompt:** "Phase 5 Steps 1-5 are DONE (app shell +
-  Calculate pipe; Property + Market; Revenues + Expenses; Tenants incl. the
-  D6-amendment Freeport E panel; Investment + Valuation incl. the
-  hand-check anchors — 697 passed + the four by-design golden reds; zero
-  engine/ changes since baseline 62617f1 — verify `git log 62617f1..HEAD
-  -- engine/` stays EMPTY every session). Begin **Phase 5 Step 6: the
-  Reports + Dashboard + Audit tabs** per the owner-approved
-  NEXT_STEPS_TO_PHASE5.md: the report picker over the 18 built builders
-  (global unit/period toggles wired to the Step-1 primitives; date-range
-  as a UI-side column slice; #11/#12 provenance labels; Benchmark #24
-  renders only when an expected CSV exists); export-this-view
-  (`export_report`) + the sidebar §8 package export (`build_package`);
-  the full Dashboard (KPI cards + Plotly charts off RunResult/reports —
-  no UI-side math); the Audit tab drill-down (account + month →
-  per-tenant/per-item composition via the audit reports + RunResult
-  detail); **and the remaining two D6-amendment surfaces: the General
-  Vacancy basis-decomposition panel (Freeport B — composed from the
-  RunResult per-tenant series + the model's GeneralVacancy method) and
-  the Recovery Audit drill filterable by tenant + segment_start (Cedar
-  Alt B)** — Gate 5 criterion 6. Acceptance (plan Step 6): every rendered
-  report's frame equals the builder's output for the same toggles (no
-  UI-side math); the drill-down reproduces a Recovery Audit row for a
-  golden tenant-month; exports open and match (reuse the Phase 4
-  cell-by-cell machinery, don't rewrite it); the GV panel's basis ties to
-  the RunResult per-tenant series and the recovery drill isolates a Cedar
-  Alt rollover month per lease. Pure tests + thin AppTest flows; every
-  §25 rule applies. IRON RULE 1: ZERO changes under engine/ — STOP and
-  flag if a tab seems to need one. Do NOT build the cancelled in-app OM
-  ingestion or the Step-0-deferred six reports. REMEMBER the standing
-  gaps, all carried forward unchanged and none a Phase 5 blocker:
-  percentage rent externally unvalidated pending golden #3; tenant misc
-  items + purchase/deposits/debt/resale/valuation/sensitivity externally
-  unvalidated; Freeport B / Cedar Alt B / Freeport E parked for
-  post-Gate-5 investigation (assertions red by design — 137/47 Gate 2,
-  33/12 Gate 3 capital; Freeport E's surface shipped in Step 4, B/B land
-  THIS step); Cedar Alt D closed as C's sibling; live price derivation
-  permanently refusing (DEVIATIONS §20 #6); the two named reconciler
-  blind spots; the stale-message list in NEXT_STEPS_TO_PHASE5.md (now
-  three entries, engine-frozen). When Step 6 lands: commit, push, update
-  this prompt to point at Step 7 (the Gate 5 acceptance run — the D3
-  Clorox from-scratch build + Freeport timing exercise, owner-run), and
-  STOP for owner + advisor review."
+  **Phase 5 Step 6 complete 2026-07-19 — ALL SIX BUILD STEPS DONE; every
+  spec §6 tab renders:** the Reports + Dashboard + Audit tabs.
+  `ui/reports_registry.py` (pure): one entry per built report with
+  applicability gates (valuation/sensitivity/loans/resale) + the global
+  unit/period toggles wired straight to the builders — **frame equality
+  against the builders asserted per report** (assert_frame_equal; the
+  unit toggle §25-discriminates: Clorox NOI $2,596,319.40 total vs /540k
+  per-SF); the date-range slice is a pure column selection (values
+  untouched, test-locked); Benchmark #24 gated on the golden-convention
+  `expected_annual_cash_flow.csv` beside the loaded JSON — **CSV accounts
+  with no ledger match are SKIPPED AND REPORTED** in meta (Clorox: 0
+  misses with 'Capital Expenses' reported-skipped [the name bridge is
+  golden-test knowledge]; Freeport: **170 = exactly the 137 Gate-2 + 33
+  Gate-3 by-design reds** — the UI reproduces the known counts).
+  `ui/tabs/reports_tab.py`: picker + toggles + provenance captions +
+  contractual-only checkbox + loan picker + **export-this-view and the §8
+  package export via the Phase 4 machinery** (export_report /
+  build_package — nothing rewritten; the UI-exported view matches the
+  builder frame via the engine's own report_cell_grid, test-locked).
+  `ui/tabs/dashboard_tab.py`: KPI cards (Year-1 NOI/Occupancy [Step-1
+  labels preserved], Purchase Price + Going-in Cap from exec-summary #2,
+  PV/IRRs/Direct Cap off result.valuation, None→'—') + Plotly charts
+  (annual NOI/CFBDS off the ledger's own annual view; monthly occupancy;
+  expirations by fiscal year colored by provenance; top-tenants from
+  #11). **Equity multiple deliberately ABSENT — no engine surface
+  computes it and UI-side recomputation is banned; FLAGGED as a
+  post-Gate-5 engine candidate** (NEXT_STEPS_TO_PHASE5.md "Flagged engine
+  candidates", with the per-item property-revenue drill as the second
+  entry). `ui/tabs/audit_tab.py`: account+month → composition (ledger
+  revenue lines → per-tenant Lease Audit rows [tie to the ledger to the
+  cent: recoveries 20,840.57 at Freeport 2026-07]; expense accounts →
+  per-item series; TI/LC → per-tenant postings; loan lines → per-loan
+  schedules; subtotals/GV say so honestly) + **the two remaining
+  D6-amendment surfaces (Gate 5 criterion 6): the Freeport B GV
+  basis-decomposition panel** (candidate bases read from the LEDGER,
+  method/include/overrides from the model, implied rate per basis —
+  Freeport 2026-07 literals: GV −7,071.48, A&T −4,620.00, basis
+  229,209.66, implied 3.09% on percent_of_pgr) **and the Cedar Alt B
+  recovery-timing drill** (pure filter over the Recovery Audit's
+  (tenant, segment_start, pool, month) rows — isolates 'Bldg 1 Tenant
+  (Confidential)' seg 2033-09: recovery 173,504.82, share 0.803174).
+  24 new tests: tests/unit/test_ui_tabs_step6.py (21 pure) + 3 AppTest
+  flows ADDED to test_ui_app.py (nothing removed): Reports renders #1,
+  the full Dashboard renders with the Step-1 labels intact + '—' for
+  no-valuation, Audit renders both D6 panels. Suite: **721 passed + the
+  same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**;
+  `git log 62617f1..HEAD -- engine/` EMPTY.
+- **Next session's first prompt:** "Phase 5 Steps 1-6 are ALL DONE — every
+  spec §6 tab is built and rendering (app shell + Calculate; Property +
+  Market; Revenues + Expenses; Tenants incl. the Freeport E
+  rollover-generations panel; Investment + Valuation incl. the hand-check
+  anchors; Reports + Dashboard + Audit incl. the Freeport B GV-basis
+  panel and the Cedar Alt B recovery-timing drill — Gate 5 criterion 6
+  surfaces ALL SHIPPED). Suite 721 passed + the four by-design golden
+  reds (137/47 Gate 2, 33/12 Gate 3 capital); `git log 62617f1..HEAD --
+  engine/` is EMPTY and must STAY empty. **Phase 5 Step 7 is the GATE 5
+  ACCEPTANCE RUN and it is OWNER-RUN** (NEXT_STEPS_TO_PHASE5.md Step 7 +
+  Step 0 D3; BUILD_SCHEDULE Gate 5): (1) Topper rebuilds Clorox
+  Northlake FROM SCRATCH through the UI alone — no JSON editing —
+  acceptance = the UI-built model's fiscal cash flow is engine-to-engine
+  IDENTICAL to the committed fixture output (§25-discriminating); (2)
+  the Freeport load-and-drive timing exercise (open the 29-lease golden,
+  calculate, drill one recovery number to tenant level, export the
+  package; over an hour for a 15-tenant deal → file friction points as
+  Phase 6 fixes); (3) the audit drill-down reaches per-tenant per-month
+  composition for any account; (4) both intake surfaces with readable
+  errors; (5) unit/period toggles honored + #11/#12 provenance; (6) the
+  three D6-amendment inspection surfaces exist and render on the goldens
+  (SHIPPED — demonstrate, don't rebuild). Claude's Step 7 role: run
+  `streamlit run app.py` support, prepare any evidence the owner asks
+  for, fix UI defects the run surfaces (report/UI layer only — engine
+  stays FROZEN; a defect that seems to need an engine change is an
+  owner decision), and do NOT declare Gate 5 — it is an owner
+  declaration. REMEMBER the standing gaps, all carried forward unchanged
+  and none a Gate 5 blocker: percentage rent externally unvalidated
+  pending golden #3; tenant misc items + purchase/deposits/debt/resale/
+  valuation/sensitivity externally unvalidated; Freeport B / Cedar Alt B
+  / Freeport E investigations are POST-Gate-5 (their surfaces shipped;
+  assertions red by design); Cedar Alt D closed as C's sibling; live
+  price derivation permanently refusing (DEVIATIONS §20 #6); the two
+  named reconciler blind spots; the stale-message list (three entries) +
+  the flagged engine candidates (equity multiple; per-item
+  property-revenue series) in NEXT_STEPS_TO_PHASE5.md — all engine-frozen
+  owner decisions for the post-Gate-5 pass. When Gate 5 is declared:
+  update CLAUDE.md/BUILD_SCHEDULE.md, then Phase 6 (hardening) begins
+  with its own NEXT_STEPS plan per Iron Rule 2."

@@ -231,6 +231,19 @@ after Gate 5:
 
 *(Append here as found; do not fix in-phase.)*
 
+## Flagged engine candidates — post-Gate-5 owner decisions (not built in-phase)
+
+- **Equity multiple (spec §6 Dashboard KPI)** — no engine surface computes
+  it (neither RunResult nor any §7 report), and computing it UI-side is
+  exactly the recomputation Phase 5 bans. The Dashboard shows the other
+  KPIs and states the absence (Step 6). Owner call post-Gate-5: add it to
+  the engine valuation/returns family (e.g. on ValuationResult or report
+  #8), then surface it.
+- **Per-item property-revenue series (Audit drill)** — RunResult retains
+  only the summed Property Revenue series, so the Audit tab states the
+  item list but cannot drill per item. Same category: an engine-retention
+  candidate, not a UI fabrication.
+
 ## Step 1 — App shell, persistence, Calculate pipe (session 1)
 
 `ui/` package + `app.py` entry point (`streamlit run app.py`); add
