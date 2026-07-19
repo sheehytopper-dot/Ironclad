@@ -267,6 +267,92 @@ class TestStep4TabFlows:
         assert len(at.session_state.model.rent_roll) == 29     # Contractual
 
 
+class TestStep5TabFlows:
+    """Step 5 AppTest flows (additions 2026-07-19; nothing removed): the
+    Investment + Valuation tabs render an engineered demo (no golden has
+    purchase/loans/valuation), and a selling-costs edit through the WIDGET
+    path recalculates to the 0%-selling literal. Grid depth lives in the
+    pure tests."""
+
+    def _save_demo(self, props_dir):
+        import datetime as dt
+        from engine.models import (AreaMeasures, ExpenseItem, ExpenseUnit,
+                                   Inflation, Lease, MoneyRate, MoneyUnit,
+                                   PropertyInfo, PropertyModel,
+                                   RentableAreaMode, UponExpiration, YearRate)
+        from ui.tabs import investment_tab, valuation_tab
+        psf = MoneyUnit.dollars_per_area_per_year
+        begin = dt.date(2026, 1, 1)
+        lease = Lease(tenant_name="T", area=12_000, lease_type="industrial",
+                      start_date=begin, term_months=240,
+                      base_rent=MoneyRate(amount=10.0, unit=psf),
+                      upon_expiration=UponExpiration.vacate)
+        model = PropertyModel(
+            property=PropertyInfo(name="Demo", property_type="industrial",
+                                  analysis_begin=begin,
+                                  analysis_term_years=5),
+            area_measures=AreaMeasures(
+                property_size=12_000,
+                rentable_area_mode=RentableAreaMode.fixed,
+                rentable_area_fixed=12_000),
+            inflation=Inflation(general_rate=[YearRate(year=1, rate=0.0)]),
+            rent_roll=[lease],
+            expenses=[ExpenseItem(name="OpEx", amount=20_000.0,
+                                  unit=ExpenseUnit.dollars_per_year,
+                                  recoverable=False)])
+        model, _ = investment_tab.apply_loan_grid(model, [
+            {"name": "Mortgage", "amount_value": 1_000_000.0,
+             "amount_basis": "amount", "rate": 6.0, "term_months": 360,
+             "amortization": "fully_amortizing"}])
+        model, _ = valuation_tab.apply_valuation(model, {
+            "discount_rate": 8.0, "discount_method": "annual",
+            "period_convention": "end_of_period", "pv_start": None,
+            "direct_cap": None,
+            "resale": {"method": "cap_noi_current_year",
+                       "exit_cap_rate": 8.0, "resale_date": None,
+                       "apply_resale_to_cash_flow": True,
+                       "selling_costs_pct": 3.0, "adjustment_amounts": [],
+                       "noi_adjustments": {"exclude_capital": True,
+                                           "stabilize_occupancy": None}},
+            "sensitivity_intervals": {"discount_rate_step": 1.0,
+                                      "cap_rate_step": 1.0, "count": 5}})
+        state.save_model(model, props_dir / "demo.icprop.json")
+
+    def test_investment_and_valuation_render_demo(self, props_dir):
+        self._save_demo(props_dir)
+        at = _app()
+        at.run()
+        _open_property(at, "demo")
+        at.radio(key="active_tab").set_value("Investment")
+        at.run()
+        assert not at.exception
+        at.radio(key="active_tab").set_value("Valuation")
+        at.run()
+        assert not at.exception
+
+    def test_selling_costs_edit_via_widgets_recalculates(self, props_dir):
+        self._save_demo(props_dir)
+        at = _app()
+        at.run()
+        _open_property(at, "demo")
+        rev = at.session_state.model_rev
+        at.radio(key="active_tab").set_value("Valuation")
+        at.run()
+        at.number_input(key=f"val_res_{rev}_selling").set_value(0.0)
+        at.button(key=f"val_apply_{rev}").click()
+        at.run()
+        assert not at.exception
+        assert at.session_state.result is None          # edit invalidated
+        at.button(key="calc_btn").click()
+        at.run()
+        assert not at.exception
+        result = at.session_state.result
+        # 0% selling on the 1,250,000 gross → net == gross (§25 literal;
+        # the 3% baseline was 1,212,500)
+        assert result.resale.net_unleveraged == pytest.approx(1_250_000.0,
+                                                              abs=0.01)
+
+
 class TestReadableErrorsInApp:
     def test_corrupted_property_file_readable_not_traceback(self, props_dir):
         doc = json.loads(CLOROX.read_text(encoding="utf-8"))

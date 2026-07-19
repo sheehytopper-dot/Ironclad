@@ -957,29 +957,71 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   import-by-path lands 29 Contractual leases with the note displayed.
   Suite: **672 passed + the same 4 by-design golden reds (137/47 Gate 2,
   33/12 Gate 3 capital)**; `git log 62617f1..HEAD -- engine/` EMPTY.
-- **Next session's first prompt:** "Phase 5 Steps 1-4 are DONE (app shell +
+  **Phase 5 Step 5 complete 2026-07-19:** the Investment + Valuation tabs.
+  `ui/convert.py` additions (closing-cost rows, loan scalar grid with
+  base_rent-style flatten [amount value+basis, rate as fixed % or the
+  '(floating)' placeholder, amortization as text→int-years parse],
+  additional-principal + resale-adjustment rows; **pct_of_value loans get
+  the refused-row lifecycle** — excluded from the grid, preserved at
+  position, detail-refused readably); `ui/tabs/investment_tab.py`
+  (Purchase + closing-costs grid [fixed derivation only — a derived-price
+  purchase renders READ-ONLY with the engine's refusal verbatim]; loan
+  grid + per-loan detail: fixed/floating rate [the §3.17 `Loan.type` must
+  track the rate shape — found via the 'fixed loans require a numeric
+  rate' validator, the payload/converter set it automatically], IO months,
+  additional principal, loan costs incl. the DEVIATIONS §18/§24
+  handling-is-accounting note); `ui/tabs/valuation_tab.py` (DCF, direct
+  cap, `Resale` with method-appropriate field visibility across all five
+  methods [cap methods → exit cap + NOI adjustments + stabilize;
+  fixed_amount → sale price only, selling/adjustments hidden per
+  [AE p. 465]; pct_increase → pct + selling + adjustments],
+  `SensitivityIntervals`; whole block optional). **Both permanent-refusal
+  messages carry the STALE 'OPEN OWNER SCOPE DECISION' label** (the
+  decision closed 2026-07-12) — added as items 2-3 on the stale-message
+  list in NEXT_STEPS_TO_PHASE5.md, surfaced verbatim with a
+  decision-closed caption. **The hand-check anchors land through the
+  tabs' own apply fns as hard literals:** amort payment 5,995.51 +
+  balance@12 987,719.88 ($1M/6%/30yr), balloon 836,857.25 (30-due-in-120),
+  resale gross 1,250,000 / net 1,212,500 (100k-NOI/8%-cap/3%-selling),
+  and price==PV ⟹ IRR 8.00% within 1bp. 25 new tests:
+  tests/unit/test_ui_tabs_step5.py (23 pure — the three anchors,
+  purchase/loan/valuation round-trips + §25 discrimination on the
+  engineered flat-100k fixture, floating-rate end-to-end (7.5/9.5),
+  refused lifecycles for BOTH permanent refusals with engine-message
+  containment tests [the wording pass will fail them and force the UI
+  copy update], readable errors, fixed_amount = gross AND net,
+  pct_increase-needs-purchase) + 2 AppTest flows ADDED to test_ui_app.py
+  (nothing removed): Investment + Valuation render the engineered demo;
+  the selling-costs edit through the WIDGET path → Calculate → net
+  1,250,000 (vs the 3% baseline 1,212,500). Suite: **697 passed + the
+  same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**;
+  `git log 62617f1..HEAD -- engine/` EMPTY.
+- **Next session's first prompt:** "Phase 5 Steps 1-5 are DONE (app shell +
   Calculate pipe; Property + Market; Revenues + Expenses; Tenants incl. the
-  D6-amendment Freeport E rollover-generations panel — 672 passed + the
-  four by-design golden reds; zero engine/ changes since baseline 62617f1
-  — verify `git log 62617f1..HEAD -- engine/` stays EMPTY every session).
-  Begin **Phase 5 Step 5: the Investment + Valuation tabs** per the
-  owner-approved NEXT_STEPS_TO_PHASE5.md: `Purchase` + closing costs;
-  `Loan` grid + detail (fixed/floating, IO, balloon, additional principal,
-  loan costs); `ValuationInputs` (DCF discount rate/method/convention +
-  pv_start, direct cap, `Resale` with method-appropriate field visibility
-  across all five methods, `SensitivityIntervals`). Permanent refusals
-  (pct_of_value loan sizing, derived price — DEVIATIONS §20 #6) render
-  READ-ONLY with the engine's refusal messages verbatim. Reuse the
-  established pattern: pure `apply_*` through `ui.state.updated_model`,
-  converters in `ui/convert.py`, Apply buttons keyed by `session.rev()`.
-  Acceptance (plan Step 5): round-trip + §25 one-field discrimination on
-  the real goldens (none has purchase/loans/valuation — use the valuation
-  demo shapes from scripts/build_gate4_workbook.py as engineered
-  fixtures); per-cell errors readable; **the valuation demo entered
-  through these tabs reproduces the known hand-check numbers** (amort
-  payment 5,995.51 on the $1M/6%/30yr case, resale 1,212,500 on the
-  100k-NOI/8%-cap/3%-selling case, PV/IRR self-consistency) — hard
-  literals, §25-discriminating. Pure tests + thin AppTest flows; every
+  D6-amendment Freeport E panel; Investment + Valuation incl. the
+  hand-check anchors — 697 passed + the four by-design golden reds; zero
+  engine/ changes since baseline 62617f1 — verify `git log 62617f1..HEAD
+  -- engine/` stays EMPTY every session). Begin **Phase 5 Step 6: the
+  Reports + Dashboard + Audit tabs** per the owner-approved
+  NEXT_STEPS_TO_PHASE5.md: the report picker over the 18 built builders
+  (global unit/period toggles wired to the Step-1 primitives; date-range
+  as a UI-side column slice; #11/#12 provenance labels; Benchmark #24
+  renders only when an expected CSV exists); export-this-view
+  (`export_report`) + the sidebar §8 package export (`build_package`);
+  the full Dashboard (KPI cards + Plotly charts off RunResult/reports —
+  no UI-side math); the Audit tab drill-down (account + month →
+  per-tenant/per-item composition via the audit reports + RunResult
+  detail); **and the remaining two D6-amendment surfaces: the General
+  Vacancy basis-decomposition panel (Freeport B — composed from the
+  RunResult per-tenant series + the model's GeneralVacancy method) and
+  the Recovery Audit drill filterable by tenant + segment_start (Cedar
+  Alt B)** — Gate 5 criterion 6. Acceptance (plan Step 6): every rendered
+  report's frame equals the builder's output for the same toggles (no
+  UI-side math); the drill-down reproduces a Recovery Audit row for a
+  golden tenant-month; exports open and match (reuse the Phase 4
+  cell-by-cell machinery, don't rewrite it); the GV panel's basis ties to
+  the RunResult per-tenant series and the recovery drill isolates a Cedar
+  Alt rollover month per lease. Pure tests + thin AppTest flows; every
   §25 rule applies. IRON RULE 1: ZERO changes under engine/ — STOP and
   flag if a tab seems to need one. Do NOT build the cancelled in-app OM
   ingestion or the Step-0-deferred six reports. REMEMBER the standing
@@ -988,11 +1030,11 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   items + purchase/deposits/debt/resale/valuation/sensitivity externally
   unvalidated; Freeport B / Cedar Alt B / Freeport E parked for
   post-Gate-5 investigation (assertions red by design — 137/47 Gate 2,
-  33/12 Gate 3 capital; Freeport E's surface SHIPPED in Step 4, the other
-  two land in Step 6); Cedar Alt D closed as C's sibling; live price
-  derivation permanently refusing (DEVIATIONS §20 #6); the two named
-  reconciler blind spots; the stale-message list in
-  NEXT_STEPS_TO_PHASE5.md (engine-frozen). When Step 5 lands: commit,
-  push, update this prompt to point at Step 6 (Reports + Dashboard +
-  Audit tabs incl. the remaining two D6-amendment surfaces), and STOP for
-  owner + advisor review."
+  33/12 Gate 3 capital; Freeport E's surface shipped in Step 4, B/B land
+  THIS step); Cedar Alt D closed as C's sibling; live price derivation
+  permanently refusing (DEVIATIONS §20 #6); the two named reconciler
+  blind spots; the stale-message list in NEXT_STEPS_TO_PHASE5.md (now
+  three entries, engine-frozen). When Step 6 lands: commit, push, update
+  this prompt to point at Step 7 (the Gate 5 acceptance run — the D3
+  Clorox from-scratch build + Freeport timing exercise, owner-run), and
+  STOP for owner + advisor review."

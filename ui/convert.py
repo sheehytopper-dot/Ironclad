@@ -389,6 +389,145 @@ def segments_to_generation_rows(segments, contractual_label: str,
 
 
 # ------------------------------------------------------------------ #
+# Investment + Valuation (§3.16-3.18; Step 5)                         #
+# ------------------------------------------------------------------ #
+
+CLOSING_COST_COLUMNS = ["name", "amount", "pct_of_price", "timing", "date"]
+
+
+def closing_costs_to_rows(costs: list) -> list[dict]:
+    return [{c: cost.get(c) for c in CLOSING_COST_COLUMNS} for cost in costs]
+
+
+def rows_to_closing_costs(rows: list[dict]) -> list[dict]:
+    kept = []
+    for row in rows:
+        if _is_blank(row.get("name")):
+            continue
+        kept.append({
+            "name": row["name"],
+            "amount": None if _is_blank(row.get("amount")) else row["amount"],
+            "pct_of_price": (None if _is_blank(row.get("pct_of_price"))
+                             else row["pct_of_price"]),
+            "timing": row.get("timing") or "at_purchase",
+            "date": None if _is_blank(row.get("date")) else row["date"],
+        })
+    return kept
+
+
+#: Loan scalar grid; ``amount`` flattens to value+basis, ``rate`` shows the
+#: fixed percent (a floating schedule renders as "(floating)" and is edited
+#: in the detail pane). ``pct_of_value`` loans are engine-refused
+#: (DEVIATIONS §20 #6, permanent) — excluded from the grid, preserved
+#: read-only, like pct_of_account rows.
+LOAN_GRID_COLUMNS = ["name", "amount_value", "amount_basis", "rate",
+                     "term_months", "maturity_date", "funding_date",
+                     "amortization", "interest_only_months"]
+REFUSED_LOAN_BASIS = "pct_of_value"
+FLOATING_LABEL = "(floating)"
+
+NEW_LOAN_TEMPLATE = {"name": "New Loan",
+                     "amount": {"basis": "amount", "value": 0.0},
+                     "term_months": 360, "rate": 6.0,
+                     "amortization": "fully_amortizing"}
+
+
+def is_refused_loan(loan: dict) -> bool:
+    return loan.get("amount", {}).get("basis") == REFUSED_LOAN_BASIS
+
+
+def refused_loans(loans: list) -> list[dict]:
+    return [loan for loan in loans if is_refused_loan(loan)]
+
+
+def loans_to_grid_rows(loans: list) -> list[dict]:
+    rows = []
+    for loan in loans:
+        if is_refused_loan(loan):
+            continue
+        row = {c: loan.get(c) for c in LOAN_GRID_COLUMNS
+               if c not in ("amount_value", "amount_basis", "rate",
+                            "amortization")}
+        row["amount_value"] = loan["amount"]["value"]
+        row["amount_basis"] = loan["amount"]["basis"]
+        row["rate"] = (FLOATING_LABEL if isinstance(loan["rate"], dict)
+                       else loan["rate"])
+        row["amortization"] = str(loan["amortization"])
+        rows.append(row)
+    return rows
+
+
+def _parse_amortization(value):
+    """Grid text → the schema's int-years | literal union."""
+    text = str(value).strip()
+    return int(text) if text.isdigit() else text
+
+
+def apply_loan_grid_rows(loans: list, rows: list[dict]) -> list[dict]:
+    """Merge scalar grid edits by row order (add = template; delete = drop);
+    nested detail (floating rate, additional principal, loan costs)
+    preserved; refused (pct_of_value) loans re-inserted untouched at their
+    original positions."""
+    refused = [(i, loan) for i, loan in enumerate(loans)
+               if is_refused_loan(loan)]
+    editable = [loan for loan in loans if not is_refused_loan(loan)]
+    kept_rows = [row for row in rows if not _blank_row(row)]
+    merged: list[dict] = []
+    for i, row in enumerate(kept_rows):
+        base = (dict(editable[i]) if i < len(editable)
+                else dict(NEW_LOAN_TEMPLATE))
+        for column in ("name", "term_months", "maturity_date",
+                       "funding_date", "interest_only_months"):
+            if column in row:
+                value = row[column]
+                base[column] = None if _is_blank(value) else value
+        amount = dict(base.get("amount") or {})
+        if not _is_blank(row.get("amount_value")):
+            amount["value"] = row["amount_value"]
+        if not _is_blank(row.get("amount_basis")):
+            amount["basis"] = row["amount_basis"]
+        base["amount"] = amount
+        rate = row.get("rate")
+        if not _is_blank(rate) and rate != FLOATING_LABEL:
+            base["rate"] = rate                 # fixed percent from the grid
+            base["type"] = "fixed"              # Loan.type tracks rate shape
+        if not _is_blank(row.get("amortization")):
+            base["amortization"] = _parse_amortization(row["amortization"])
+        if _is_blank(row.get("interest_only_months")):
+            base["interest_only_months"] = 0
+        merged.append(base)
+    for original_index, loan in refused:
+        merged.insert(min(original_index, len(merged)), loan)
+    return merged
+
+
+ADDITIONAL_PRINCIPAL_COLUMNS = ["date", "amount"]
+
+
+def additional_principal_to_rows(entries: list) -> list[dict]:
+    return [{c: e.get(c) for c in ADDITIONAL_PRINCIPAL_COLUMNS}
+            for e in entries]
+
+
+def rows_to_additional_principal(rows: list[dict]) -> list[dict]:
+    return [{"date": row.get("date"), "amount": row.get("amount")}
+            for row in rows if not _blank_row(row)]
+
+
+RESALE_ADJUSTMENT_COLUMNS = ["name", "amount"]
+
+
+def resale_adjustments_to_rows(adjustments: list) -> list[dict]:
+    return [{c: a.get(c) for c in RESALE_ADJUSTMENT_COLUMNS}
+            for a in adjustments]
+
+
+def rows_to_resale_adjustments(rows: list[dict]) -> list[dict]:
+    return [{"name": row.get("name"), "amount": row.get("amount")}
+            for row in rows if not _is_blank(row.get("name"))]
+
+
+# ------------------------------------------------------------------ #
 # RentStep rows (MLP rent_increases; reused by later steps)           #
 # ------------------------------------------------------------------ #
 

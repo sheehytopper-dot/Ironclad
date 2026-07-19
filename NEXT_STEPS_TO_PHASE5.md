@@ -218,6 +218,16 @@ after Gate 5:
    (the deferral is real, the label is stale). Surfaced by the Calculate
    error panel and the Expenses tab's read-only refused-row display.
    (Flagged Step 1; carried Step 3.)
+2. **`engine/calc/debt.py` `_principal0`** — the `pct_of_value` loan-sizing
+   refusal says *"an OPEN OWNER SCOPE DECISION (DEVIATIONS.md §20)"*; that
+   decision CLOSED 2026-07-12 as a **permanent** refusal (DEVIATIONS §20
+   #6). The refusal itself is correct; the "open" label is stale. Surfaced
+   by the Investment tab's read-only refused-loan display. (Flagged
+   Step 5.)
+3. **`engine/calc/investment.py`** (derived-price guard) — the
+   `Purchase.derivation != fixed` refusal has the same stale *"OPEN OWNER
+   SCOPE DECISION"* label; same closed decision, same fix. Surfaced by the
+   Investment tab's read-only purchase display. (Flagged Step 5.)
 
 *(Append here as found; do not fix in-phase.)*
 
