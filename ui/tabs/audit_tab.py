@@ -47,6 +47,7 @@ from engine.calc.ledger import (
     TOTAL_DEBT_SERVICE,
 )
 from engine.reports import lease_audit_report, recovery_audit_report
+from ui import format as fmt
 
 #: Ledger revenue account → its Lease Audit column (the [AE p. 538]
 #: decomposition the audit carries per (tenant, month)).
@@ -245,14 +246,23 @@ def render() -> None:
     rows, caption = audit_composition(result, model, account, month)
     st.caption(caption)
     if rows is not None and not rows.empty:
-        st.dataframe(rows, key="audit_rows", width="stretch")
+        # display-only formatting — the pure composition stays raw
+        st.dataframe(fmt.frame_display(rows), key="audit_rows",
+                     width="stretch")
 
     st.markdown("---")
     st.markdown("**General Vacancy basis decomposition** — the parked "
                 "Freeport B inspection surface (D6 amendment)")
     gv_rows, summary = gv_basis_rows(result, model, month)
-    st.dataframe(gv_rows, key="gv_rows", width="stretch")
-    st.json(summary)
+    st.dataframe(fmt.frame_display(gv_rows), key="gv_rows",
+                 width="stretch")
+    display_summary = dict(summary)
+    for key in ("gv_posted", "at_vacancy_posted", "basis_total"):
+        display_summary[key] = fmt.money(summary[key], 2)
+    if summary["implied_rate_pct"] is not None:
+        display_summary["implied_rate_pct"] = fmt.percent(
+            summary["implied_rate_pct"], 2)
+    st.json(display_summary)
 
     st.markdown("---")
     st.markdown("**Recovery-timing drill** — the parked Cedar Alt B "
@@ -271,7 +281,8 @@ def render() -> None:
         frame,
         tenant=None if tenant == "(all)" else tenant,
         segment_start=None if start == "(all)" else start)
-    st.dataframe(drilled, key="drill_rows", width="stretch")
+    st.dataframe(fmt.frame_display(drilled, decimals=2),
+                 key="drill_rows", width="stretch")
     st.caption(f"{len(drilled)} Recovery Audit rows — one per (tenant, "
                "segment_start, pool, month); reconciles to the ledger "
                "exactly (reconcile_to_ledger, 1e-9).")

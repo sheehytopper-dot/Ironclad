@@ -17,6 +17,7 @@ import streamlit as st
 
 from engine.export import build_package, export_report
 from engine.reports import Period, Unit
+from ui import format as fmt
 from ui import reports_registry as registry
 
 UNITS = [u.value for u in Unit]
@@ -86,9 +87,10 @@ def render() -> None:
                        " — the golden test suites carry the per-golden name "
                        "bridges.")
 
-    frame = report.frame
-    if entry.number == 1 and len(frame.columns) > 1:
-        columns = [str(c) for c in frame.columns]
+    # display-only formatting (ui/format.py) — report.frame stays raw and
+    # is what the exporters below receive
+    if entry.number == 1 and len(report.frame.columns) > 1:
+        columns = [str(c) for c in report.frame.columns]
         col1, col2 = st.columns(2)
         with col1:
             start = st.selectbox("From period", columns, index=0,
@@ -96,10 +98,15 @@ def render() -> None:
         with col2:
             end = st.selectbox("To period", columns,
                                index=len(columns) - 1, key="report_to")
-        frame = registry.slice_period_columns(
-            frame, frame.columns[columns.index(start)],
-            frame.columns[columns.index(end)])
-    st.dataframe(frame, key="report_frame", width="stretch")
+        sliced = registry.slice_period_columns(
+            report.frame, report.frame.columns[columns.index(start)],
+            report.frame.columns[columns.index(end)])
+        st.dataframe(fmt.cash_flow_display(report, columns=sliced.columns),
+                     key="report_frame", width="stretch",
+                     height=min(38 * (len(report.frame) + 1), 1400))
+    else:
+        st.dataframe(fmt.report_display(report), key="report_frame",
+                     width="stretch")
 
     col1, col2 = st.columns(2)
     with col1:

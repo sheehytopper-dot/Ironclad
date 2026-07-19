@@ -1043,6 +1043,32 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   no-valuation, Audit renders both D6 panels. Suite: **721 passed + the
   same 4 by-design golden reds (137/47 Gate 2, 33/12 Gate 3 capital)**;
   `git log 62617f1..HEAD -- engine/` EMPTY.
+  **UI usability pass Tier 1 complete 2026-07-19 (owner-directed Gate 5
+  prerequisite; Tier 2 visual redesign is a separate planned pass):**
+  `ui/format.py` — a pure DISPLAY-ONLY formatting layer (thousands
+  separators, accounting negatives in parens, Total-$ 0dp / per-SF 2dp
+  keyed off report.meta, percent/fraction columns as X.X%); **the
+  guardrail is test-locked §25-style: each formatter test asserts the
+  display string AND that report.frame stays byte-identical at full
+  precision** (assert_frame_equal check_exact + the literal
+  2596319.4000000004) — builders, frame-equality tests, and the Excel
+  exporters keep operating on raw frames. Cash Flow #1 renders
+  ARGUS-style via the tree metadata already in meta.extra['tree'] (NBSP
+  indent by level, bold subtotals, top-rule grand totals — a pandas
+  Styler over a display COPY; the date slice stays a pure column
+  selection). Formatter applied across Reports / Dashboard top-tenants /
+  Audit composition+GV+drill (the pure fns still return RAW frames;
+  render wraps). Navigation moved to a LEFT-SIDEBAR vertical list grouped
+  ✏️ Inputs / 📊 Outputs via format_func DISPLAY labels — the radio key
+  (`active_tab`) and raw option values unchanged, so every existing
+  AppTest flow passes untouched; Dashboard default-active (D5). 10 new
+  tests (test_ui_format.py 8 pure + 2 AppTest), and TWO existing nav
+  assertions MODIFIED (not removed, noted in-file): AppTest `options`
+  reflect format_func labels, so the two option-list checks now strip the
+  display glyph and additionally assert raw-value set_value still works.
+  Suite: **731 passed + the same 4 by-design golden reds (137/47 Gate 2,
+  33/12 Gate 3 capital)**; `git log 62617f1..HEAD -- engine/` EMPTY.
+  **Owner re-review of readability precedes the Step 7 Gate 5 run.**
 - **Next session's first prompt:** "Phase 5 Steps 1-6 are ALL DONE — every
   spec §6 tab is built and rendering (app shell + Calculate; Property +
   Market; Revenues + Expenses; Tenants incl. the Freeport E

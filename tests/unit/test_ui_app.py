@@ -46,11 +46,15 @@ def _open_property(at, name):
 
 class TestShell:
     def test_dashboard_is_default_active_and_order_preserved(self, props_dir):
+        # MODIFIED (not removed) in the Tier-1 usability pass 2026-07-19:
+        # nav labels now carry display-only group glyphs (AppTest `options`
+        # shows format_func labels); option VALUES stay the raw tab names —
+        # every set_value("<Tab>") flow in this file proves it.
         at = _app()
         at.run()
         nav = at.radio(key="active_tab")
         assert nav.value == "Dashboard"                    # D5 default
-        assert list(nav.options) == [
+        assert [str(o).split(" ", 1)[1] for o in nav.options] == [
             "Property", "Market", "Revenues", "Expenses", "Tenants",
             "Investment", "Valuation", "Reports", "Dashboard", "Audit"]
         assert not at.exception
@@ -404,6 +408,43 @@ class TestStep6TabFlows:
         assert "Recovery-timing drill" in markdown
         # both panels' dataframes render (gv components + the drill rows)
         assert len(list(at.dataframe)) >= 2
+
+
+class TestUsabilityPassTier1:
+    """Usability-pass AppTest additions (2026-07-19; nothing removed): the
+    nav radio lives in the SIDEBAR with the raw tab names as option values
+    (grouping is display-only), Dashboard stays default-active (D5), and
+    the formatted Cash Flow still renders through the Reports tab."""
+
+    def test_nav_is_in_sidebar_with_raw_values(self, props_dir):
+        at = _app()
+        at.run()
+        nav = at.sidebar.radio(key="active_tab")           # SIDEBAR now
+        assert nav.value == "Dashboard"                    # D5 preserved
+        # options carry display-only group glyphs; the underlying tab
+        # names (the set_value API) are unchanged
+        labels = [str(o) for o in nav.options]
+        assert [l.split(" ", 1)[1] for l in labels] == [
+            "Property", "Market", "Revenues", "Expenses", "Tenants",
+            "Investment", "Valuation", "Reports", "Dashboard", "Audit"]
+        assert labels[0].startswith("✏️") and labels[-1].startswith("📊")
+        # raw-value navigation still works
+        at.radio(key="active_tab").set_value("Property")
+        at.run()
+        assert not at.exception
+
+    def test_formatted_cash_flow_renders(self, props_dir):
+        at = _app()
+        at.run()
+        _open_property(at, "clorox")
+        at.button(key="calc_btn").click()
+        at.run()
+        at.radio(key="active_tab").set_value("Reports")
+        at.run()
+        assert not at.exception
+        # the styler-backed frame renders; its cells are display strings
+        frames = list(at.dataframe)
+        assert frames
 
 
 class TestReadableErrorsInApp:

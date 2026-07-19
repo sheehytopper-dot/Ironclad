@@ -124,4 +124,6 @@ def render() -> None:
                         key="chart_exp")
     st.markdown("**Top tenants (by contractual annual base rent — report "
                 "#11)**")
-    st.dataframe(data["top_tenants"], key="top_tenants", width="stretch")
+    from ui import format as fmt
+    st.dataframe(fmt.frame_display(data["top_tenants"]), key="top_tenants",
+                 width="stretch")

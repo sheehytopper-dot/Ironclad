@@ -13,10 +13,14 @@ invalidated on any model change) and a minimal Dashboard (year-1 NOI,
 year-1 occupancy) proving the pipe end-to-end. The remaining tabs are
 placeholders labeled with the step that builds them.
 
-Navigation: the spec §6 tab order is preserved (Property … Audit) with
-**Dashboard default-active** (Step 0 D5). Implemented as a horizontal
-radio rather than ``st.tabs`` because Streamlit cannot set the active tab
-programmatically — the D5 default would be unreachable with real tabs.
+Navigation (usability pass, Tier 1): a VERTICAL list in the left sidebar
+below the property controls, visually grouped Inputs (Property …
+Valuation) / Outputs (Reports, Dashboard, Audit), with **Dashboard
+default-active** (Step 0 D5). One ``st.radio`` keyed ``active_tab`` with
+the raw tab names as option values — the grouping lives in
+``format_func`` display labels only, so the widget API (and every
+AppTest flow driving it) is unchanged. A radio rather than ``st.tabs``
+because Streamlit cannot set the active tab programmatically.
 """
 from __future__ import annotations
 
@@ -31,6 +35,13 @@ from ui.tabs import (audit_tab, dashboard_tab, expenses_tab, investment_tab,
 TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
         "Investment", "Valuation", "Reports", "Dashboard", "Audit"]
 DEFAULT_TAB = "Dashboard"
+INPUT_TABS = {"Property", "Market", "Revenues", "Expenses", "Tenants",
+              "Investment", "Valuation"}
+
+
+def _nav_label(tab: str) -> str:
+    """Display-only group glyphs (option VALUES stay the raw tab names)."""
+    return f"✏️ {tab}" if tab in INPUT_TABS else f"📊 {tab}"
 
 #: All ten spec §6 tabs are built (Steps 1-6).
 _TAB_RENDERERS = {"Property": property_tab.render, "Market": market_tab.render,
@@ -116,7 +127,10 @@ def render() -> None:
 
     _sidebar()
 
-    active = st.radio("Navigation", TABS, index=TABS.index(DEFAULT_TAB),
-                      horizontal=True, key="active_tab",
-                      label_visibility="collapsed")
+    st.sidebar.divider()
+    st.sidebar.markdown("**Navigation** — ✏️ Inputs · 📊 Outputs")
+    active = st.sidebar.radio("Navigation", TABS,
+                              index=TABS.index(DEFAULT_TAB),
+                              key="active_tab", format_func=_nav_label,
+                              label_visibility="collapsed")
     _TAB_RENDERERS[active]()
