@@ -1802,3 +1802,24 @@ the Phase 5 baseline commit recorded in NEXT_STEPS_TO_PHASE5.md Step 1.
 Related sequencing (same Step 0): the spec §2 SQLite property index is
 also deferred — the v1 property selector scans `data/properties/`
 directly; the index joins when scanning gets slow.
+
+### §26 addendum (2026-07-20): the FastAPI layer is now ACTIVE
+
+The web front-end pivot (owner decision 2026-07-19,
+NEXT_STEPS_WEB_FRONTEND.md; W2-W7 approved as recommended, W1 deferred to
+the mockup-export inspection) activated the spec §2.1 FastAPI layer that
+D1 deferred — the "second client" arrived. `api/` (rollout step 2) is a
+thin serializer over EXISTING engine/report/export/intake functions: it
+computes nothing, imports the engine and the pure browser-free `ui/`
+modules (W7), and the engine imports neither. Frames go over the wire at
+full precision (split-orient, NaN→null — literal NaN is invalid JSON);
+§5.4 errors are structured readable JSON (field path + offending value +
+fix; engine refusals verbatim, so the stale-message list surfaces
+unchanged). The RunResult is cached server-side per property and
+invalidated on every PUT (W4). One API-side judgment call: the golden
+benchmark-CSV convention (one CSV per DIRECTORY) breaks in the flat
+`data/properties/` — a shared CSV would silently benchmark every property
+against the same numbers — so the API requires a per-name
+`<name>.expected_annual_cash_flow.csv` (directory-level accepted only in
+single-property directories). Streamlit stays the frozen runnable
+fallback until the relocated Gate 5 passes.

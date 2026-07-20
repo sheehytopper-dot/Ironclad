@@ -14,6 +14,8 @@ dependencies = [
     "pydantic>=2",
     "sqlmodel",
     "fastapi",
+    "uvicorn",
+    "python-multipart",
     # PINNED (NEXT_STEPS_UI_TIER2.md brittleness rule): ui/theme.py CSS
     # keys off Streamlit-internal DOM attributes; upgrading is a
     # deliberate act that re-verifies that file, never a pip side effect.
@@ -25,7 +27,8 @@ dependencies = [
 
 [project.optional-dependencies]
 # pypdf: reading reference/Argus_Training_Guide.pdf (manual page cites) is a recurring need
-dev = ["pytest", "pypdf"]
+# httpx: FastAPI TestClient transport (tests/unit/test_api.py)
+dev = ["pytest", "pypdf", "httpx"]
 
 [tool.setuptools.packages.find]
 include = ["engine*", "api*", "ui*"]

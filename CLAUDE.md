@@ -1118,28 +1118,71 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   owner visual review (no pixel oracle — stated honestly); rollout =
   API core → the mockup's three designed screens end-to-end (Dashboard,
   Reports, Tenants) → the other seven tabs.
-- **Next session's first prompt:** "THE WEB FRONT-END PIVOT is planned
-  but NOT owner-approved yet: read NEXT_STEPS_WEB_FRONTEND.md. First
-  task: check whether Topper has (a) reviewed the plan, (b) resolved
-  Step 0 W1-W7, and (c) dropped design/Ironclad.dc.html into the repo.
-  If approved: inspect the mockup export FIRST (the W1 framework
-  recommendation is conditional on its actual format), confirm W1 with
-  the owner, then begin rollout step 2 (the API core: properties/
-  calculate/reports endpoints + TestClient reconciliation harness — no
-  front-end yet). If NOT approved, there is NOTHING to build — do not
-  scaffold api/ or frontend/, do not modify ui/ or app.py (Streamlit is
-  the frozen fallback), do not touch engine/ (`git log 62617f1..HEAD --
-  engine/` stays EMPTY — verify every session). The prior Streamlit
-  Gate 5 run is SUPERSEDED by the relocated Gate 5 in the pivot plan.
-  REMEMBER the standing gaps, all carried forward unchanged: percentage
-  rent externally unvalidated pending golden #3; tenant misc items +
+  **Pivot plan APPROVED (owner + advisor, 2026-07-20): W2-W7 as
+  recommended; W1 (framework) DEFERRED to the mockup-export inspection —
+  do NOT default to vanilla JS (the editable grids span ~6 tabs; choose
+  on the real export). API CORE BUILT (rollout step 2, 2026-07-20;
+  DEVIATIONS §26 addendum — the FastAPI layer is ACTIVE):** `api/main.py`
+  + `api/serialize.py` — thin serializers over EXISTING functions (the
+  API computes nothing; imports the engine + the pure `ui/` modules per
+  W7). Endpoints: properties list/GET/PUT (whole-document revalidation;
+  422 = structured readable JSON {summary, problems:[{field, message,
+  got≤120chars}], reference} — never a traceback; PUT saves AND
+  invalidates the server-side RunResult cache), rent-roll import
+  (Contractual leases + `ImportResult.notes`, Step-7 errors verbatim),
+  calculate (cache + compact summary + applicability flags incl.
+  benchmark-CSV), reports list/GET (registry-driven; unit/period/
+  contractual_only/loan_index params; split-orient FULL-PRECISION frames
+  with **NaN→null** — literal NaN is invalid JSON; meta.extra whitelist
+  incl. the Cash Flow tree), the audit composition + BOTH D6 panels
+  (gv-basis, recovery-drill incl. filter options), package/report export
+  (FileResponse via the Phase 4 machinery). **API-side judgment call
+  (DEVIATIONS §26 addendum): the golden benchmark-CSV convention is
+  per-DIRECTORY and `data/properties/` is flat — a shared CSV would
+  silently benchmark every property against the same numbers (caught in
+  the smoke: clorox picked up freeport's CSV) — so the API requires
+  `<name>.expected_annual_cash_flow.csv`, directory-level only in
+  single-property dirs; #24 is NOT offered otherwise (test-locked).**
+  19 new tests (tests/unit/test_api.py, TestClient): endpoint==builder
+  frame equality EXACT through JSON (full-precision literal
+  2596319.4000000004 over HTTP), the §25 unit-toggle discrimination, the
+  golden literals (benchmark 170/[]; GV −7,071.48 / 229,209.66 / 3.09%;
+  drill 173,504.82 / 0.803174; composition 20,840.57), NaN→null
+  round-trip on the demo's leveraged metrics, structured 422s
+  (field/got/no-Traceback/no-pydantic; refusals verbatim incl. the stale
+  "until Phase 2" wording), PUT-invalidates-cache → 409 → recalculate,
+  import 29-leases + note + malformed-row verbatim, xlsx downloads.
+  Deps: uvicorn + python-multipart added; httpx as a dev dep.
+  `ui/`+`app.py` UNTOUCHED (frozen fallback). Suite: **755 passed + the
+  same 4 by-design golden reds**; `git log 62617f1..HEAD -- engine/`
+  EMPTY.
+- **Next session's first prompt:** "THE WEB FRONT-END PIVOT is in build:
+  the plan (NEXT_STEPS_WEB_FRONTEND.md) is approved (W2-W7 as
+  recommended; W1 framework DEFERRED — decide on the real export, do NOT
+  default to vanilla JS) and the API CORE IS BUILT AND TESTED (rollout
+  step 2: 19 TestClient tests, endpoint==builder equality + golden
+  literals + NaN→null + structured errors; suite 755 + the four
+  by-design reds; DEVIATIONS §26 addendum records the FastAPI layer
+  active). NEXT: rollout step 3 — the mockup's THREE designed screens
+  end-to-end (Dashboard, Reports, Tenants) — which is GATED on the owner
+  dropping design/Ironclad.dc.html into the repo. First task: check the
+  file exists; if yes, INSPECT it and resolve W1 (framework) WITH THE
+  OWNER before writing any frontend/ code; if no, STOP — there is
+  nothing to build (do not scaffold frontend/, do not modify ui/ or
+  app.py [Streamlit = frozen fallback], engine/ stays FROZEN —
+  `git log 62617f1..HEAD -- engine/` EMPTY every session). The relocated
+  Gate 5 (plan §5) is the acceptance; owner-declared. REMEMBER the
+  standing gaps, all carried forward unchanged: percentage rent
+  externally unvalidated pending golden #3; tenant misc items +
   purchase/deposits/debt/resale/valuation/sensitivity externally
   unvalidated; Freeport B / Cedar Alt B / Freeport E investigations
-  post-Gate-5 (surfaces shipped in Streamlit; they must port with the
-  new Audit/Tenants screens); Cedar Alt D closed as C's sibling; live
-  price derivation permanently refusing (DEVIATIONS §20 #6); the two
-  named reconciler blind spots; the stale-message list (three entries) +
-  the flagged engine candidates in NEXT_STEPS_TO_PHASE5.md; the four
-  by-design golden reds stay red (137/47 Gate 2, 33/12 Gate 3 capital).
-  When a rollout step lands: commit, push, update this prompt, STOP for
-  owner + advisor review."
+  post-Gate-5 (their surfaces are LIVE over HTTP via /api/audit/gv-basis
+  + /api/audit/recovery-drill + the Tenants generations data on
+  result.segments); Cedar Alt D closed as C's sibling; live price
+  derivation permanently refusing (DEVIATIONS §20 #6); the two named
+  reconciler blind spots; the stale-message list (three entries — now
+  surfacing through API summaries verbatim) + the flagged engine
+  candidates in NEXT_STEPS_TO_PHASE5.md; the four by-design golden reds
+  stay red (137/47 Gate 2, 33/12 Gate 3 capital). When a rollout step
+  lands: commit, push, update this prompt, STOP for owner + advisor
+  review."
