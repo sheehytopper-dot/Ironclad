@@ -1,0 +1,198 @@
+/* IronClad — the institutional design layer (rollout step 3).
+   Tokens extracted from design/Ironclad_dc.html (a compiled bundle — the
+   literal stylesheet is not liftable, the palette and layout language
+   are): dark chrome + light content panels, hairline dense tables, IBM
+   Plex, red-paren negatives. The accent is the OWNER-DIRECTED #3F3D8A —
+   identical to the Excel export's spec §8 title band. */
+
+:root {
+  --accent: #3f3d8a;          /* == engine/export/package_builder._HEADER_BG */
+  --accent-soft: #dfe4f5;     /* from the mockup */
+  --chrome: #101826;          /* sidebar / page chrome (mockup body) */
+  --chrome-2: #1a2436;
+  --chrome-line: #243244;
+  --chrome-text: #c2ccda;
+  --chrome-muted: #6b7a91;
+  --page: #eef1f5;            /* the light content area (mockup panels) */
+  --panel: #ffffff;
+  --panel-2: #f6f8fb;
+  --line: #dbe2ec;            /* hairlines */
+  --line-2: #c7d0dd;
+  --text: #16202e;
+  --muted: #5a6a7e;
+  --muted-2: #8a97a8;
+  --neg: #c0392b;             /* red-paren negatives */
+  --pos: #1f8a5b;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --sans: "IBM Plex Sans", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--chrome);
+  color: var(--text);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { display: grid; grid-template-columns: 218px 1fr; height: 100%; }
+
+/* ---------------- sidebar (dark chrome) ---------------- */
+.sidebar {
+  background: var(--chrome);
+  color: var(--chrome-text);
+  border-right: 1px solid var(--chrome-line);
+  display: flex; flex-direction: column;
+  padding: 14px 0;
+  overflow-y: auto;
+}
+.sidebar .brand {
+  font-weight: 600; letter-spacing: 0.08em; font-size: 14px;
+  color: #fff; padding: 2px 16px 12px;
+  border-bottom: 1px solid var(--chrome-line);
+}
+.sidebar .brand span { color: var(--accent-soft); }
+.sidebar .section {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--chrome-muted); padding: 14px 16px 4px;
+}
+.sidebar button.nav {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; color: var(--chrome-text);
+  font: inherit; padding: 6px 16px; cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.sidebar button.nav:hover { background: var(--chrome-2); }
+.sidebar button.nav.active {
+  background: var(--chrome-2); color: #fff;
+  border-left-color: var(--accent-soft);
+}
+.sidebar button.nav:disabled { color: var(--chrome-muted); cursor: default; }
+.sidebar .controls { padding: 10px 16px; border-bottom: 1px solid var(--chrome-line); }
+.sidebar select {
+  width: 100%; background: var(--chrome-2); color: var(--chrome-text);
+  border: 1px solid var(--chrome-line); border-radius: 3px;
+  font: inherit; padding: 5px 6px; margin-bottom: 8px;
+}
+.sidebar .calc {
+  width: 100%; background: var(--accent); border: none; color: #fff;
+  font: inherit; font-weight: 600; padding: 7px 0; border-radius: 3px;
+  cursor: pointer;
+}
+.sidebar .calc:disabled { opacity: 0.5; cursor: default; }
+.sidebar .stale { color: #e8c06f; font-size: 11px; padding-top: 6px; }
+
+/* ---------------- main content (light) ---------------- */
+.main { background: var(--page); overflow-y: auto; padding: 18px 22px; }
+.main h1 { font-size: 17px; font-weight: 600; margin: 0 0 2px; }
+.main .sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+
+.error-banner {
+  background: #fbeaea; border: 1px solid var(--neg); border-radius: 4px;
+  color: var(--neg); padding: 10px 12px; margin-bottom: 12px;
+  white-space: pre-wrap; font-size: 12px;
+}
+.error-banner ul { margin: 6px 0 0 18px; padding: 0; }
+.note-banner {
+  background: var(--accent-soft); border: 1px solid var(--accent);
+  border-radius: 4px; color: var(--text); padding: 8px 12px;
+  margin-bottom: 12px; font-size: 12px;
+}
+
+/* ---------------- KPI cards ---------------- */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+.kpi {
+  background: var(--panel); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent); border-radius: 4px;
+  padding: 10px 14px;
+}
+.kpi .label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted-2); margin-bottom: 4px;
+}
+.kpi .value {
+  font-family: var(--mono); font-variant-numeric: tabular-nums;
+  font-size: 19px; font-weight: 600;
+}
+
+/* ---------------- panels + charts ---------------- */
+.panel {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 4px; padding: 12px 14px; margin-bottom: 14px;
+}
+.panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted); margin: 0 0 10px; font-weight: 600; }
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chart-legend { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.chart-legend .swatch {
+  display: inline-block; width: 9px; height: 9px; border-radius: 2px;
+  margin: 0 4px 0 10px;
+}
+
+/* ---------------- dense hairline tables ---------------- */
+table.grid {
+  border-collapse: collapse; width: 100%;
+  font-size: 12px;
+}
+table.grid th {
+  text-align: left; font-weight: 600; color: var(--muted);
+  border-bottom: 1px solid var(--line-2); padding: 4px 8px;
+  position: sticky; top: 0; background: var(--panel);
+  white-space: nowrap;
+}
+table.grid td {
+  border-bottom: 1px solid var(--line); padding: 3px 8px;
+  white-space: nowrap;
+}
+table.grid td.num, table.grid th.num {
+  text-align: right; font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+table.grid td.neg { color: var(--neg); }
+table.grid tr.subtotal td { font-weight: 600; }
+table.grid tr.grand td { font-weight: 600; border-top: 1.5px solid var(--text); }
+table.grid tr.selected td { background: var(--accent-soft); }
+table.grid tr.clickable { cursor: pointer; }
+table.grid tr.clickable:hover td { background: var(--panel-2); }
+.scroll-x { overflow-x: auto; }
+.scroll-y { max-height: 640px; overflow-y: auto; }
+
+table.grid input {
+  font: inherit; font-family: var(--mono); width: 100%;
+  border: 1px solid transparent; background: transparent; padding: 1px 2px;
+}
+table.grid input:focus {
+  outline: none; border-color: var(--accent); background: #fff;
+}
+
+/* ---------------- toolbar rows ---------------- */
+.toolbar { display: flex; gap: 10px; align-items: end; margin-bottom: 12px; flex-wrap: wrap; }
+.toolbar label { display: block; font-size: 10px; text-transform: uppercase;
+  color: var(--muted-2); letter-spacing: 0.07em; margin-bottom: 3px; }
+.toolbar select, .toolbar input[type="text"] {
+  font: inherit; border: 1px solid var(--line-2); border-radius: 3px;
+  padding: 5px 7px; background: var(--panel);
+}
+.toolbar .spacer { flex: 1; }
+button.action {
+  background: var(--accent); color: #fff; border: none; border-radius: 3px;
+  font: inherit; font-weight: 600; padding: 6px 14px; cursor: pointer;
+}
+button.action.secondary {
+  background: var(--panel); color: var(--accent);
+  border: 1px solid var(--accent);
+}
+button.action:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------------- Tenants split pane ---------------- */
+.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(320px, 3fr); gap: 14px; }
+.detail h3 { font-size: 12px; margin: 12px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.detail .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 12px; }
+.detail .kv dt { color: var(--muted); }
+.detail .kv dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.flag {
+  background: #fdf6e3; border: 1px dashed #c9a63c; border-radius: 4px;
+  color: #7a6420; padding: 8px 10px; font-size: 11px;
+}

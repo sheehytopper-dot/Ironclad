@@ -1156,33 +1156,69 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   `ui/`+`app.py` UNTOUCHED (frozen fallback). Suite: **755 passed + the
   same 4 by-design golden reds**; `git log 62617f1..HEAD -- engine/`
   EMPTY.
-- **Next session's first prompt:** "THE WEB FRONT-END PIVOT is in build:
-  the plan (NEXT_STEPS_WEB_FRONTEND.md) is approved (W2-W7 as
-  recommended; W1 framework DEFERRED — decide on the real export, do NOT
-  default to vanilla JS) and the API CORE IS BUILT AND TESTED (rollout
-  step 2: 19 TestClient tests, endpoint==builder equality + golden
-  literals + NaN→null + structured errors; suite 755 + the four
-  by-design reds; DEVIATIONS §26 addendum records the FastAPI layer
-  active). NEXT: rollout step 3 — the mockup's THREE designed screens
-  end-to-end (Dashboard, Reports, Tenants) — which is GATED on the owner
-  dropping design/Ironclad.dc.html into the repo. First task: check the
-  file exists; if yes, INSPECT it and resolve W1 (framework) WITH THE
-  OWNER before writing any frontend/ code; if no, STOP — there is
-  nothing to build (do not scaffold frontend/, do not modify ui/ or
-  app.py [Streamlit = frozen fallback], engine/ stays FROZEN —
-  `git log 62617f1..HEAD -- engine/` EMPTY every session). The relocated
-  Gate 5 (plan §5) is the acceptance; owner-declared. REMEMBER the
-  standing gaps, all carried forward unchanged: percentage rent
-  externally unvalidated pending golden #3; tenant misc items +
-  purchase/deposits/debt/resale/valuation/sensitivity externally
-  unvalidated; Freeport B / Cedar Alt B / Freeport E investigations
-  post-Gate-5 (their surfaces are LIVE over HTTP via /api/audit/gv-basis
-  + /api/audit/recovery-drill + the Tenants generations data on
-  result.segments); Cedar Alt D closed as C's sibling; live price
-  derivation permanently refusing (DEVIATIONS §20 #6); the two named
-  reconciler blind spots; the stale-message list (three entries — now
-  surfacing through API summaries verbatim) + the flagged engine
-  candidates in NEXT_STEPS_TO_PHASE5.md; the four by-design golden reds
-  stay red (137/47 Gate 2, 33/12 Gate 3 capital). When a rollout step
-  lands: commit, push, update this prompt, STOP for owner + advisor
-  review."
+  **W1 RESOLVED (owner-approved 2026-07-20): React + Vite**, styled from
+  the mockup's design language — the export
+  (`design/Ironclad_dc.html`, 607KB) turned out to be a COMPILED VUE
+  BUNDLE, so the literal stylesheet is not liftable; the palette/layout
+  tokens were extracted (dark chrome #101826 + light panels
+  #eef1f5/#f6f8fb, hairlines #dbe2ec, red #c0392b, green #1f8a5b) with
+  the accent fixed at the owner-directed #3F3D8A. **ROLLOUT STEP 3
+  BUILT (2026-07-20): the three designed screens end-to-end.**
+  `frontend/` (Vite+React; node v24; `npm run dev` proxies /api→:8000
+  per W2; `frontend/README.md` has the two-terminal run):
+  `src/format.js` = the Tier-1 display rules ported from ui/format.py
+  (null→em-dash never 0; 6 node-test cases green incl. the Clorox
+  literal "2,596,319"); `src/api.js` = structured-error fetch (ApiError
+  carries summary/problems/reference; the App error banner renders them
+  readably, never a dump); `App.jsx` = dark-chrome sidebar (Inputs/
+  Outputs groups, the 7 unbuilt tabs disabled, Dashboard default-active),
+  property picker + Calculate + the edited→invalidated stale marker;
+  `Dashboard.jsx` = 6 KPI cards + hand-rolled SVG charts (NOI/CFBDS
+  grouped bars, occupancy line, expirations by provenance) + top-tenants
+  (client-side SORT only — presentation); `Reports.jsx` = picker from
+  GET /api/reports + unit/period/scope toggles + the dense FrameTable
+  (Cash Flow indented/bold via meta.extra.tree, NBSP indents, red-paren
+  negatives) + benchmark banner + export buttons → /api/export/*;
+  `Tenants.jsx` = the split pane — editable rent-roll grid (base-rent
+  flatten, blank→null so the API's validators judge it) + lease detail
+  (terms/steps/recoveries/notes) + Apply = PUT whole document → 422
+  problems rendered per-field → success reloads + marks the run stale.
+  **REAL-SERVER smoke green** (uvicorn on :8123): the full call flow with
+  the exact literal 2596319.4000000004 over the wire, 37 tree rows,
+  freeport GV −7,071.48. data/properties/ now stages freeport + its
+  per-name benchmark CSV beside clorox. **TWO FLAGGED api/ DECISIONS
+  (not built — the API is treated as fixed): (1) the Tenants
+  rollover-generations panel needs a small additive endpoint exposing
+  result.segments (the Freeport E surface — currently a flagged
+  placeholder in the UI, not fabricated); (2) the W2 production
+  StaticFiles mount (serve frontend/dist at /).** Suite: **755 passed +
+  the same 4 by-design golden reds**; `git log 62617f1..HEAD -- engine/`
+  EMPTY; ui/ + app.py untouched.
+- **Next session's first prompt:** "The web-front-end rollout step 3 is
+  BUILT (Dashboard/Reports/Tenants end-to-end vs the real API; React+
+  Vite per W1; frontend/README.md has the run commands) and is AWAITING
+  OWNER VISUAL REVIEW beside design/Ironclad_dc.html — do not build the
+  other seven tabs until Topper reacts. TWO FLAGGED api/ decisions await
+  the owner: (1) a small additive endpoint exposing result.segments for
+  the Tenants rollover-generations panel (the Freeport E surface;
+  currently an honest flagged placeholder); (2) the W2 production
+  StaticFiles mount serving frontend/dist from uvicorn. If the owner
+  approves either, implement additively with TestClient tests
+  (endpoint==engine-data equality, the Freeport E literals lc 6.75/
+  weight 0.75); api/ is otherwise treated as FIXED. Boundaries every
+  session: engine/ FROZEN (`git log 62617f1..HEAD -- engine/` EMPTY);
+  ui/ + app.py untouched (Streamlit = frozen fallback until the
+  relocated Gate 5 passes); the four by-design golden reds stay red
+  (137/47 Gate 2, 33/12 Gate 3 capital). The relocated Gate 5 (plan §5)
+  = Clorox from-scratch through the NEW front-end (engine-to-engine
+  identical) + the Freeport drive — owner-declared, after all ten
+  screens exist. REMEMBER the standing gaps, all carried forward
+  unchanged: percentage rent externally unvalidated pending golden #3;
+  tenant misc items + purchase/deposits/debt/resale/valuation/
+  sensitivity externally unvalidated; Freeport B / Cedar Alt B /
+  Freeport E investigations post-Gate-5; Cedar Alt D closed as C's
+  sibling; live price derivation permanently refusing (DEVIATIONS §20
+  #6); the two named reconciler blind spots; the stale-message list
+  (surfacing through API summaries verbatim) + the flagged engine
+  candidates in NEXT_STEPS_TO_PHASE5.md. When a step lands: commit,
+  push, update this prompt, STOP for owner + advisor review."

@@ -33,3 +33,5 @@ OM/
 *-audits.xlsx
 *-package.xlsx
 *-rentroll.xlsx
+frontend/node_modules/
+frontend/dist/
