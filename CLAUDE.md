@@ -1093,42 +1093,53 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   4 by-design golden reds**; `git log 62617f1..HEAD -- engine/` EMPTY.
   **Owner reviews Dashboard + Reports beside the mockup before the
   remaining tabs are skinned (Tier 2 rollout steps 3-5).**
-- **Next session's first prompt:** "Phase 5 Steps 1-6 are ALL DONE — every
-  spec §6 tab is built and rendering (app shell + Calculate; Property +
-  Market; Revenues + Expenses; Tenants incl. the Freeport E
-  rollover-generations panel; Investment + Valuation incl. the hand-check
-  anchors; Reports + Dashboard + Audit incl. the Freeport B GV-basis
-  panel and the Cedar Alt B recovery-timing drill — Gate 5 criterion 6
-  surfaces ALL SHIPPED). Suite 721 passed + the four by-design golden
-  reds (137/47 Gate 2, 33/12 Gate 3 capital); `git log 62617f1..HEAD --
-  engine/` is EMPTY and must STAY empty. **Phase 5 Step 7 is the GATE 5
-  ACCEPTANCE RUN and it is OWNER-RUN** (NEXT_STEPS_TO_PHASE5.md Step 7 +
-  Step 0 D3; BUILD_SCHEDULE Gate 5): (1) Topper rebuilds Clorox
-  Northlake FROM SCRATCH through the UI alone — no JSON editing —
-  acceptance = the UI-built model's fiscal cash flow is engine-to-engine
-  IDENTICAL to the committed fixture output (§25-discriminating); (2)
-  the Freeport load-and-drive timing exercise (open the 29-lease golden,
-  calculate, drill one recovery number to tenant level, export the
-  package; over an hour for a 15-tenant deal → file friction points as
-  Phase 6 fixes); (3) the audit drill-down reaches per-tenant per-month
-  composition for any account; (4) both intake surfaces with readable
-  errors; (5) unit/period toggles honored + #11/#12 provenance; (6) the
-  three D6-amendment inspection surfaces exist and render on the goldens
-  (SHIPPED — demonstrate, don't rebuild). Claude's Step 7 role: run
-  `streamlit run app.py` support, prepare any evidence the owner asks
-  for, fix UI defects the run surfaces (report/UI layer only — engine
-  stays FROZEN; a defect that seems to need an engine change is an
-  owner decision), and do NOT declare Gate 5 — it is an owner
-  declaration. REMEMBER the standing gaps, all carried forward unchanged
-  and none a Gate 5 blocker: percentage rent externally unvalidated
-  pending golden #3; tenant misc items + purchase/deposits/debt/resale/
-  valuation/sensitivity externally unvalidated; Freeport B / Cedar Alt B
-  / Freeport E investigations are POST-Gate-5 (their surfaces shipped;
-  assertions red by design); Cedar Alt D closed as C's sibling; live
+  **MAJOR DIRECTION CHANGE (owner decision 2026-07-19): the WEB FRONT-END
+  PIVOT.** The Streamlit UI cannot reproduce the Claude Design mockup's
+  layout/functionality. The application moves to a real web front-end
+  (built from the mockup export `design/Ironclad.dc.html`, to be dropped
+  in by the owner) talking to the FROZEN engine through a FastAPI API —
+  activating the spec §2.1 FastAPI layer that Step 0 D1 deferred (the
+  "second client" has arrived; DEVIATIONS §26 gets an addendum when the
+  API lands). **Plan drafted:
+  [NEXT_STEPS_WEB_FRONTEND.md](NEXT_STEPS_WEB_FRONTEND.md) — PLAN ONLY,
+  awaiting owner review + its Step 0 (W1-W7) sign-off + the mockup file;
+  no api/ or frontend/ code before that.** Key terms: Iron Rule 1
+  extends (engine/ frozen, boundary check from 62617f1 unchanged; api/ +
+  frontend/ import the engine, never the reverse); **Streamlit is
+  FROZEN, NOT deleted** — runnable fallback + behavioral reference until
+  the new front-end passes the RELOCATED Gate 5 (Clorox from-scratch
+  identity + Freeport load-and-drive, same rigor, owner-declared), then
+  retired in a separate owner-approved commit; the API is a thin
+  serializer over EXISTING engine/report/export/intake functions
+  (full-precision split-orient frames; §5.4 errors as structured JSON —
+  field path + offending value + fix, never a traceback); API⇄builder
+  reconciliation tests with §25 discrimination + the golden literals;
+  the front-end itself judged by API-correctness + relocated Gate 5 +
+  owner visual review (no pixel oracle — stated honestly); rollout =
+  API core → the mockup's three designed screens end-to-end (Dashboard,
+  Reports, Tenants) → the other seven tabs.
+- **Next session's first prompt:** "THE WEB FRONT-END PIVOT is planned
+  but NOT owner-approved yet: read NEXT_STEPS_WEB_FRONTEND.md. First
+  task: check whether Topper has (a) reviewed the plan, (b) resolved
+  Step 0 W1-W7, and (c) dropped design/Ironclad.dc.html into the repo.
+  If approved: inspect the mockup export FIRST (the W1 framework
+  recommendation is conditional on its actual format), confirm W1 with
+  the owner, then begin rollout step 2 (the API core: properties/
+  calculate/reports endpoints + TestClient reconciliation harness — no
+  front-end yet). If NOT approved, there is NOTHING to build — do not
+  scaffold api/ or frontend/, do not modify ui/ or app.py (Streamlit is
+  the frozen fallback), do not touch engine/ (`git log 62617f1..HEAD --
+  engine/` stays EMPTY — verify every session). The prior Streamlit
+  Gate 5 run is SUPERSEDED by the relocated Gate 5 in the pivot plan.
+  REMEMBER the standing gaps, all carried forward unchanged: percentage
+  rent externally unvalidated pending golden #3; tenant misc items +
+  purchase/deposits/debt/resale/valuation/sensitivity externally
+  unvalidated; Freeport B / Cedar Alt B / Freeport E investigations
+  post-Gate-5 (surfaces shipped in Streamlit; they must port with the
+  new Audit/Tenants screens); Cedar Alt D closed as C's sibling; live
   price derivation permanently refusing (DEVIATIONS §20 #6); the two
   named reconciler blind spots; the stale-message list (three entries) +
-  the flagged engine candidates (equity multiple; per-item
-  property-revenue series) in NEXT_STEPS_TO_PHASE5.md — all engine-frozen
-  owner decisions for the post-Gate-5 pass. When Gate 5 is declared:
-  update CLAUDE.md/BUILD_SCHEDULE.md, then Phase 6 (hardening) begins
-  with its own NEXT_STEPS plan per Iron Rule 2."
+  the flagged engine candidates in NEXT_STEPS_TO_PHASE5.md; the four
+  by-design golden reds stay red (137/47 Gate 2, 33/12 Gate 3 capital).
+  When a rollout step lands: commit, push, update this prompt, STOP for
+  owner + advisor review."
