@@ -1,0 +1,33 @@
+# IronClad — the Tier 2 institutional base theme (NEXT_STEPS_UI_TIER2.md).
+# primaryColor is the SAME indigo as the Excel exporter's title band
+# (engine/export/package_builder.py::_HEADER_BG, spec §8) — test-locked in
+# tests/unit/test_ui_theme.py. Custom CSS lives ONLY in ui/theme.py.
+
+[theme]
+base = "dark"
+primaryColor = "#3F3D8A"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#171B26"
+textColor = "#E6E8EE"
+font = "IBM Plex Sans, sans-serif"
+codeFont = "IBM Plex Mono, monospace"
+
+[[theme.fontFaces]]
+family = "IBM Plex Sans"
+url = "https://fonts.gstatic.com/s/ibmplexsans/v19/zYXgKVElMYYaJe8bpLHnCwDKtdbUFI5NadY.woff2"
+weight = 400
+
+[[theme.fontFaces]]
+family = "IBM Plex Sans"
+url = "https://fonts.gstatic.com/s/ibmplexsans/v19/zYX9KVElMYYaJe8bpLHnCwDKjQ76AIFsdP3pBms.woff2"
+weight = 600
+
+[[theme.fontFaces]]
+family = "IBM Plex Mono"
+url = "https://fonts.gstatic.com/s/ibmplexmono/v19/-F63fjptAgt5VM-kVkqdyU8n5igg1l9kn-s.woff2"
+weight = 400
+
+[[theme.fontFaces]]
+family = "IBM Plex Mono"
+url = "https://fonts.gstatic.com/s/ibmplexmono/v19/-F6qfjptAgt5VM-kVkqdyU8n3oQIwlBFgsAXHNlYzg.woff2"
+weight = 600

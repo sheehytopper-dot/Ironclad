@@ -1069,6 +1069,30 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   Suite: **731 passed + the same 4 by-design golden reds (137/47 Gate 2,
   33/12 Gate 3 capital)**; `git log 62617f1..HEAD -- engine/` EMPTY.
   **Owner re-review of readability precedes the Step 7 Gate 5 run.**
+  **UI Tier 2 foundation + reference screens complete 2026-07-19
+  (presentation only; plan: [NEXT_STEPS_UI_TIER2.md](NEXT_STEPS_UI_TIER2.md)):**
+  design tokens + rollout order + the honest acceptance model (pure CSS
+  has no §25 oracle — owner visual review vs the Claude Design mockup is
+  the judgment; what IS test-locked: **the app accent == the Excel
+  exporter's spec §8 indigo `#3F3D8A`** — `theme.INDIGO ==
+  package_builder._HEADER_BG`, read not guessed, breaks the build if
+  either drifts — plus the config-toml hex pin, CSS-contains-tokens,
+  single-injection, and `streamlit==1.58.0` pinned in pyproject per the
+  brittleness rule with ALL custom CSS centralized in `ui/theme.py`).
+  `.streamlit/config.toml` (dark institutional base, IBM Plex Sans/Mono
+  fontFaces) + `ui/theme.py` (tokens, hairline/KPI-card/sidebar/
+  tabular-figures CSS, the shared `plotly_layout`) injected once in
+  `ui.main.render`. Reference screens ONLY (the other 8 tabs are
+  deliberately unskinned pending owner reaction): Dashboard — the
+  mockup's 6 KPI cards in a 3×2 grid (IRR-leveraged + Direct Cap moved
+  to the caption line; every test-asserted label kept), themed
+  side-by-side NOI/CFBDS + occupancy charts, themed expiration bars,
+  dense top-tenants grid (`row_height=30`); Reports — compact
+  terminal-style control row (picker + toggles inline), dense report
+  grids. 5 new tests (test_ui_theme.py). Suite: **736 passed + the same
+  4 by-design golden reds**; `git log 62617f1..HEAD -- engine/` EMPTY.
+  **Owner reviews Dashboard + Reports beside the mockup before the
+  remaining tabs are skinned (Tier 2 rollout steps 3-5).**
 - **Next session's first prompt:** "Phase 5 Steps 1-6 are ALL DONE — every
   spec §6 tab is built and rendering (app shell + Calculate; Property +
   Market; Revenues + Expenses; Tenants incl. the Freeport E

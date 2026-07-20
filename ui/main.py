@@ -123,6 +123,8 @@ def _sidebar() -> None:
 
 def render() -> None:
     st.set_page_config(page_title="IronClad", layout="wide")
+    from ui import theme
+    theme.inject()          # the ONE CSS injection (NEXT_STEPS_UI_TIER2.md)
     session.init()
 
     _sidebar()

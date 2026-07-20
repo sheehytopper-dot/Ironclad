@@ -79,51 +79,65 @@ def render() -> None:
     metrics = data["metrics"]
     valuation = data["valuation"]
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Year-1 NOI", state.format_currency(metrics["year1_noi"]))
-    col2.metric("Year-1 Occupancy",
-                state.format_pct(metrics["year1_occupancy_pct"]))
-    col3.metric("Purchase Price",
-                _fmt_currency(data["exec"].get("Purchase Price")))
-    col4.metric("Going-in Cap Rate",
-                _fmt_pct(data["exec"].get("Going-in Cap Rate (%)")))
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Unleveraged PV",
-                _fmt_currency(getattr(valuation, "unleveraged_pv", None)))
-    col2.metric("IRR (unleveraged)",
-                _fmt_pct(getattr(valuation, "unleveraged_irr", None)))
-    col3.metric("IRR (leveraged)",
-                _fmt_pct(getattr(valuation, "leveraged_irr", None)))
-    col4.metric("Direct Cap Value",
-                _fmt_currency(getattr(valuation, "direct_cap_value", None)))
-    st.caption("Equity multiple: not computed by the engine (no RunResult/"
-               "report surface carries it) — flagged as a post-Gate-5 "
-               "engine addition rather than recomputed UI-side.")
+    # the mockup's six KPI cards (styled by ui/theme.py); the two
+    # lower-traffic figures move to the caption line below
+    row = st.columns(3)
+    row[0].metric("Year-1 NOI", state.format_currency(metrics["year1_noi"]))
+    row[1].metric("Year-1 Occupancy",
+                  state.format_pct(metrics["year1_occupancy_pct"]))
+    row[2].metric("Going-in Cap Rate",
+                  _fmt_pct(data["exec"].get("Going-in Cap Rate (%)")))
+    row = st.columns(3)
+    row[0].metric("Purchase Price",
+                  _fmt_currency(data["exec"].get("Purchase Price")))
+    row[1].metric("Unleveraged PV",
+                  _fmt_currency(getattr(valuation, "unleveraged_pv", None)))
+    row[2].metric("IRR (unleveraged)",
+                  _fmt_pct(getattr(valuation, "unleveraged_irr", None)))
+    st.caption(
+        "IRR (leveraged): "
+        f"{_fmt_pct(getattr(valuation, 'leveraged_irr', None))} · "
+        "Direct Cap Value: "
+        f"{_fmt_currency(getattr(valuation, 'direct_cap_value', None))} · "
+        "Equity multiple: not computed by the engine (no RunResult/report "
+        "surface carries it) — flagged as a post-Gate-5 engine addition "
+        "rather than recomputed UI-side.")
 
     import plotly.express as px
 
+    from ui import theme
+
     chart_frame = data["annual_noi_cf"].reset_index(names="year").melt(
         id_vars="year", var_name="line", value_name="amount")
-    st.plotly_chart(px.bar(chart_frame, x="year", y="amount", color="line",
-                           barmode="group", title="Annual NOI & CFBDS "
-                           "(the ledger's own annual view)"),
-                    key="chart_noi")
+    noi_fig = px.bar(chart_frame, x="year", y="amount", color="line",
+                     barmode="group",
+                     title="Annual NOI & CFBDS (the ledger's own annual "
+                     "view)")
+    noi_fig.update_layout(**theme.plotly_layout())
     occupancy = data["occupancy"]
     occupancy_frame = pd.DataFrame(
         {"month": occupancy.index.astype(str),
          "occupancy_pct": occupancy.to_numpy() * 100.0})
-    st.plotly_chart(px.line(occupancy_frame, x="month", y="occupancy_pct",
-                            title="Occupancy (monthly)"),
-                    key="chart_occ")
+    occ_fig = px.line(occupancy_frame, x="month", y="occupancy_pct",
+                      title="Occupancy (monthly)")
+    occ_fig.update_layout(**theme.plotly_layout(
+        yaxis=dict(gridcolor=theme.HAIRLINE, range=[0, 105],
+                   ticksuffix="%")))
+    col_left, col_right = st.columns(2)
+    with col_left:
+        st.plotly_chart(noi_fig, key="chart_noi")
+    with col_right:
+        st.plotly_chart(occ_fig, key="chart_occ")
     expiration = data["expiration"]
     if not expiration.empty:
-        st.plotly_chart(px.bar(expiration, x="fiscal_year",
-                               y="expiring_sf", color="status",
-                               title="Lease expirations (SF by fiscal year;"
-                               " Contractual vs Speculative)"),
-                        key="chart_exp")
+        exp_fig = px.bar(expiration, x="fiscal_year", y="expiring_sf",
+                         color="status",
+                         title="Lease expirations (SF by fiscal year; "
+                         "Contractual vs Speculative)")
+        exp_fig.update_layout(**theme.plotly_layout())
+        st.plotly_chart(exp_fig, key="chart_exp")
     st.markdown("**Top tenants (by contractual annual base rent — report "
                 "#11)**")
     from ui import format as fmt
     st.dataframe(fmt.frame_display(data["top_tenants"]), key="top_tenants",
-                 width="stretch")
+                 width="stretch", row_height=theme.DENSE_ROW_HEIGHT)

@@ -19,6 +19,7 @@ from engine.export import build_package, export_report
 from engine.reports import Period, Unit
 from ui import format as fmt
 from ui import reports_registry as registry
+from ui import theme
 
 UNITS = [u.value for u in Unit]
 PERIODS = [p.value for p in Period]
@@ -45,12 +46,15 @@ def render() -> None:
         st.session_state.get("model_path"))
     entries = registry.applicable_entries(result, model, csv_path)
     labels = [f"#{e.number} {e.label}" for e in entries]
-    chosen = st.selectbox("Report", labels, key="report_pick")
-    entry = entries[labels.index(chosen)]
 
+    # one compact control row: picker + toggles side by side (the mockup's
+    # terminal-style header strip)
     unit, period = Unit.total, Period.fiscal
     options: dict = {}
-    col1, col2, col3 = st.columns(3)
+    pick_col, col1, col2, col3 = st.columns([2.4, 1, 1, 1.2])
+    with pick_col:
+        chosen = st.selectbox("Report", labels, key="report_pick")
+    entry = entries[labels.index(chosen)]
     if entry.supports_unit:
         with col1:
             unit = Unit(st.selectbox("Unit ($)", UNITS, key="report_unit"))
@@ -106,7 +110,7 @@ def render() -> None:
                      height=min(38 * (len(report.frame) + 1), 1400))
     else:
         st.dataframe(fmt.report_display(report), key="report_frame",
-                     width="stretch")
+                     width="stretch", row_height=theme.DENSE_ROW_HEIGHT)
 
     col1, col2 = st.columns(2)
     with col1:
