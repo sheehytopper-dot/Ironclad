@@ -41,6 +41,8 @@ export const api = {
     const query = new URLSearchParams({ name, ...params });
     return request(`/api/reports/${key}?${query}`);
   },
+  generations: (name, tenant) =>
+    request(`/api/tenants/generations?${new URLSearchParams({ name, tenant })}`),
   gvBasis: (name, month) =>
     request(`/api/audit/gv-basis?name=${name}&month=${month}`),
   recoveryDrill: (name, params = {}) =>

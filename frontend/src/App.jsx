@@ -6,12 +6,13 @@ import { api, ApiError } from "./api.js";
 import Dashboard from "./screens/Dashboard.jsx";
 import Reports from "./screens/Reports.jsx";
 import Tenants from "./screens/Tenants.jsx";
+import Market from "./screens/Market.jsx";
 
 const INPUT_TABS = ["Property", "Market", "Revenues", "Expenses", "Tenants",
                     "Investment", "Valuation"];
 const OUTPUT_TABS = ["Reports", "Dashboard", "Audit"];
 // rollout step 3: only the three designed screens are live
-const LIVE = new Set(["Dashboard", "Reports", "Tenants"]);
+const LIVE = new Set(["Dashboard", "Reports", "Tenants", "Market"]);
 
 export default function App() {
   const [properties, setProperties] = useState([]);
@@ -108,6 +109,7 @@ export default function App() {
         {screen === "Dashboard" && <Dashboard {...screenProps} />}
         {screen === "Reports" && <Reports {...screenProps} />}
         {screen === "Tenants" && <Tenants {...screenProps} />}
+        {screen === "Market" && <Market {...screenProps} />}
       </main>
     </div>
   );

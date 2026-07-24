@@ -296,6 +296,129 @@ class TestIntake:
         assert "pydantic" not in response.text.lower()
 
 
+class TestGenerationsEndpoint:
+    """The Freeport E surface over HTTP (owner-approved additive endpoint,
+    rollout step 4) — the same literals the Streamlit panel test locks."""
+
+    def test_freeport_e_literals(self, client):
+        body = client.get("/api/tenants/generations",
+                          params={"name": "freeport",
+                                  "tenant": "Aqore LLC"}).json()
+        rows = body["rows"]
+        assert len(rows) == 3                      # contract + 2 rollovers
+        contract, spec1, spec2 = rows
+        assert contract["provenance"] == "Contractual"
+        assert contract["renewal_weight"] == 1.0
+        assert contract["lc"] == "" and contract["ti"] == ""
+        for spec in (spec1, spec2):
+            assert spec["provenance"] == "Speculative"
+            assert spec["renewal_weight"] == 0.75
+            assert spec["lc"] == "6.75% of rent"
+            assert spec["ti"] == "12.5 dollars_per_area"
+
+    def test_vacate_chain_single_contractual(self, client):
+        body = client.get("/api/tenants/generations",
+                          params={"name": "freeport",
+                                  "tenant": "OKI Data Americas Inc."}).json()
+        assert len(body["rows"]) == 1
+        assert body["rows"][0]["provenance"] == "Contractual"
+
+    def test_tenant_list_and_unknown_tenant(self, client):
+        body = client.get("/api/tenants/generations",
+                          params={"name": "freeport"}).json()
+        assert "Aqore LLC" in body["tenants"] and body["rows"] == []
+        response = client.get("/api/tenants/generations",
+                              params={"name": "freeport",
+                                      "tenant": "Nobody Inc."})
+        assert response.status_code == 404
+        assert "Nobody Inc." in response.json()["error"]["summary"]
+
+
+class TestUiEditFlows:
+    """The rollout-step-4 acceptance, proven at the API layer the UI
+    drives: edit -> PUT -> reload identical -> recalculate changes the
+    engine numbers (§25: the edit genuinely bites)."""
+
+    def _year1_noi(self, client, name):
+        body = client.post(f"/api/calculate/{name}").json()
+        return body["summary"]["year1_noi"]
+
+    def test_rent_step_edit_roundtrips_and_recalculates(self, client):
+        document = client.get("/api/properties/clorox").json()["document"]
+        baseline = self._year1_noi(client, "clorox")
+        # the UI flow: add a rent step to the Clorox lease (month 13,
+        # +50% — deliberately large so year-1 NOI must move)
+        lease = document["rent_roll"][0]
+        lease["rent_steps"].append({"date": "2027-01-01",
+                                    "month_offset": None,
+                                    "amount": 324_539.93,
+                                    "pct_increase": None,
+                                    "unit": "dollars_per_month"})
+        assert client.put("/api/properties/clorox",
+                          json=document).status_code == 200
+        reloaded = client.get("/api/properties/clorox").json()["document"]
+        assert reloaded == document                # round-trip identical
+        edited = self._year1_noi(client, "clorox")
+        assert edited != pytest.approx(baseline, abs=1.0)   # the edit bites
+        # restore the fixture state for the other tests
+        lease["rent_steps"].pop()
+        client.put("/api/properties/clorox", json=document)
+        assert self._year1_noi(client, "clorox") == pytest.approx(
+            baseline, abs=1e-6)
+
+    def test_variable_inflation_edit_recalculates(self, client):
+        """The owner's 'variable rent growth': switch the general series
+        to a per-year schedule and the out-year numbers move."""
+        document = client.get("/api/properties/clorox").json()["document"]
+        original = [dict(r) for r in document["inflation"]["general_rate"]]
+        original_expense = [dict(r) for r in
+                            document["inflation"]["expense_rate"]]
+        baseline = client.get(
+            "/api/reports/cash-flow",
+            params={"name": "clorox", "period": "annual"}).json()
+        noi_row = baseline["frame"]["index"].index("Net Operating Income")
+        baseline_y3 = baseline["frame"]["data"][noi_row][2]
+        document["inflation"]["expense_rate"] = [
+            {"year": 2027, "rate": 3.0}, {"year": 2028, "rate": 12.0}]
+        assert client.put("/api/properties/clorox",
+                          json=document).status_code == 200
+        client.post("/api/calculate/clorox")
+        edited = client.get(
+            "/api/reports/cash-flow",
+            params={"name": "clorox", "period": "annual"}).json()
+        edited_y3 = edited["frame"]["data"][noi_row][2]
+        assert edited_y3 != pytest.approx(baseline_y3, abs=1.0)
+        # restore
+        document["inflation"]["general_rate"] = original
+        document["inflation"]["expense_rate"] = original_expense
+        client.put("/api/properties/clorox", json=document)
+        client.post("/api/calculate/clorox")
+
+    def test_bad_nested_edit_names_the_field(self, client):
+        document = client.get("/api/properties/clorox").json()["document"]
+        document["rent_roll"][0]["rent_steps"].append(
+            {"date": "2027-01-01", "month_offset": None, "amount": 1.0,
+             "pct_increase": 3.0, "unit": "dollars_per_month"})
+        response = client.put("/api/properties/clorox", json=document)
+        assert response.status_code == 422
+        problems = response.json()["error"]["problems"]
+        assert any("rent_steps" in p["field"] for p in problems)
+        assert "Traceback" not in response.text
+
+
+class TestStaticMount:
+    def test_frontend_served_when_built(self, client):
+        """The one-command launch (W2): / serves the built bundle."""
+        dist = ROOT / "frontend" / "dist"
+        if not (dist / "index.html").exists():
+            pytest.skip("frontend/dist not built in this checkout")
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        # the API always wins over the static mount
+        assert client.get("/api/properties").status_code == 200
+
+
 class TestExports:
     def test_package_and_report_downloads(self, client):
         package = client.get("/api/export/package",

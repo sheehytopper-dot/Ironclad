@@ -1194,31 +1194,67 @@ In-app OM/document ingestion is not on that deferred list — it is **cancelled 
   StaticFiles mount (serve frontend/dist at /).** Suite: **755 passed +
   the same 4 by-design golden reds**; `git log 62617f1..HEAD -- engine/`
   EMPTY; ui/ + app.py untouched.
-- **Next session's first prompt:** "The web-front-end rollout step 3 is
-  BUILT (Dashboard/Reports/Tenants end-to-end vs the real API; React+
-  Vite per W1; frontend/README.md has the run commands) and is AWAITING
-  OWNER VISUAL REVIEW beside design/Ironclad_dc.html — do not build the
-  other seven tabs until Topper reacts. TWO FLAGGED api/ decisions await
-  the owner: (1) a small additive endpoint exposing result.segments for
-  the Tenants rollover-generations panel (the Freeport E surface;
-  currently an honest flagged placeholder); (2) the W2 production
-  StaticFiles mount serving frontend/dist from uvicorn. If the owner
-  approves either, implement additively with TestClient tests
-  (endpoint==engine-data equality, the Freeport E literals lc 6.75/
-  weight 0.75); api/ is otherwise treated as FIXED. Boundaries every
-  session: engine/ FROZEN (`git log 62617f1..HEAD -- engine/` EMPTY);
-  ui/ + app.py untouched (Streamlit = frozen fallback until the
-  relocated Gate 5 passes); the four by-design golden reds stay red
-  (137/47 Gate 2, 33/12 Gate 3 capital). The relocated Gate 5 (plan §5)
-  = Clorox from-scratch through the NEW front-end (engine-to-engine
-  identical) + the Freeport drive — owner-declared, after all ten
-  screens exist. REMEMBER the standing gaps, all carried forward
+  **Rollout step 4 (editability) — Tenants + Market SHIPPED 2026-07-23;
+  both flagged api/ decisions implemented (owner-approved):**
+  (1) `GET /api/tenants/generations` — the Freeport E surface over HTTP
+  via the SAME pure converter the Streamlit panel uses
+  (`ui.convert.segments_to_generation_rows`); TestClient literals lc
+  "6.75% of rent" / weight 0.75 / ti "12.5 dollars_per_area", vacate
+  chain = 1 Contractual row; the Tenants panel is WIRED (no more
+  placeholder). (2) the W2 ONE-COMMAND LAUNCH — api/main mounts
+  frontend/dist at `/` (guarded on existence, mounted last so /api wins);
+  `uvicorn api.main:app` now serves the whole app; frontend/README.md
+  has the command. THE EDITING PATTERN (owner's reframe: general
+  functionality, drill-in everywhere): a grid row click opens the full
+  nested editor; Apply assembles the PropertyModel JSON and PUTs the
+  WHOLE document (API revalidates; 422 problems render per-field);
+  blanks → null so the API's validators judge them; the front-end
+  computes nothing. Tenants.jsx = the complete lease editor (identity/
+  term/base rent + rent steps grid + CPI + free rent + misc items +
+  recoveries [shared RecoveriesEditor] + TI/LC + security deposit +
+  upon-expiration/MLP selects + add/remove lease + the live generations
+  panel). Market.jsx = inflation with FLAT-or-VARIABLE per-year toggles
+  per series (the owner's "variable rent growth"; flatSchedule keeps the
+  calendar first-year), custom indices, GV/CL (method/rates/PGR
+  checkboxes/overrides/reduce), the MLP grid + per-MLP drill-in (rents
+  new/renew, TI/LC, recoveries, steps, refs), free-rent profiles.
+  Shared: model.js (schema enums + cleanRows blank-drop/coerce/preserve-
+  nested) + editors.jsx (RowsEditor/Optional/RecoveriesEditor).
+  Verification: 7 additive API tests (26 total) incl. THE ACCEPTANCE AT
+  THE API LAYER — rent-step add → PUT → reload identical → recalc moves
+  year-1 NOI, then restored; expense-inflation schedule edit moves
+  year-3 NOI, then restored; bad nested edit names rent_steps in the
+  422; the static mount test. 10 node tests (format + model assembly).
+  Real-server smoke: / serves the app; generations literals over the
+  wire. Suite: **762 passed + the same 4 by-design golden reds**;
+  boundary EMPTY; ui/ + app.py untouched.
+- **Next session's first prompt:** "Web rollout step 4 (Tenants + Market
+  drill-in editors + the generations endpoint + the one-command launch)
+  is SHIPPED and AWAITING OWNER REVIEW — Topper edits a real deal (rent
+  steps + variable growth) before the remaining five input tabs are
+  built. Run: `npm run build` in frontend/ once, then
+  `uvicorn api.main:app --host 127.0.0.1 --port 8000` → http://127.0.0.1:8000
+  (frontend/README.md). If the owner approves the pattern, build rollout
+  step 4 continuation: Property, Revenues, Expenses, Investment,
+  Valuation screens — SAME pattern (drill-in editors assembling the
+  PropertyModel JSON, PUT whole document, API revalidates, §5.4 errors
+  per-field, blanks→null, front-end computes nothing;
+  docs/SCHEMA_GUIDE.md is the field reference; add UI-edit-flow API
+  tests per tab like TestUiEditFlows). Then the Audit screen (the two
+  D6 panels are already live endpoints) and the relocated Gate 5
+  (Clorox from scratch through the web UI, owner-declared). Boundaries
+  every session: engine/ FROZEN (`git log 62617f1..HEAD -- engine/`
+  EMPTY); ui/ + app.py untouched (Streamlit fallback until Gate 5);
+  api/ additions only with owner approval (the two approved ones are
+  done); the four by-design golden reds stay red (137/47 Gate 2, 33/12
+  Gate 3 capital). REMEMBER the standing gaps, all carried forward
   unchanged: percentage rent externally unvalidated pending golden #3;
   tenant misc items + purchase/deposits/debt/resale/valuation/
   sensitivity externally unvalidated; Freeport B / Cedar Alt B /
-  Freeport E investigations post-Gate-5; Cedar Alt D closed as C's
-  sibling; live price derivation permanently refusing (DEVIATIONS §20
-  #6); the two named reconciler blind spots; the stale-message list
-  (surfacing through API summaries verbatim) + the flagged engine
-  candidates in NEXT_STEPS_TO_PHASE5.md. When a step lands: commit,
-  push, update this prompt, STOP for owner + advisor review."
+  Freeport E investigations post-Gate-5 (all three surfaces live over
+  HTTP now); Cedar Alt D closed as C's sibling; live price derivation
+  permanently refusing (DEVIATIONS §20 #6); the two named reconciler
+  blind spots; the stale-message list (verbatim through API summaries) +
+  the flagged engine candidates in NEXT_STEPS_TO_PHASE5.md. When a step
+  lands: commit, push, update this prompt, STOP for owner + advisor
+  review."

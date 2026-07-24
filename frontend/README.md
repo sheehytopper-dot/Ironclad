@@ -6,37 +6,43 @@ computes **no financial numbers** — every value comes from the API at
 full precision; `src/format.js` (the Tier-1 rules ported from
 `ui/format.py`) is display-only, and null renders as an em-dash, never 0.
 
-## Run (dev — Step 0 W2)
+## Run — ONE COMMAND (W2, wired)
 
-Two terminals from the repo root:
+From the repo root, after a front-end build exists:
 
 ```
-# 1. the API (serves the frozen engine)
+cd frontend && npm install && npm run build && cd ..
 .venv\Scripts\python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
-
-# 2. the front-end (proxies /api to :8000 — no CORS)
-cd frontend
-npm install        # first time only
-npm run dev        # open http://localhost:5173
 ```
+
+Open **http://127.0.0.1:8000** — uvicorn serves the built app at `/` and
+the API under `/api/*`. Rebuild (`npm run build`) after front-end
+changes.
+
+Dev alternative (hot reload): keep uvicorn running and, in a second
+terminal, `cd frontend && npm run dev` → http://localhost:5173 (the Vite
+proxy forwards /api — no CORS).
 
 Properties are the `.icprop.json` files in `data/properties/`
-(clorox_northlake and freeport are staged for the review).
+(clorox_northlake and freeport are staged for the review; a per-name
+`<name>.expected_annual_cash_flow.csv` enables Benchmark #24).
 
 ## Test / build
 
 ```
-npm test           # the ported display-formatting rules (node --test)
+npm test           # display-formatting + document-assembly rules
 npm run build      # production bundle -> frontend/dist/
 ```
 
-Serving `dist/` from uvicorn (the W2 production model) is a pending
-`api/` addition — flagged, not yet wired.
+## Screens (rollout step 4)
 
-## Screens (this rollout step)
-
-Dashboard, Reports, Tenants — the mockup's three designed screens. The
-other seven tabs are listed in the sidebar but disabled. The Tenants
-rollover-generations panel is a FLAGGED placeholder: the data
-(`result.segments`) has no API endpoint yet — an owner-approved additive
-endpoint is required (see the panel's note).
+- **Dashboard / Reports** — read-only output screens (step 3).
+- **Tenants** — FULLY drill-in editable: click a rent-roll row → the
+  split-pane editor for that lease's complete nested detail (rent steps,
+  CPI, free rent, misc items, recoveries, TI/LC, security deposit,
+  upon-expiration + MLP link); Apply PUTs the whole document; the
+  rollover-generations panel is LIVE via `/api/tenants/generations`.
+- **Market** — inflation as flat OR variable per-year schedules, custom
+  indices, general vacancy, credit loss, the MLP grid + per-MLP detail.
+- Property / Revenues / Expenses / Investment / Valuation — next
+  (after owner review of the editing pattern).

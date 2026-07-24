@@ -260,6 +260,33 @@ def gv_basis(name: str, month: str):
             "summary": serialize.jsonable(summary)}
 
 
+@app.get("/api/tenants/generations")
+def tenant_generations(name: str, tenant: str = ""):
+    """The rollover-generations panel (the Freeport E inspection surface;
+    owner-approved additive endpoint 2026-07-20): every resolved segment
+    of a chain off ``result.segments`` — start/end, provenance, renewal
+    weight, blended initial rent, downtime, weighted free months, TI, and
+    LC pct/rate per generation. Pure presentation via the SAME converter
+    the Streamlit panel uses (``ui.convert.segments_to_generation_rows``)
+    — no engine change, nothing recomputed."""
+    from engine.reports import CONTRACTUAL, SPECULATIVE
+    from ui import convert
+    model, result, failure = _cached(name)
+    if failure:
+        return failure
+    tenants = sorted(result.segments)
+    if not tenant:
+        return {"tenants": tenants, "rows": []}
+    segments = result.segments.get(tenant)
+    if segments is None:
+        return _error(404, f"No resolved chain for tenant {tenant!r} in "
+                           f"the last run of {name!r}.")
+    rows = convert.segments_to_generation_rows(segments, CONTRACTUAL,
+                                               SPECULATIVE)
+    return serialize.jsonable({"tenants": tenants, "tenant": tenant,
+                               "rows": rows})
+
+
 @app.get("/api/audit/recovery-drill")
 def recovery_drill(name: str, tenant: str = "", segment_start: str = "",
                    month: str = ""):
@@ -312,3 +339,17 @@ def export_report_endpoint(key: str, name: str, unit: str = "total",
     path = Path(tempfile.mkdtemp()) / f"{name}-{key}.xlsx"
     export_report(report, path=path)         # the Phase 4 exporter
     return FileResponse(path, media_type=_XLSX, filename=path.name)
+
+
+# ------------------------------------------------------------------ #
+# The one-command launch (Step 0 W2, owner-approved 2026-07-20):      #
+# serve the built front-end at / from the same uvicorn process.       #
+# Mounted LAST so every /api route above wins; dev keeps the Vite     #
+# proxy (frontend/README.md).                                         #
+# ------------------------------------------------------------------ #
+
+_DIST = Path(__file__).resolve().parents[1] / "frontend" / "dist"
+if _DIST.exists():
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=_DIST, html=True),
+              name="frontend")

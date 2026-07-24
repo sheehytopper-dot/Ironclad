@@ -196,3 +196,23 @@ button.action:disabled { opacity: 0.5; cursor: default; }
   background: #fdf6e3; border: 1px dashed #c9a63c; border-radius: 4px;
   color: #7a6420; padding: 8px 10px; font-size: 11px;
 }
+
+/* ---------------- drill-in editors (rollout step 4) ---------------- */
+.editor-input {
+  font: inherit; border: 1px solid var(--line-2); border-radius: 3px;
+  padding: 4px 6px; background: var(--panel);
+}
+.editor-input.num { font-family: var(--mono); text-align: right; }
+.check { display: inline-flex; gap: 5px; align-items: center;
+  font-size: 12px; margin: 2px 12px 2px 0; }
+.optional { margin-bottom: 8px; }
+button.row-add, button.row-remove {
+  background: none; border: 1px dashed var(--line-2); border-radius: 3px;
+  color: var(--muted); font: inherit; font-size: 11px; cursor: pointer;
+  padding: 2px 8px; margin-top: 4px;
+}
+button.row-remove { border-style: solid; padding: 0 6px; }
+button.row-add:hover, button.row-remove:hover {
+  color: var(--accent); border-color: var(--accent);
+}
+.series-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 18px; }
